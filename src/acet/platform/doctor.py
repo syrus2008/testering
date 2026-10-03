@@ -6,14 +6,12 @@ unknown data (§114). Moving orphans to quarantine is an explicit action.
 
 from __future__ import annotations
 
-import os
 import platform as _platform
 import shutil
 import sqlite3
 import sys
 from dataclasses import dataclass, field
 from enum import StrEnum
-from pathlib import Path
 from typing import Any
 
 import acet
@@ -121,27 +119,20 @@ def system_checks() -> list[Check]:
     checks.append(
         Check("java", CheckStatus.OK if java else CheckStatus.NOT_AVAILABLE, "found" if java else "not found")
     )
-    ghidra = os.environ.get("GHIDRA_INSTALL_DIR")
-    ok = bool(ghidra and (Path(ghidra) / "support").is_dir())
-    checks.append(
-        Check(
-            "ghidra",
-            CheckStatus.OK if ok else CheckStatus.NOT_AVAILABLE,
-            "detected" if ok else "no Engine Pack / GHIDRA_INSTALL_DIR (roadmap P5)",
-        )
-    )
-    for name in ("ghidriff", "bindiff", "qbindiff"):
-        found = shutil.which(name)
-        checks.append(
-            Check(
-                name,
-                CheckStatus.OK if found else CheckStatus.NOT_AVAILABLE,
-                "detected (unverified)" if found else "not installed",
-            )
-        )
-    checks.append(
-        Check("diaphora", CheckStatus.NOT_AVAILABLE, "external IDA-based provider; detection only (ADR-0009)")
-    )
+    from acet.engines.environment import detect
+    from acet.engines.quirks import applicable_limitations
+
+    env = detect()
+    for pid in ("ghidra", "ghidriff", "binexport", "bindiff", "qbindiff", "diaphora"):
+        info = env.providers[pid]
+        compat = info.extra.get("compatibility", "unverified")
+        if not info.available:
+            checks.append(Check(pid, CheckStatus.NOT_AVAILABLE, info.reason or "not installed"))
+            continue
+        status = CheckStatus.OK if info.verified else CheckStatus.WARN
+        detail = f"{info.version or 'version unknown'} — {'replay (golden)' if info.extra.get('replay') else compat}"
+        lims = [k.id for k in applicable_limitations(pid, info.version)]
+        checks.append(Check(pid, status, detail, {"known_limitations": lims, "compatibility": compat}))
     return checks
 
 

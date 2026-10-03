@@ -572,6 +572,55 @@ def cmd_settings(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_pack_engine(args: argparse.Namespace) -> int:
+    from acet.platform import engine_packs as ep
+
+    if args.sub == "verify":
+        m = ep.verify_pack(Path(args.path))
+        _emit(args, {"id": m["id"], "version": m["version"], "verified": True}, f"{m['id']}@{m['version']}: verified")
+    elif args.sub == "install":
+        dest = ep.install_pack(Path(args.path))
+        _emit(args, {"installed": str(dest)}, f"installed (side by side): {dest}")
+    else:
+        packs = ep.installed_packs()
+        _emit(
+            args,
+            packs,
+            "\n".join(f"{p['id']}@{p['version']}{'  [REVOKED]' if p['revoked'] else ''}" for p in packs)
+            or "(no engine packs installed)",
+        )
+    return EXIT_OK
+
+
+def cmd_update(args: argparse.Namespace) -> int:
+    from acet.platform import updates
+
+    root = Path(args.install_root)
+    if args.sub == "rollback":
+        v = updates.rollback(root)
+        _emit(args, {"version": v}, f"rolled back to {v}")
+        return EXIT_OK
+    rec = updates.apply_offline_bundle(
+        Path(args.bundle), root, current=args.current or acet.__version__, channel=args.channel
+    )
+    _emit(
+        args,
+        {"state": rec.state, "history": rec.history, "error": rec.error},
+        f"update {rec.state}" + (f": {rec.error}" if rec.error else ""),
+    )
+    return EXIT_OK if rec.state == "COMMITTED" else EXIT_SYSTEM
+
+
+def cmd_release_keygen(args: argparse.Namespace) -> int:
+    from acet.platform.signing import keygen
+
+    pub = keygen(Path(args.secret_out), args.key_id, args.purpose or ["engine-pack", "update", "release"])
+    _emit(
+        args, pub, json.dumps(pub, indent=2) + "\n(add this public entry to the trust store; keep the secret offline)"
+    )
+    return EXIT_OK
+
+
 def _not_yet(phase: str):  # type: ignore[no-untyped-def]
     def run(args: argparse.Namespace) -> int:
         _emit(args, {"error": "not implemented", "roadmap_phase": phase}, f"not implemented yet (roadmap {phase})")

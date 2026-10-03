@@ -142,10 +142,13 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
         reason=None if gdf and live_ghidra else "ghidriff/pyghidra or a live Ghidra unavailable",
     )
     be = _binexport_extension(gdir)
+    be_ver = (
+        (be / "ACET_VERSION").read_text(encoding="utf-8").strip() if be and (be / "ACET_VERSION").is_file() else None
+    )
     providers["binexport"] = ProviderInfo(
         "binexport",
         bool(be and gdir),
-        None,
+        be_ver,
         str(be) if be else None,
         (Capability.STRUCTURAL_DIFF,),
         reason=None if be else "BinExport Ghidra extension not installed",
@@ -154,7 +157,7 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
     providers["bindiff"] = ProviderInfo(
         "bindiff",
         bool(bd),
-        None,
+        _bindiff_version(bd),
         bd,
         (Capability.STRUCTURAL_DIFF,),
         reason=None if bd else "bindiff executable not found",
@@ -166,7 +169,7 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
         dist = sorted(venv.glob("lib/python*/site-packages/qbindiff-*.dist-info")) + sorted(
             venv.glob("Lib/site-packages/qbindiff-*.dist-info")
         )
-        qver = dist[0].name.split("-")[1] if dist else None
+        qver = dist[0].name[len("qbindiff-") : -len(".dist-info")] if dist else None
     qb = qver is not None
     providers["qbindiff"] = ProviderInfo(
         "qbindiff",
@@ -186,6 +189,13 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
         (Capability.STRUCTURAL_DIFF,),
         reason="external IDA-based provider: detection only (ADR-0009)" + ("; IDA detected" if ida else ""),
     )
+    from acet.platform.engine_packs import provider_status
+
+    for info in providers.values():
+        if info.available and not info.extra.get("replay"):
+            status = provider_status(info.provider_id, info.version)
+            info.verified = status == "validated"
+            info.extra["compatibility"] = status
     providers["acet"] = ProviderInfo(
         "acet",
         True,
@@ -195,6 +205,26 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
         verified=True,
     )
     return EngineEnvironment(providers, pack_id)
+
+
+_VERSION_CACHE: dict[tuple[str, float], str | None] = {}
+
+
+def _bindiff_version(path: str | None) -> str | None:
+    """Run the provider's own ``--version`` (a provider, never an analysed artifact); cached by mtime."""
+    if not path or not Path(path).is_file():
+        return None
+    key = (path, Path(path).stat().st_mtime)
+    if key not in _VERSION_CACHE:
+        import subprocess
+
+        try:
+            out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=15).stdout
+            m = re.search(r"BinDiff\s+(\S+)", out)
+            _VERSION_CACHE[key] = m.group(1) if m else None
+        except (OSError, subprocess.TimeoutExpired):
+            _VERSION_CACHE[key] = None
+    return _VERSION_CACHE[key]
 
 
 def _acet_version() -> str:

@@ -156,7 +156,9 @@ def create_pack(ws: Workspace, dest: Path, *, include_artifacts: bool = False) -
 _SAFE = re.compile(r"^[A-Za-z0-9._\-/]+$")
 
 
-def check_archive(z: zipfile.ZipFile, limits: ArchiveLimits) -> None:
+def check_archive(
+    z: zipfile.ZipFile, limits: ArchiveLimits, *, require: tuple[str, ...] = ("manifest.json", "checksums.txt")
+) -> None:
     """ACET-ARC-001 / ACET-FS-001: reject before extraction; nothing is written on failure."""
     infos = z.infolist()
     if len(infos) > limits.max_entries:
@@ -189,8 +191,9 @@ def check_archive(z: zipfile.ZipFile, limits: ArchiveLimits) -> None:
         total += i.file_size
         if total > limits.max_total_bytes:
             raise AcetError("ACET-SEC-002", "total uncompressed size exceeds limit")
-    if "manifest.json" not in seen or "checksums.txt" not in seen:
-        raise AcetError("ACET-PACK-001", "manifest.json or checksums.txt missing")
+    missing = [r for r in require if r not in seen]
+    if missing:
+        raise AcetError("ACET-PACK-001", f"required member(s) missing: {missing}")
 
 
 def _read_bounded(z: zipfile.ZipFile, name: str, limit: int) -> bytes:

@@ -1,8 +1,8 @@
 {
   "spec_version": "3.0",
   "summary": {
-    "automated": 86,
-    "not_started": 56,
+    "automated": 101,
+    "not_started": 41,
     "partial": 8
   },
   "criteria": [
@@ -300,8 +300,10 @@
       "id": "ACC-034",
       "subject": "Engine pin",
       "criterion": "Un workspace peut rester sur un Engine Pack ancien installé.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_engine_pack_verify_tamper_and_coexistence"
+      ]
     },
     {
       "id": "ACC-035",
@@ -509,36 +511,46 @@
       "id": "ACC-057",
       "subject": "Engine manifest",
       "criterion": "Chaque Engine Pack valide hashes, compatibilité et licences.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_engine_pack_verify_tamper_and_coexistence"
+      ]
     },
     {
       "id": "ACC-058",
       "subject": "Tamper rejection",
       "criterion": "Un Engine Pack altéré est refusé avant exécution.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_engine_pack_verify_tamper_and_coexistence"
+      ]
     },
     {
       "id": "ACC-059",
       "subject": "SBOM",
       "criterion": "Chaque release stable possède un SBOM archivé.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_sbom_and_release_evidence_gate"
+      ]
     },
     {
       "id": "ACC-060",
       "subject": "Offline update",
       "criterion": "Bundle signé hors ligne s’installe sans réseau.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_offline_update_verify_apply_and_rollback"
+      ]
     },
     {
       "id": "ACC-061",
       "subject": "Engine coexistence",
       "criterion": "Deux Engine Packs compatibles peuvent coexister.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_engine_pack_verify_tamper_and_coexistence"
+      ]
     },
     {
       "id": "ACC-062",
@@ -746,8 +758,10 @@
       "id": "ACC-086",
       "subject": "Provider protocol reject",
       "criterion": "Protocol version incompatible empêche lancement.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_incompatible_protocol_refused"
+      ]
     },
     {
       "id": "ACC-087",
@@ -769,29 +783,37 @@
       "id": "ACC-089",
       "subject": "Update rollback",
       "criterion": "Échec validation post-update restaure version précédente quand rollback supporté.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_offline_update_verify_apply_and_rollback"
+      ]
     },
     {
       "id": "ACC-090",
       "subject": "Revoked engine",
       "criterion": "Engine Pack denylisted n’est plus utilisé pour nouveaux runs.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_revocation_blocks_new_use_but_keeps_history"
+      ]
     },
     {
       "id": "ACC-091",
       "subject": "Historical preservation",
       "criterion": "Denylist n’efface pas les résultats historiques.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_revocation_blocks_new_use_but_keeps_history"
+      ]
     },
     {
       "id": "ACC-092",
       "subject": "Compatibility matrix",
       "criterion": "Doctor marque une combinaison provider non validée.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_compatibility_matrix_marks_unverified"
+      ]
     },
     {
       "id": "ACC-093",
@@ -847,8 +869,10 @@
       "id": "ACC-099",
       "subject": "Signed manifest provenance",
       "criterion": "Release manifest relie commit/build/hashes/SBOM/signature.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_sbom_and_release_evidence_gate"
+      ]
     },
     {
       "id": "ACC-100",
@@ -1066,8 +1090,10 @@
       "id": "ACC-127",
       "subject": "License closure",
       "criterion": "Chaque composant redistribué possède décision licence.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_engine_pack_verify_tamper_and_coexistence"
+      ]
     },
     {
       "id": "ACC-128",
@@ -1170,8 +1196,10 @@
       "id": "ACC-139",
       "subject": "Release evidence",
       "criterion": "Stable release possède evidence bundle complet.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_sbom_and_release_evidence_gate"
+      ]
     },
     {
       "id": "ACC-140",
@@ -1256,8 +1284,10 @@
       "id": "ACC-149",
       "subject": "Update evidence",
       "criterion": "Update stable vérifie provenance/signature/hash avant apply.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p12.py::test_offline_update_verify_apply_and_rollback"
+      ]
     },
     {
       "id": "ACC-150",

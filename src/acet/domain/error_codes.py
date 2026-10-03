@@ -179,6 +179,14 @@ CATALOG: dict[str, ErrorSpec] = {
             "Do not trust this archive.",
         ),
         _e(
+            "ACET-UPD-002",
+            "Rollback unavailable",
+            F.UPDATE,
+            Out.PERMANENT_FAILURE,
+            "Nothing was changed.",
+            "No previous application version is recorded; reinstall the desired version.",
+        ),
+        _e(
             "ACET-SEC-001",
             "Unsafe archive path",
             F.SECURITY,

@@ -1,0 +1,30 @@
+{
+  "id": "acet-engines-win64",
+  "version": "1.0.0",
+  "supported_acet": ">=0.1,<2.0",
+  "sources": {
+    "ghidra": "C:/build/ghidra_11.4.2_PUBLIC",
+    "jdk": "C:/build/jdk-21",
+    "bindiff": "C:/build/BinDiff",
+    "qbindiff-python": "C:/build/qbindiff-venv"
+  },
+  "providers": [
+    {"provider_id": "ghidra", "provider_version": "11.4.2", "protocol_version": 1,
+     "capabilities": ["DISASSEMBLY", "FUNCTION_EXTRACTION"], "executable": "ghidra",
+     "license_mode": "bundled", "health_check": "acet doctor --full", "supported_formats": ["PE32", "PE32+"],
+     "supported_architectures": ["x86", "x64"], "determinism_class": "D1"},
+    {"provider_id": "bindiff", "provider_version": "8", "protocol_version": 1, "capabilities": ["STRUCTURAL_DIFF"],
+     "executable": "bindiff/bin/bindiff.exe", "license_mode": "bundled", "health_check": "bindiff --version",
+     "supported_formats": ["PE32", "PE32+"], "supported_architectures": ["x86", "x64"], "determinism_class": "D1"},
+    {"provider_id": "qbindiff", "provider_version": "1.2.3", "protocol_version": 1,
+     "capabilities": ["PROGRAMMABLE_DIFF"], "executable": "qbindiff-python/Scripts/python.exe",
+     "license_mode": "bundled", "health_check": "import qbindiff", "supported_formats": ["PE32", "PE32+"],
+     "supported_architectures": ["x86", "x64"], "determinism_class": "D2", "experimental": true}
+  ],
+  "licenses": [
+    {"component": "ghidra", "spdx": "Apache-2.0", "redistribution": "conditional", "bundling": "bundled",
+     "version_audited": "11.4.2", "notice": "Include Ghidra LICENSE and third-party licenses directory"},
+    {"component": "bindiff", "spdx": "Apache-2.0", "redistribution": "yes", "bundling": "bundled", "version_audited": "8"},
+    {"component": "qbindiff", "spdx": "Apache-2.0", "redistribution": "yes", "bundling": "bundled", "version_audited": "1.2.3"}
+  ]
+}

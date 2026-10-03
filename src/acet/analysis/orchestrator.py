@@ -901,6 +901,17 @@ def _check_artifacts(ws: Workspace, build_ids: Sequence[str]) -> list[str]:
     return sorted(set(shas))
 
 
+def environment_for(ws: Workspace) -> EngineEnvironment:
+    """Engines for new runs: the workspace's pinned Engine Pack if any, else local detection (ACET-UPD-002)."""
+    from acet.application.settings import get_setting
+    from acet.platform.engine_packs import provider_overrides, resolve_pinned
+
+    pack = resolve_pinned(get_setting(ws, "engines.pinned_pack"))
+    if pack is None:
+        return detect()
+    return detect(provider_overrides(pack), pack_id=f"{pack['id']}@{pack['version']}")
+
+
 def analyze_build(
     ws: Workspace,
     build_id: str,
@@ -910,7 +921,7 @@ def analyze_build(
     fault: FaultHook = _noop,
 ) -> RunSummary:
     profile = get_profile(profile_ref)
-    orch = Orchestrator(ws, env=env, fault=fault)
+    orch = Orchestrator(ws, env=env or environment_for(ws), fault=fault)
     _require_mandatory(profile, orch.env)
     shas = _check_artifacts(ws, [build_id])
     nodes = plan(profile, shas, [], artifact_formats(ws, shas), orch.env)
@@ -928,7 +939,7 @@ def compare_builds(
     fault: FaultHook = _noop,
 ) -> RunSummary:
     profile = get_profile(profile_ref)
-    orch = Orchestrator(ws, env=env, fault=fault)
+    orch = Orchestrator(ws, env=env or environment_for(ws), fault=fault)
     _require_mandatory(profile, orch.env)
     shas = _check_artifacts(ws, [left, right])
     lc, rc = repo.build_artifacts(ws.db.conn, left), repo.build_artifacts(ws.db.conn, right)

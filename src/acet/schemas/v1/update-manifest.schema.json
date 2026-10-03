@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acet.local/schemas/v1/update-manifest.schema.json",
+  "title": "Update manifest v1",
+  "description": "Spec \u00a764/\u00a765. Signed separately; version, channel, compatibility, hashes, rollback metadata, revocations.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "version",
+    "channel",
+    "compatible_from",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "version": {
+      "type": "string"
+    },
+    "channel": {
+      "enum": [
+        "STABLE",
+        "BETA",
+        "DEVELOPER"
+      ]
+    },
+    "compatible_from": {
+      "type": "string"
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "irreversible_migration": {
+      "type": "boolean"
+    },
+    "release_notes": {
+      "type": "string"
+    },
+    "revoked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "version"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "engine_pack",
+              "app"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

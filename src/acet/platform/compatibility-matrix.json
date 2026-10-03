@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "acet": ">=0.1,<2.0",
+  "os": [{"name": "Windows", "versions": ["10", "11"], "arch": "x64", "status": "supported"},
+         {"name": "Linux", "arch": "x64", "status": "development-only"}],
+  "formats": [{"format": "PE32", "status": "supported"}, {"format": "PE32+", "status": "supported"},
+              {"format": "ELF", "status": "future"}, {"format": "Mach-O", "status": "future"}],
+  "providers": [
+    {"provider_id": "ghidra", "versions": ["11.4.2"], "status": "validated", "notes": "golden demo extraction identical (D1)"},
+    {"provider_id": "ghidriff", "versions": ["1.0.0"], "status": "validated", "requires": {"ghidra": "11.4.2", "pyghidra": "2.2.1 (bundled with Ghidra)"}},
+    {"provider_id": "binexport", "versions": ["12-bindiff8"], "status": "validated", "notes": "protobuf-java aligned to 3.23.0 in the Engine Pack"},
+    {"provider_id": "bindiff", "versions": ["8"], "status": "validated"},
+    {"provider_id": "qbindiff", "versions": ["1.2.3"], "status": "experimental", "notes": "isolated interpreter; memory gate"},
+    {"provider_id": "diaphora", "versions": [], "status": "external-unverified"}
+  ]
+}
