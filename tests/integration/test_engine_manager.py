@@ -509,3 +509,48 @@ def test_ghidriff_version_found_in_venv_and_embedded_cpython_layouts(tmp_path):
     assert _venv_dist_version(str(venv / "bin/python"), "ghidriff") == "1.0.0"
     assert _venv_dist_version(str(embed / "python.exe"), "ghidriff") == "1.0.0"
     assert _venv_dist_version(str(embed / "python.exe"), "pyghidra") is None
+
+
+# ------------------------------------------------------------------------------------------- platform / channel
+def test_packs_for_another_platform_are_never_resolved_or_installed(tmp_path, monkeypatch):
+    entries = [
+        {"id": "p", "version": "2.0.0", "supported_acet": ">=0.1", "platform": "win-x64"},
+        {"id": "p", "version": "1.0.0", "supported_acet": ">=0.1", "platform": "linux-x64"},
+    ]
+    monkeypatch.setattr(em, "current_platform", lambda: "linux-x64")
+    assert em.resolve_compatible(entries)["version"] == "1.0.0"  # not the newer pack built for Windows
+    monkeypatch.setattr(em, "current_platform", lambda: "darwin-arm64")
+    with pytest.raises(AcetError) as ei:
+        em.resolve_compatible(entries)
+    assert ei.value.data["reason"] == "PACK_INCOMPATIBLE"
+    archive = make_pack(tmp_path)  # platform-independent: installable anywhere
+    src = json.loads(zipfile.ZipFile(archive).read("engine-pack.json"))["payload"]
+    assert "platform" not in src and em.platform_matches(None)
+    win = tmp_path / "win"
+    cfg_pack = build(
+        {**_cfg_of(src), "platform": "win-x64", "sources": {"ghidra": str(tmp_path / "src-1.0.0/ghidra")}},
+        win / "pack",
+        SECRET,
+        "rel",
+    )
+    with pytest.raises(AcetError) as ei:
+        em.install_archive(make_archive(cfg_pack, win / "w.acetengine"), health_check=ok_health)
+    assert ei.value.data["reason"] == "PACK_INCOMPATIBLE" and em.active_pack() is None
+
+
+def _cfg_of(payload: dict[str, Any]) -> dict[str, Any]:
+    keys = ("id", "version", "supported_acet", "providers", "licenses", "components")
+    return {k: payload[k] for k in keys if k in payload}
+
+
+def test_this_build_resolves_a_signed_https_channel_and_stable_refuses_dev(monkeypatch):
+    from tools import release_evidence
+
+    monkeypatch.undo()  # the real bundled distribution and trust store of this build
+    cfg = em._bundled_distribution()
+    assert cfg["index_urls"] and all(u.startswith("https://") for u in cfg["index_urls"])
+    dev = [k for k in signing._bundled_store()["keys"] if k.get("channel") == "dev"]
+    assert dev and all(k["purposes"] == ["engine-pack"] for k in dev)  # never update/release
+    g = release_evidence._Gate(Path("."))
+    release_evidence._check_distribution(g)
+    assert any("development key" in p for p in g.problems) and any("channel 'dev'" in p for p in g.problems)

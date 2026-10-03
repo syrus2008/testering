@@ -1,4 +1,7 @@
 {
-  "comment": "Official Engine Pack distribution. Each index URL must serve an index signed by a key of the bundled trust store (purpose engine-pack); the URL itself grants no trust. Empty until the release owner publishes the first signed pack (see docs/runbook.md, Engine Packs).",
-  "index_urls": []
+  "comment": "Engine Pack distribution of this build. Each index URL must serve an index signed by a key of the bundled trust store (purpose engine-pack); the URL itself grants no trust (ADR-0013). Development/test builds use the dev channel, published by .github/workflows/engine-pack.yml and signed with the dev key; a STABLE release must replace it with the official channel (tools/release_evidence.py refuses channel 'dev').",
+  "channel": "dev",
+  "index_urls": [
+    "https://github.com/syrus2008/testering/releases/download/engine-pack-index-dev/index.json"
+  ]
 }

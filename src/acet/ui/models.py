@@ -120,15 +120,14 @@ class RowsModel(QAbstractTableModel):
     def data(self, index: Index, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if not index.isValid():
             return None
-        if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.AccessibleTextRole):
-            return self.display[index.row()][index.column()]
+        if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.AccessibleTextRole, Qt.ItemDataRole.ToolTipRole):
+            text = self.display[index.row()][index.column()]  # tooltip: the full text of a narrowed cell
+            return (text or None) if role == Qt.ItemDataRole.ToolTipRole else text
         row = self.rows[index.row()]
         key = self.columns[index.column()][0]
         value = row.get(key)
         if role == Qt.ItemDataRole.UserRole:
             return value
-        if role == Qt.ItemDataRole.ToolTipRole:
-            return None if value is None else str(value)
         return None
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
@@ -138,6 +137,9 @@ class RowsModel(QAbstractTableModel):
 
     def row_at(self, r: int) -> dict[str, Any]:
         return self.rows[r]
+
+    def display_column(self, c: int) -> list[str]:
+        return [d[c] for d in self.display]
 
 
 class FilterProxy(QSortFilterProxyModel):

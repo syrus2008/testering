@@ -88,6 +88,7 @@ class ConsentDialog(QDialog):
 
     def __init__(self, entry: dict[str, Any], parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.entry = entry
         self.setWindowTitle("ACET Engine Pack")
         lay = QVBoxLayout(self)
         mb = 1024**2
@@ -143,7 +144,8 @@ class EngineManagerWidget(QWidget):
         self.summary.setWordWrap(True)
         lay.addWidget(self.summary)
         self.profiles = Table([("profile", "Profile"), ("state_text", "Status"), ("detail", "Detail")], "Profiles")
-        self.profiles.setMaximumHeight(170)
+        self.profiles.fit_columns("detail")
+        self.profiles.setMaximumHeight(200)
         lay.addWidget(self.profiles)
         self.components = Table(
             [
@@ -156,6 +158,7 @@ class EngineManagerWidget(QWidget):
             ],
             "Engine components",
         )
+        self.components.fit_columns("why")
         lay.addWidget(self.components, 1)
         prog = QGroupBox("Progress")
         pl = QVBoxLayout(prog)

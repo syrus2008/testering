@@ -1,4 +1,15 @@
 {
-  "comment": "Public keys trusted for ACET release artifacts. Production keys are added at release time by the release owner; private keys never enter the repository (ACET spec §75). Revoked keys keep their entry with \"revoked\": true.",
-  "keys": []
+  "comment": "Public keys trusted for ACET release artifacts. Production keys are added at release time by the release owner; private keys never enter the repository (ACET spec \u00a775). Revoked keys keep their entry with \"revoked\": true.",
+  "keys": [
+    {
+      "key_id": "acet-dev-engines-2026-10",
+      "alg": "ed25519",
+      "public_key": "20bb9a5b7ef7b199221758d3050af74659cd01d1dbc02b8d06137ca5b0e5384c",
+      "purposes": [
+        "engine-pack"
+      ],
+      "channel": "dev",
+      "comment": "Development/test Engine Pack channel only (ADR-0013). A STABLE release refuses to ship with this key (tools/release_evidence.py)."
+    }
+  ]
 }

@@ -40,6 +40,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+PLATFORM_DIR = ROOT / "src" / "acet" / "platform"  # trust store and Engine Pack distribution of the build
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
@@ -562,6 +563,18 @@ def _check_registries(g: _Gate) -> None:
             g.evidence("known-limitations: entries without id/status/provider_id")
 
 
+def _check_distribution(g: _Gate) -> None:
+    """A STABLE build trusts no development key and resolves Engine Packs from no development channel."""
+    platform_dir = PLATFORM_DIR
+    keys = json.loads((platform_dir / "trusted_keys.json").read_text(encoding="utf-8")).get("keys", [])
+    for k in keys:
+        if k.get("channel") == "dev" and not k.get("revoked"):
+            g.evidence(f"trusted_keys.json: development key {k.get('key_id')} must be removed for STABLE")
+    dist = json.loads((platform_dir / "distribution.json").read_text(encoding="utf-8"))
+    if dist.get("channel") != "stable":
+        g.evidence(f"distribution.json: channel {dist.get('channel')!r}, STABLE needs the official 'stable' channel")
+
+
 def check(
     out: Path,
     channel: str = "STABLE",
@@ -599,6 +612,7 @@ def check(
         _check_licenses(g)
         _check_benchmarks(g, baseline_dir or ROOT / "benchmarks" / "baselines")
         _check_registries(g)
+        _check_distribution(g)
     problems = list(dict.fromkeys(g.problems))
     return problems if stable else [p for p in problems if p.startswith(INTEGRITY)]
 

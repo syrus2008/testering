@@ -24,6 +24,16 @@ def _isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("ACET_WORKSPACE", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def _no_real_distribution(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests never reach the real Engine Pack distribution of this build (tests/live opts in)."""
+    if request.node.get_closest_marker("real_distribution") is None:
+        from acet.platform import engine_manager
+
+        monkeypatch.setattr(engine_manager, "_bundled_distribution", lambda: {"channel": "test", "index_urls": []})
+        monkeypatch.delenv("ACET_ENGINE_INDEX_URL", raising=False)
+
+
 @pytest.fixture
 def ws(tmp_path: Path) -> Iterator[Workspace]:
     w = create_workspace("test", tmp_path / "workspaces")

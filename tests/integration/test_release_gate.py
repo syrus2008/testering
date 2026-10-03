@@ -128,9 +128,22 @@ def _reseal_checksums(out: Path) -> None:
 
 
 @pytest.mark.acceptance("ACC-099", "ACC-139")
-def test_complete_signed_bundle_passes_stable(tmp_path, trust, inputs):
+def _stable_platform(tmp_path, monkeypatch):
+    """The build being released: official distribution channel, no development key."""
+    d = tmp_path / "platform"
+    d.mkdir()
+    keys = json.loads((release_evidence.PLATFORM_DIR / "trusted_keys.json").read_text(encoding="utf-8"))
+    keys["keys"] = [k for k in keys["keys"] if k.get("channel") != "dev"]
+    (d / "trusted_keys.json").write_text(json.dumps(keys), encoding="utf-8")
+    (d / "distribution.json").write_text(json.dumps({"channel": "stable", "index_urls": []}), encoding="utf-8")
+    monkeypatch.setattr(release_evidence, "PLATFORM_DIR", d)
+
+
+def test_complete_signed_bundle_passes_stable(tmp_path, trust, inputs, monkeypatch):
     out = tmp_path / "evidence"
     _build(out, inputs)
+    assert any("development key" in p for p in release_evidence.check(out, "STABLE", artifacts=[inputs["installer"]]))
+    _stable_platform(tmp_path, monkeypatch)
     assert release_evidence.check(out, "STABLE", artifacts=[inputs["installer"]]) == []
 
 

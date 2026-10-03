@@ -68,6 +68,17 @@ class Table(QWidget):
     def set_rows(self, rows: list[dict[str, Any]]) -> None:
         self.model.set_rows(rows)
 
+    def fit_columns(self, stretch: str) -> None:
+        """For short tables: every column as wide as its content, the descriptive ``stretch`` column takes the
+        remaining width and wraps, rows grow to show it: nothing is elided."""
+        header = self.view.horizontalHeader()
+        header.setStretchLastSection(False)
+        for i, (key, _title) in enumerate(self.model.columns):
+            mode = QHeaderView.ResizeMode.Stretch if key == stretch else QHeaderView.ResizeMode.ResizeToContents
+            header.setSectionResizeMode(i, mode)
+        self.view.setWordWrap(True)
+        self.view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+
     def selected(self) -> dict[str, Any] | None:
         idx = self.view.currentIndex()
         if not idx.isValid():

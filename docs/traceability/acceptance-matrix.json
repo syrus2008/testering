@@ -925,7 +925,7 @@
       "status": "automated",
       "tests": [
         "tests/integration/test_p12.py::test_sbom_and_release_evidence_gate",
-        "tests/integration/test_release_gate.py::test_complete_signed_bundle_passes_stable"
+        "tests/integration/test_release_gate.py::_stable_platform"
       ]
     },
     {
@@ -1293,7 +1293,7 @@
       "status": "automated",
       "tests": [
         "tests/integration/test_p12.py::test_sbom_and_release_evidence_gate",
-        "tests/integration/test_release_gate.py::test_complete_signed_bundle_passes_stable"
+        "tests/integration/test_release_gate.py::_stable_platform"
       ]
     },
     {
@@ -1441,6 +1441,7 @@
       "criterion": "Engines button always reachable; status not conveyed by colour only; progress, cancel, error, retry; no UI freeze.",
       "status": "automated",
       "tests": [
+        "tests/ui/test_engines_ui.py::test_component_status_and_reasons_are_never_truncated",
         "tests/ui/test_engines_ui.py::test_engines_button_and_first_run_guide",
         "tests/ui/test_engines_ui.py::test_install_from_file_with_progress_and_ready_profiles"
       ]

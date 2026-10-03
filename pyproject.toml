@@ -38,6 +38,7 @@ addopts = "-ra"
 pythonpath = ["src"]
 markers = [
   "acceptance(ids): links a test to one or more ACC-xxx acceptance criteria",
+  "real_distribution: may reach the real Engine Pack distribution of this build (tests/live only)",
 ]
 
 [tool.ruff]

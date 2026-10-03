@@ -7,13 +7,13 @@
   "inputs": {
     "ghidra": {
       "url": "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_11.4.2_build/ghidra_11.4.2_PUBLIC_20250826.zip",
-      "sha256": null,
+      "sha256": "795a02076af16257bd6f3f4736c4fc152ce9ff1f95df35cd47e2adc086e037a6",
       "published_sha256": {"github_release": "NationalSecurityAgency/ghidra", "tag": "Ghidra_11.4.2_build"},
       "extract": {"strip_root": true, "dest": "ghidra"}
     },
     "java": {
       "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.8%2B9/OpenJDK21U-jdk_x64_windows_hotspot_21.0.8_9.zip",
-      "sha256": null,
+      "sha256": "5dbb74a4edda94c2aae97a1e30f448db0ad9023a9466fe31a8c68377d9dfbac4",
       "published_sha256": {"url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.8%2B9/OpenJDK21U-jdk_x64_windows_hotspot_21.0.8_9.zip.sha256.txt"},
       "extract": {"strip_root": true, "dest": "runtime/java", "exclude": ["jmods/", "lib/src.zip", "demo/", "man/"]}
     },

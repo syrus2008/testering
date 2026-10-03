@@ -221,13 +221,18 @@ def recover(log: InstallLog | None = None) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------------------------- index
+def _bundled_distribution() -> dict[str, Any]:
+    cfg: dict[str, Any] = json.loads(
+        (resources.files("acet.platform") / "distribution.json").read_text(encoding="utf-8")
+    )
+    return cfg
+
+
 def distribution_config() -> dict[str, Any]:
     """Where the signed pack index is published. The URL grants no trust: the index must be signed by a
     key of the bundled trust store (ADR-0011); a developer/enterprise mirror can be named with
     ACET_ENGINE_INDEX_URL and is held to the same signature."""
-    cfg: dict[str, Any] = json.loads(
-        (resources.files("acet.platform") / "distribution.json").read_text(encoding="utf-8")
-    )
+    cfg = _bundled_distribution()
     extra = os.environ.get("ACET_ENGINE_INDEX_URL")
     if extra:
         cfg["index_urls"] = [extra, *cfg.get("index_urls", [])]

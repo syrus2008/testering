@@ -177,3 +177,32 @@ def test_settings_embeds_the_same_manager(qtbot, win):
     s = win.ctx.pages["Settings"]
     assert isinstance(s.engines, EngineManagerWidget)
     assert s.engines.components.model.rows and "Install location" in s.engines.summary.text()
+
+
+@pytest.mark.acceptance("ACC-ENGINE-005")
+def test_component_status_and_reasons_are_never_truncated(qtbot, win):
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QHeaderView
+
+    _idle(qtbot, win)
+    win.open_engines()
+    dlg = win.engine_dialog
+    mgr: EngineManagerWidget = dlg.manager
+    _idle(qtbot, win)
+    view = mgr.components.view
+    header = view.horizontalHeader()
+    keys = [k for k, _ in mgr.components.model.columns]
+    status_col, why_col = keys.index("state_text"), keys.index("why")
+    fm = view.fontMetrics()
+    widest = max(fm.horizontalAdvance(t) for t in mgr.components.model.display_column(status_col))
+    assert "NOT CONFIGURED" in " ".join(mgr.components.model.display_column(status_col))
+    assert header.sectionSize(status_col) >= widest  # the status word is shown whole, never "NOT ..."
+    assert header.sectionResizeMode(why_col) == QHeaderView.ResizeMode.Stretch and view.wordWrap()
+    first_why = mgr.components.model.index(0, why_col)
+    assert mgr.components.model.data(first_why, Qt.ItemDataRole.ToolTipRole) == mgr.components.model.data(first_why)
+    # the wrapped explanation is fully visible: its row is as tall as the wrapped text needs
+    text = mgr.components.model.data(first_why)
+    rect = fm.boundingRect(0, 0, header.sectionSize(why_col) - 8, 10_000, int(Qt.TextFlag.TextWordWrap), text)
+    assert view.rowHeight(0) >= rect.height()
+    profiles = mgr.profiles.view.horizontalHeader()
+    assert profiles.sectionResizeMode(2) == QHeaderView.ResizeMode.Stretch
