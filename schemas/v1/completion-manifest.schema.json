@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acet.local/schemas/v1/completion-manifest.schema.json",
+  "title": "Provider completion manifest v1",
+  "description": "Spec §59. Combined with exit code, output checksums and counters before COMPLETED.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "provider_id",
+    "provider_version",
+    "run_id",
+    "started_at",
+    "finished_at",
+    "termination",
+    "engine_exit_code",
+    "engine_reported_errors",
+    "engine_reported_warnings",
+    "expected_outputs",
+    "present_outputs",
+    "output_checksums",
+    "analysis_counts",
+    "completion_state"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": 1
+    },
+    "provider_id": {
+      "type": "string"
+    },
+    "provider_version": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "termination": {
+      "enum": [
+        "normal",
+        "timeout",
+        "killed",
+        "crash",
+        "unknown"
+      ]
+    },
+    "engine_exit_code": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "engine_reported_errors": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "engine_reported_warnings": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "expected_outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "present_outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "output_checksums": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "analysis_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "completion_state": {
+      "enum": [
+        "complete",
+        "partial",
+        "invalid"
+      ]
+    }
+  }
+}

@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "acet"
+version = "0.1.0"
+description = "ACET — Anti-Cheat Evolution Tracker: local, reproducible longitudinal binary evolution analysis."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+# The Core is intentionally stdlib-only (offline-first, embedded runtime).
+dependencies = []
+
+[project.optional-dependencies]
+ui = ["PySide6>=6.6"]
+dev = ["pytest>=8", "hypothesis>=6.100", "ruff>=0.6", "mypy>=1.10"]
+
+[project.scripts]
+acet = "acet.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"acet.storage.migrations" = ["*.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+pythonpath = ["src"]
+markers = [
+  "acceptance(ids): links a test to one or more ACC-xxx acceptance criteria",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003", "E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src/acet"]

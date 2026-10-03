@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acet.local/schemas/v1/engine-pack.schema.json",
+  "title": "Engine Pack manifest v1",
+  "description": "Spec §46 / §64. Signed; every file hashed; licenses audited before redistribution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "protocol_version",
+    "providers",
+    "licenses",
+    "checksums",
+    "supported_acet"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+([-+][0-9A-Za-z.-]+)?$"
+    },
+    "protocol_version": {
+      "const": 1
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider_id",
+          "provider_version",
+          "protocol_version",
+          "capabilities",
+          "executable",
+          "license_mode",
+          "health_check",
+          "supported_formats",
+          "supported_architectures"
+        ],
+        "properties": {
+          "provider_id": {
+            "type": "string"
+          },
+          "provider_version": {
+            "type": "string"
+          },
+          "protocol_version": {
+            "const": 1
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "DISASSEMBLY",
+                "FUNCTION_EXTRACTION",
+                "STRUCTURAL_DIFF",
+                "PROGRAMMABLE_DIFF",
+                "SEMANTIC_FEATURES",
+                "REPORT_EXPORT"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "executable": {
+            "type": "string"
+          },
+          "license_mode": {
+            "enum": [
+              "bundled",
+              "external",
+              "downloaded_by_user"
+            ]
+          },
+          "health_check": {
+            "type": "string"
+          },
+          "supported_formats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "supported_architectures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "determinism_class": {
+            "enum": [
+              "D0",
+              "D1",
+              "D2",
+              "D3"
+            ]
+          },
+          "experimental": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "licenses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "component",
+          "spdx",
+          "redistribution",
+          "bundling",
+          "version_audited"
+        ],
+        "properties": {
+          "component": {
+            "type": "string"
+          },
+          "spdx": {
+            "type": "string"
+          },
+          "redistribution": {
+            "enum": [
+              "yes",
+              "no",
+              "conditional"
+            ]
+          },
+          "notice": {
+            "type": "string"
+          },
+          "source_obligation": {
+            "type": "string"
+          },
+          "bundling": {
+            "enum": [
+              "bundled",
+              "external",
+              "downloaded_by_user"
+            ]
+          },
+          "version_audited": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "checksums": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "supported_acet": {
+      "type": "string"
+    },
+    "sbom": {
+      "type": "string"
+    },
+    "signature": {
+      "type": "string"
+    }
+  }
+}

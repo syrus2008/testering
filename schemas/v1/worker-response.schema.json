@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acet.local/schemas/v1/worker-response.schema.json",
+  "title": "Worker protocol v1 — response",
+  "description": "Spec §52. Worker → Core. Status alone never proves completion (ACET-ENG-001).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "job_id",
+    "status",
+    "facts",
+    "results",
+    "warnings",
+    "metrics",
+    "artifacts"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": 1
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "status": {
+      "enum": [
+        "success",
+        "partial",
+        "failed"
+      ]
+    },
+    "facts": {
+      "type": "array"
+    },
+    "results": {
+      "type": "array"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wall_ms",
+        "peak_rss_bytes"
+      ],
+      "properties": {
+        "wall_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "peak_rss_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array"
+    }
+  }
+}

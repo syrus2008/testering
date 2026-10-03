@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acet.local/schemas/v1/known-limitation.schema.json",
+  "title": "Known limitation entry v1",
+  "description": "Spec §84 Known Limitations Registry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "provider_id",
+    "provider_version_range",
+    "input_context",
+    "symptom",
+    "severity",
+    "workaround",
+    "source",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "provider_id": {
+      "type": "string"
+    },
+    "provider_version_range": {
+      "type": "string"
+    },
+    "input_context": {
+      "type": "object"
+    },
+    "symptom": {
+      "type": "string"
+    },
+    "severity": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ]
+    },
+    "workaround": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "OPEN",
+        "MITIGATED",
+        "FIXED"
+      ]
+    }
+  }
+}

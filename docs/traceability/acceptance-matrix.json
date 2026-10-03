@@ -1,0 +1,1133 @@
+{
+  "spec_version": "3.0",
+  "summary": {
+    "automated": 23,
+    "not_started": 119,
+    "partial": 8
+  },
+  "criteria": [
+    {
+      "id": "ACC-001",
+      "subject": "Installation propre",
+      "criterion": "Sur VM Windows 11 propre, l’installateur termine et ACET démarre sans Python système.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-002",
+      "subject": "Premier lancement",
+      "criterion": "Le wizard crée un workspace, diagnostique les moteurs et lance le self-test.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-003",
+      "subject": "Offline",
+      "criterion": "Débranché du réseau, import/analyse/compare/report fonctionnent.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-004",
+      "subject": "No execution",
+      "criterion": "Les tests d’intégration démontrent qu’aucun artefact importé n’est exécuté.",
+      "status": "partial",
+      "tests": [
+        "tests/unit/test_domain.py::test_no_execution_primitives_in_core"
+      ],
+      "gap": "static guarantee only (no execution primitives on import paths); runtime proof needs P3 workers"
+    },
+    {
+      "id": "ACC-005",
+      "subject": "Duplicate artifact",
+      "criterion": "Importer deux fois le même fichier ne duplique pas ses bytes.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_duplicate_artifact_bytes_not_duplicated"
+      ]
+    },
+    {
+      "id": "ACC-006",
+      "subject": "Duplicate build",
+      "criterion": "Un fingerprint identique propose une nouvelle observation.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_duplicate_build_proposes_observation"
+      ]
+    },
+    {
+      "id": "ACC-007",
+      "subject": "Atomic import",
+      "criterion": "Un échec avant COMMIT ne laisse aucun build partiel visible.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_failure_before_commit_leaves_no_visible_build"
+      ]
+    },
+    {
+      "id": "ACC-008",
+      "subject": "Integrity",
+      "criterion": "La corruption d’un artifact est détectée avant analyse.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_corrupted_artifact_detected_before_analysis"
+      ]
+    },
+    {
+      "id": "ACC-009",
+      "subject": "Ghidra isolation",
+      "criterion": "Tuer le worker Ghidra ne tue pas l’UI.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-010",
+      "subject": "Resume",
+      "criterion": "Après arrêt forcé de l’application, les jobs interrompus sont proposés à la reprise.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-011",
+      "subject": "Partial",
+      "criterion": "Échec d’un moteur optionnel produit COMPLETED_PARTIAL et missing_evidence.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-012",
+      "subject": "Cache",
+      "criterion": "Relancer même processor/config/input produit cache hit.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-013",
+      "subject": "Stale",
+      "criterion": "Changer processor version marque les descendants STALE sans supprimer les anciens résultats.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-014",
+      "subject": "Reproducibility",
+      "criterion": "Chaque Analysis Run expose versions, config hashes et input hashes.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-015",
+      "subject": "Explainability",
+      "criterion": "Chaque consensus match ouvre supporting/contradicting evidence.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-016",
+      "subject": "No magic score",
+      "criterion": "L’UI n’affiche aucun score global fusionnant toutes les dimensions d’anomalie.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-017",
+      "subject": "Unknown semantics",
+      "criterion": "Une métrique non mesurée apparaît UNKNOWN et non 0.",
+      "status": "partial",
+      "tests": [
+        "tests/unit/test_domain.py::test_unobserved_expected_component_is_unknown_not_absent"
+      ],
+      "gap": "domain completeness only; report/UI rendering arrives with P9/P11/P13"
+    },
+    {
+      "id": "ACC-018",
+      "subject": "Lineage history",
+      "criterion": "Ajouter Build C étend la lineage sans supprimer les assignments de l’ancien run.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-019",
+      "subject": "Split/merge",
+      "criterion": "Le modèle accepte au moins un split et un merge dans les fixtures.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-020",
+      "subject": "Search",
+      "criterion": "Ctrl+K retrouve build, artifact hash, lineage et annotation.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-021",
+      "subject": "Report JSON",
+      "criterion": "Le JSON exporté valide son schema.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-022",
+      "subject": "ACET pack",
+      "criterion": "Un pack sans artifacts se réimporte avec résultats et annotations.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-023",
+      "subject": "Pack safety",
+      "criterion": "Un pack avec traversal ou checksum invalide est refusé.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-024",
+      "subject": "DB migration",
+      "criterion": "Toutes les migrations fixtures réussissent ou rollbackent atomiquement.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_storage.py::test_migration_failure_rolls_back_atomically"
+      ]
+    },
+    {
+      "id": "ACC-025",
+      "subject": "Uninstall",
+      "criterion": "Désinstaller conserve les workspaces par défaut.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-026",
+      "subject": "Doctor",
+      "criterion": "Doctor --full exécute un golden self-test fonctionnel.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-027",
+      "subject": "Benchmark blind",
+      "criterion": "Les labels ground truth ne sont pas fournis au détecteur pendant le run.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-028",
+      "subject": "Calibration honesty",
+      "criterion": "Aucune probabilité n’est affichée avant calibration validée.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-029",
+      "subject": "Performance UI",
+      "criterion": "Les opérations longues ne bloquent jamais le thread UI.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-030",
+      "subject": "Large table",
+      "criterion": "Une table de 10 000 fonctions reste navigable et filtrable sans gel prolongé.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-031",
+      "subject": "Disk preflight",
+      "criterion": "Un job lourd refuse de démarrer si l’espace estimé est insuffisant.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-032",
+      "subject": "Logs privacy",
+      "criterion": "Le diagnostic par défaut ne contient ni artifact bytes ni chemin utilisateur complet.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-033",
+      "subject": "Provider capability",
+      "criterion": "L’UI dépend des capabilities, pas du nom d’un moteur spécifique.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-034",
+      "subject": "Engine pin",
+      "criterion": "Un workspace peut rester sur un Engine Pack ancien installé.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-035",
+      "subject": "Audit",
+      "criterion": "Import, suppression logique, analyse et annotation créent un audit event.",
+      "status": "partial",
+      "tests": [
+        "tests/integration/test_import.py::test_soft_delete_is_recoverable_and_audited",
+        "tests/integration/test_storage.py::test_audit_is_append_only"
+      ],
+      "gap": "import, product creation and soft delete audited; analysis/annotation audit with P4+"
+    },
+    {
+      "id": "ACC-036",
+      "subject": "Trash",
+      "criterion": "Une suppression de build est récupérable avant purge.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_soft_delete_is_recoverable_and_audited"
+      ]
+    },
+    {
+      "id": "ACC-037",
+      "subject": "Reconcile",
+      "criterion": "Doctor détecte référence DB pendante et artifact orphelin dans fixtures.",
+      "status": "partial",
+      "tests": [
+        "tests/integration/test_import.py::test_reconcile_detects_dangling_reference"
+      ],
+      "gap": "reconcile covers dangling refs and orphans; Doctor UI with P13"
+    },
+    {
+      "id": "ACC-038",
+      "subject": "Determinism",
+      "criterion": "Le golden dataset répété produit les mêmes facts et sorties déterministes définies.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-039",
+      "subject": "Coverage",
+      "criterion": "Un run partiel expose coverage et raisons de non-couverture.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-040",
+      "subject": "External events",
+      "criterion": "Une corrélation temporelle n’est jamais libellée causalité automatiquement.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-041",
+      "subject": "Product agnostic",
+      "criterion": "Le test de domaine utilise un produit fictif sans branche spécifique anti-cheat.",
+      "status": "automated",
+      "tests": [
+        "tests/unit/test_domain.py::test_core_has_no_product_specific_branch"
+      ]
+    },
+    {
+      "id": "ACC-042",
+      "subject": "CLI parity",
+      "criterion": "Les use cases import/analyze/compare/export sont utilisables via CLI.",
+      "status": "partial",
+      "tests": [
+        "tests/integration/test_cli.py::test_cli_end_to_end_exit_codes"
+      ],
+      "gap": "import via CLI only; analyze/compare/export arrive with P4-P11"
+    },
+    {
+      "id": "ACC-043",
+      "subject": "Exit codes",
+      "criterion": "Les scénarios CLI renvoient les codes documentés.",
+      "status": "partial",
+      "tests": [
+        "tests/integration/test_cli.py::test_cli_end_to_end_exit_codes"
+      ],
+      "gap": "codes 0/10/20/40 exercised; 30 (analysis failure) needs P4+"
+    },
+    {
+      "id": "ACC-044",
+      "subject": "Accessibility",
+      "criterion": "Les parcours Import→Analyze→Compare sont réalisables au clavier.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-045",
+      "subject": "Backup",
+      "criterion": "Un backup metadata peut restaurer DB/annotations/settings sans artifact duplication.",
+      "status": "partial",
+      "tests": [
+        "tests/integration/test_storage.py::test_hot_backup_during_concurrent_writes_is_consistent"
+      ],
+      "gap": "hot metadata backup proven; settings/annotations restore flow with P11"
+    },
+    {
+      "id": "ACC-046",
+      "subject": "Storage cleanup",
+      "criterion": "Clean rebuildable cache ne supprime ni SOURCE ni FACT non reconstructible.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-047",
+      "subject": "Build completeness",
+      "criterion": "Un build partiel indique UNKNOWN pour composant attendu non observé.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_profile_completeness_partial_unknown",
+        "tests/unit/test_domain.py::test_unobserved_expected_component_is_unknown_not_absent"
+      ]
+    },
+    {
+      "id": "ACC-048",
+      "subject": "Raw scores",
+      "criterion": "Les scores moteurs originaux restent accessibles après consensus.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-049",
+      "subject": "Evidence diversity",
+      "criterion": "Le consensus distingue nombre de moteurs et diversité de familles de preuve.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-050",
+      "subject": "Release gate",
+      "criterion": "Aucune release stable n’est produite si les tests mandatory/golden/migration échouent.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-051",
+      "subject": "Provider completion",
+      "criterion": "Exit 0 + sortie manquante ne peut jamais produire COMPLETED.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-052",
+      "subject": "Job Object",
+      "criterion": "Tous les descendants d’un provider sont terminés après hard cancel.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-053",
+      "subject": "Ghidra false-success",
+      "criterion": "Une erreur interne connue dans les logs dégrade le run.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-054",
+      "subject": "Ghidra timeout",
+      "criterion": "Timeout natif ou externe est visible dans completion manifest.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-055",
+      "subject": "WAL backup",
+      "criterion": "Backup à chaud restauré passe integrity_check.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_storage.py::test_hot_backup_during_concurrent_writes_is_consistent"
+      ]
+    },
+    {
+      "id": "ACC-056",
+      "subject": "Signed release",
+      "criterion": "Installer production vérifie signature et timestamp en CI.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-057",
+      "subject": "Engine manifest",
+      "criterion": "Chaque Engine Pack valide hashes, compatibilité et licences.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-058",
+      "subject": "Tamper rejection",
+      "criterion": "Un Engine Pack altéré est refusé avant exécution.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-059",
+      "subject": "SBOM",
+      "criterion": "Chaque release stable possède un SBOM archivé.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-060",
+      "subject": "Offline update",
+      "criterion": "Bundle signé hors ligne s’installe sans réseau.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-061",
+      "subject": "Engine coexistence",
+      "criterion": "Deux Engine Packs compatibles peuvent coexister.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-062",
+      "subject": "Pinned reproduction",
+      "criterion": "Un ancien run peut demander son Engine Pack exact.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-063",
+      "subject": "Long path",
+      "criterion": "Golden filesystem test &gt;260 caractères passe lorsque OS compatible.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-064",
+      "subject": "Unicode",
+      "criterion": "Import/recherche/export préservent les noms Unicode.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_unicode_file_names"
+      ]
+    },
+    {
+      "id": "ACC-065",
+      "subject": "Reparse safety",
+      "criterion": "Une boucle de reparse point ne boucle jamais la découverte.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_reparse_loop_does_not_hang"
+      ]
+    },
+    {
+      "id": "ACC-066",
+      "subject": "Archive bomb",
+      "criterion": "Extraction bornée refuse une fixture bomb.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-067",
+      "subject": "Canonical JSON",
+      "criterion": "Même objet logique produit le même fingerprint sur deux runs.",
+      "status": "automated",
+      "tests": [
+        "tests/unit/test_domain.py::test_canonical_json_is_stable"
+      ]
+    },
+    {
+      "id": "ACC-068",
+      "subject": "OOD",
+      "criterion": "Un contexte hors calibration est affiché OUT_OF_DISTRIBUTION.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-069",
+      "subject": "No fake probability",
+      "criterion": "OOD ou calibration absente interdit l’affichage d’un pourcentage probabiliste.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-070",
+      "subject": "Stratified calibration",
+      "criterion": "Deux contextes de calibration peuvent produire des mappings différents sans écraser les raw scores.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-071",
+      "subject": "Extraction quality",
+      "criterion": "Une extraction partielle réduit reliability et reste visible.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-072",
+      "subject": "QBinDiff guard",
+      "criterion": "Le provider refuse/limite automatiquement un input dépassant le budget configuré.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-073",
+      "subject": "BinDiff known limitation",
+      "criterion": "Une limitation provider connue devient SKIPPED_KNOWN_LIMITATION.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-074",
+      "subject": "Provider registry",
+      "criterion": "Doctor affiche limitations applicables au pack courant.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-075",
+      "subject": "PE signature facts",
+      "criterion": "Signer/timestamp/chain status sont stockés sans modifier Artifact identity.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-076",
+      "subject": "PDB privacy",
+      "criterion": "Diagnostic standard masque les chemins PDB sensibles.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-077",
+      "subject": "Symbols opt-in",
+      "criterion": "Aucun fetch symboles réseau ne se produit sans activation.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-078",
+      "subject": "Network isolation",
+      "criterion": "STANDARD fonctionne avec firewall bloquant ACET/providers.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-079",
+      "subject": "No admin",
+      "criterion": "Import/analyse standard passent sous compte utilisateur normal.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-080",
+      "subject": "No silent fallback",
+      "criterion": "Tout provider remplacé/skippé apparaît dans run/report.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-081",
+      "subject": "Restore atomic",
+      "criterion": "Un restore invalide ne remplace jamais la DB active.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_storage.py::test_invalid_restore_never_replaces_active_db"
+      ]
+    },
+    {
+      "id": "ACC-082",
+      "subject": "Reconcile after crash",
+      "criterion": "Artifact copié sans commit DB est détecté comme orphan.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_failure_before_commit_leaves_no_visible_build"
+      ]
+    },
+    {
+      "id": "ACC-083",
+      "subject": "Retention dry-run",
+      "criterion": "Cleanup affiche objets et octets avant purge.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-084",
+      "subject": "Shared artifact delete",
+      "criterion": "Supprimer un build ne supprime pas un Artifact encore référencé.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-085",
+      "subject": "Pack forward reject",
+      "criterion": "Ancienne version refuse proprement un schema .acetpack inconnu.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-086",
+      "subject": "Provider protocol reject",
+      "criterion": "Protocol version incompatible empêche lancement.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-087",
+      "subject": "Log bounds",
+      "criterion": "Provider très bavard ne remplit pas indéfiniment le disque.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-088",
+      "subject": "Correlation IDs",
+      "criterion": "Un incident peut être suivi UI→job→processor→logs par IDs.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-089",
+      "subject": "Update rollback",
+      "criterion": "Échec validation post-update restaure version précédente quand rollback supporté.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-090",
+      "subject": "Revoked engine",
+      "criterion": "Engine Pack denylisted n’est plus utilisé pour nouveaux runs.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-091",
+      "subject": "Historical preservation",
+      "criterion": "Denylist n’efface pas les résultats historiques.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-092",
+      "subject": "Compatibility matrix",
+      "criterion": "Doctor marque une combinaison provider non validée.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-093",
+      "subject": "Compare compatibility",
+      "criterion": "Métriques incompatibles ne sont pas fusionnées/comparées numériquement.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-094",
+      "subject": "Power policy",
+      "criterion": "Annuler/finir un job restaure toujours l’état de prévention de veille.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-095",
+      "subject": "Crash atomic output",
+      "criterion": "Aucun fichier .tmp n’est traité comme output valide après crash.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-096",
+      "subject": "Source class",
+      "criterion": "External Event sans classe/source ne peut être élevé en evidence forte.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-097",
+      "subject": "Product profile safe",
+      "criterion": "Un Product Profile V1 ne peut exécuter aucun code.",
+      "status": "automated",
+      "tests": [
+        "tests/unit/test_domain.py::test_product_profile_is_declarative_only"
+      ]
+    },
+    {
+      "id": "ACC-098",
+      "subject": "Mode normal safety",
+      "criterion": "Mode Normal ne modifie pas les paramètres scientifiques avancés.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-099",
+      "subject": "Signed manifest provenance",
+      "criterion": "Release manifest relie commit/build/hashes/SBOM/signature.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-100",
+      "subject": "Clean-machine E2E",
+      "criterion": "Sur VM propre : install→doctor→demo→import→STANDARD→compare→report→backup→update→restore réussissent.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-101",
+      "subject": "21-dimension gate",
+      "criterion": "Chaque sous-système mandatory possède sa checklist §94 complète.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-102",
+      "subject": "Outcome totality",
+      "criterion": "Toute fin de processor mappe OperationOutcome.",
+      "status": "partial",
+      "tests": [
+        "tests/unit/test_domain.py::test_every_exception_maps_to_family_and_outcome"
+      ],
+      "gap": "error mapping proven; processor runs arrive with P3"
+    },
+    {
+      "id": "ACC-103",
+      "subject": "Failure family",
+      "criterion": "Toute exception capturée possède failure_family.",
+      "status": "automated",
+      "tests": [
+        "tests/unit/test_domain.py::test_every_exception_maps_to_family_and_outcome"
+      ]
+    },
+    {
+      "id": "ACC-104",
+      "subject": "Illegal transition",
+      "criterion": "Une transition illégale est refusée sans mutation DB.",
+      "status": "automated",
+      "tests": [
+        "tests/unit/test_domain.py::test_illegal_transition_rejected"
+      ]
+    },
+    {
+      "id": "ACC-105",
+      "subject": "Single-flight",
+      "criterion": "100 requêtes concurrentes même cache key ⇒ un calcul lourd.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-106",
+      "subject": "Dead lock recovery",
+      "criterion": "Lock owner mort est détecté/récupéré.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-107",
+      "subject": "No long tx",
+      "criterion": "Instrumentation confirme absence d’appel moteur sous transaction DB longue.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-108",
+      "subject": "Fault kill app",
+      "criterion": "Chaque checkpoint critique survit au kill app.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-109",
+      "subject": "Fault disk full",
+      "criterion": "Chaque chemin d’écriture critique échoue sans corruption finale.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-110",
+      "subject": "Fault permissions",
+      "criterion": "Permission denied produit erreur actionnable sans stacktrace utilisateur.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-111",
+      "subject": "Fault DB busy",
+      "criterion": "Contention DB respecte retry/backoff borné.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-112",
+      "subject": "Fault OOM",
+      "criterion": "Worker OOM n’abat pas Core/UI.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-113",
+      "subject": "Property fingerprint",
+      "criterion": "Permutation inputs ne change pas build fingerprint.",
+      "status": "automated",
+      "tests": [
+        "tests/property/test_properties.py::test_prop002_fingerprint_permutation_invariant",
+        "tests/unit/test_domain.py::test_fingerprint_ignores_order_and_counts_duplicates"
+      ]
+    },
+    {
+      "id": "ACC-114",
+      "subject": "Property pack roundtrip",
+      "criterion": "Pack roundtrip conserve canonical hashes.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-115",
+      "subject": "Property unknown",
+      "criterion": "Transformations ne convertissent jamais UNKNOWN en zéro.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-116",
+      "subject": "Traceability",
+      "criterion": "100% exigences MUST ont implementation/test/ACC ou waiver.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-117",
+      "subject": "Acceptance trace",
+      "criterion": "100% ACC ont test/protocole versionné.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-118",
+      "subject": "SLO UI",
+      "criterion": "Aucun job lourd ne bloque event loop au-delà du seuil instrumenté.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-119",
+      "subject": "Search P95",
+      "criterion": "Recherche respecte SLO sur dataset de référence.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-120",
+      "subject": "Capacity M",
+      "criterion": "Dataset M validé sans perte/invariant failure.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-121",
+      "subject": "Capacity warning",
+      "criterion": "Au-delà enveloppe validée, avertissement explicite.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-122",
+      "subject": "UTC persistence",
+      "criterion": "Timestamps internes persistés UTC et affichés localement correctement.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-123",
+      "subject": "Clock rollback",
+      "criterion": "Horloge système reculée ne casse pas ordre transactionnel.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-124",
+      "subject": "Resolved config",
+      "criterion": "Chaque run exporte resolved config + hash.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-125",
+      "subject": "Secret storage",
+      "criterion": "Fixture token optionnel absent des configs/logs en clair.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-126",
+      "subject": "Vulnerability manifest",
+      "criterion": "Release SBOM scannée et triage archivé.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-127",
+      "subject": "License closure",
+      "criterion": "Chaque composant redistribué possède décision licence.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-128",
+      "subject": "Recovery read-only",
+      "criterion": "DB critique invalide ouvre RECOVERY_READ_ONLY.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_storage.py::test_corrupt_db_opens_recovery_read_only"
+      ]
+    },
+    {
+      "id": "ACC-129",
+      "subject": "Old app/new DB",
+      "criterion": "Ancienne app refuse write sur schema futur.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_storage.py::test_old_app_refuses_write_on_future_schema"
+      ]
+    },
+    {
+      "id": "ACC-130",
+      "subject": "New app/old DB",
+      "criterion": "Migration supportée réussit après backup.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_storage.py::test_migration_failure_rolls_back_atomically"
+      ]
+    },
+    {
+      "id": "ACC-131",
+      "subject": "Human/raw separation",
+      "criterion": "Human assertion ne modifie matcher_result.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-132",
+      "subject": "Human/GT separation",
+      "criterion": "Annotation projet ne devient pas benchmark label.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-133",
+      "subject": "Benchmark split",
+      "criterion": "Calibration et test final séparés.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-134",
+      "subject": "Benchmark manifest",
+      "criterion": "Run benchmark possède manifest complet.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-135",
+      "subject": "Determinism declaration",
+      "criterion": "Tous processors déclarent D0-D3.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-136",
+      "subject": "D0 repeat",
+      "criterion": "Processor D0 répété produit hash sortie identique.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-137",
+      "subject": "D1 normalize",
+      "criterion": "Processor D1 produit représentation canonique identique.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-138",
+      "subject": "D3 restriction",
+      "criterion": "Processor D3 ne produit pas stable inference non marquée.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-139",
+      "subject": "Release evidence",
+      "criterion": "Stable release possède evidence bundle complet.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-140",
+      "subject": "No orphan blob",
+      "criterion": "Reconcile détecte tout blob non référencé.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_failure_before_commit_leaves_no_visible_build"
+      ]
+    },
+    {
+      "id": "ACC-141",
+      "subject": "No dangling ref",
+      "criterion": "Reconcile détecte toute référence vers blob absent.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_import.py::test_reconcile_detects_dangling_reference"
+      ]
+    },
+    {
+      "id": "ACC-142",
+      "subject": "Atomic visibility",
+      "criterion": "Output incomplet n’est jamais visible CURRENT.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-143",
+      "subject": "Provider distrust",
+      "criterion": "Exit 0 + invariant invalide = failure/partial.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-144",
+      "subject": "Historical run",
+      "criterion": "Réanalyse ne change aucun row historique immuable.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-145",
+      "subject": "No causal promotion",
+      "criterion": "External correlation ne devient causal claim automatiquement.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-146",
+      "subject": "No uncalibrated probability",
+      "criterion": "Aucun pourcentage probabiliste hors calibration valide.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-147",
+      "subject": "OOD abstention",
+      "criterion": "OOD peut forcer ABSTAIN selon policy.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-148",
+      "subject": "Cleanup safety",
+      "criterion": "Purge ne touche aucun objet running/locked/referenced.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-149",
+      "subject": "Update evidence",
+      "criterion": "Update stable vérifie provenance/signature/hash avant apply.",
+      "status": "not_started",
+      "tests": []
+    },
+    {
+      "id": "ACC-150",
+      "subject": "Full lifecycle",
+      "criterion": "Clean VM : install→demo→workspace→3 builds→analysis→lineage→report→backup→crash recovery→update→restore→uninstall/reinstall sans perte.",
+      "status": "not_started",
+      "tests": []
+    }
+  ]
+}

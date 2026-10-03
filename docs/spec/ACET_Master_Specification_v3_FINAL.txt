@@ -1,0 +1,2431 @@
+
+ACET
+ANTI-CHEAT EVOLUTION TRACKER
+MASTER SPECIFICATION — v3.0
+Spécification produit, architecture, données, analyse, UX, exploitation, benchmark, sécurité et critères d’acceptation.
+Cible : application Windows locale, reproductible, explicable et utilisable sans connaissance préalable de Ghidra ou des moteurs de diff.
+Statut
+Valeur
+Document
+Spécification normative de développement
+Version
+3.0
+Plateforme V1
+Windows 10/11 x64
+UI
+PySide6
+Core
+Python 3.11+
+Base
+SQLite
+Mode
+Offline-first / local-first
+Principe
+Aucun artefact analysé n’est exécuté
+Cette spécification remplace les décisions implicites : lorsqu’une règle est définie ici, le code ne doit pas en inventer une autre. Les seuils scientifiques explicitement marqués « calibrables » sont les seules valeurs destinées à évoluer à partir des benchmarks.
+
+0. Mode d’emploi de la spécification
+Le document est organisé comme un contrat de construction. Les identifiants ACET-* sont normatifs. Les exemples illustrent le comportement attendu mais ne remplacent pas les règles. Les termes MUST / DOIT sont obligatoires ; SHOULD / DEVRAIT sont des objectifs ; MAY / PEUT sont optionnels.
+Bloc
+Objet
+I
+Vision, périmètre, principes et glossaire
+II
+Architecture logique et déploiement
+III
+Modèle de données, stockage, migrations
+IV
+Import, observations, builds et artefacts
+V
+Pipeline d’analyse et intégrations moteurs
+VI
+Matching, consensus, lineage, changements et confiance
+VII
+Jobs, cache, reprise, performances
+VIII
+UX complète écran par écran
+IX
+Benchmark, calibration et régressions
+X
+Rapports, export, sauvegarde, diagnostic
+XI
+Installation, Engine Packs, mises à jour et licences
+XII
+Sécurité, confidentialité et limites
+XIII
+Tests, CI/CD, packaging et Definition of Done
+XIV
+Catalogue d’exigences et roadmap d’implémentation
+I. Vision et périmètre
+1. Mission produit
+ACET est une application locale d’intelligence d’évolution logicielle spécialisée dans la comparaison longitudinale de composants binaires. Elle ingère des artefacts fournis par l’utilisateur, construit des observations et des builds, extrait des faits reproductibles, compare les fonctions entre versions, construit des lignées, détecte des changements inhabituels et produit des rapports inspectables.
+ACET-PROD-001 — But
+Le produit DOIT réduire l’espace d’investigation d’un analyste sans transformer une corrélation ou un score de similarité en affirmation fonctionnelle non démontrée.
+ACET-PROD-002 — Frontière défensive
+ACET NE DOIT PAS exécuter les artefacts importés, charger un driver analysé, injecter dans un processus, contourner un mécanisme de protection ou automatiser une interaction avec un processus protégé.
+ACET-PROD-003 — Généricité
+Le Core ne DOIT contenir aucune branche métier codée en dur pour EAC, BattlEye ou un autre produit. Les spécificités éventuelles sont des Product Profiles déclaratifs.
+2. Principes non négociables
+Principe
+Règle
+Fact ≠ inference
+Les faits observés sont immuables ; les inférences sont recalculables et versionnées.
+No magic score
+Les dimensions d’anomalie restent séparées ; aucun score unique n’est présenté comme vérité.
+Unmatched ≠ new
+Une fonction non appariée n’est pas automatiquement classée comme nouvelle.
+Build ≠ observation
+Une observation date la présence d’un build/artefact ; elle n’en crée pas une nouvelle identité.
+Explainability
+Toute conclusion doit exposer sa provenance et ses preuves.
+Reproducibility
+Chaque analyse enregistre versions, paramètres, entrées et schémas.
+Offline-first
+Le cœur fonctionne sans réseau ; aucune donnée binaire n’est envoyée implicitement.
+Graceful degradation
+L’absence d’un moteur optionnel produit un résultat partiel, pas l’échec global.
+3. Glossaire normatif
+Terme
+Définition
+Product
+Produit logiciel suivi.
+Release
+Étiquette de publication logique, potentiellement partagée par plusieurs builds.
+Build
+Ensemble logique de composants/artifacts ; identité technique par fingerprint.
+Observation
+Constat daté et sourcé qu’un build ou artefact a été observé.
+Component
+Rôle logique dans un build : driver, service, module, configuration, etc.
+Artifact
+Fichier immutable identifié par SHA-256.
+Function Instance
+Fonction extraite dans un artefact précis.
+Function Lineage
+Identité logique inférée traversant les versions.
+Evidence
+Élément soutenant ou contredisant une inférence.
+Analysis Run
+Exécution versionnée d’un profil d’analyse sur des entrées déterminées.
+Detected Change
+Changement calculé dans un Analysis Run.
+Historical Event
+Entité regroupant éventuellement plusieurs détections et événements externes.
+Annotation
+Assertion/commentaire humain qui ne modifie pas le résultat automatique.
+II. Architecture
+4. Architecture en couches
+ACET UI  ↓Application Services  ↓SEI Domain Core  ↓Analysis Orchestrator  ↓Worker Supervisor ──→ Engine Workers  ↓Repositories / SQLite / Content StoreTransversal:Provenance • Versioning • Audit • Logging • Security
+ACET-ARCH-001 — Indépendance UI
+Le Domain Core ne DOIT importer aucun module PySide6. Toute fonctionnalité métier doit être testable en mode headless.
+ACET-ARCH-002 — Isolation moteurs
+Les moteurs externes DOIVENT être lancés hors du processus UI. Un crash moteur ne doit pas arrêter ACET.
+ACET-ARCH-003 — Contrats
+Les frontières entre Core et workers utilisent des DTO versionnés et validables, pas des dictionnaires libres non typés.
+5. Modules de référence
+Module
+Responsabilité
+acet.domain
+Entités, value objects, règles métier pures
+acet.application
+Use cases, transactions, orchestration
+acet.storage
+Repositories SQLite, migrations, content store
+acet.ingest
+Découverte, validation, hashing, import
+acet.analysis
+DAG de calcul, profiles, processors
+acet.engines
+Adapters Ghidra/Ghidriff/BinDiff/QBinDiff/externes
+acet.matching
+Normalisation des résultats, consensus
+acet.lineage
+Construction/versionnement des lignées
+acet.changes
+Détection, clustering, baselines
+acet.jobs
+Scheduler, workers, checkpoints, recovery
+acet.benchmark
+Datasets, ground truth, metrics, regression gates
+acet.reporting
+JSON/HTML/Markdown exports
+acet.ui
+PySide6 uniquement
+acet.cli
+CLI headless officielle
+acet.platform
+Diagnostics, updates, engine packs, logs
+III. Données et stockage
+6. Catégories de données
+Catégorie
+Mutable ?
+Exemples
+SOURCE
+Non
+Bytes originaux
+FACT
+Non
+SHA, taille, PE headers, imports
+DERIVED
+Versionné
+CFG, fonctions, résultats moteurs
+INTERPRETATION
+Versionné
+Consensus, lineage, anomalies
+HUMAN
+Historisé
+Annotations, assertions, tags
+7. Identifiants
+Objet
+Identité
+Artifact
+SHA-256 hex lowercase
+Build
+UUIDv7 + build_fingerprint déterministe
+Observation
+UUIDv7
+Analysis Run
+UUIDv7
+Function Instance
+UUIDv7
+Function Lineage
+UUIDv7
+Annotation
+UUIDv7
+Job
+UUIDv7
+ACET-DATA-001 — Immutabilité artefact
+Les bytes d’un Artifact existant ne peuvent jamais être remplacés. Tout contenu différent crée un nouvel Artifact.
+ACET-DATA-002 — NULL
+NULL signifie inconnu/non mesuré. La valeur zéro signifie mesuré à zéro. Les deux ne doivent jamais être confondus.
+8. Stockage disque
+%LOCALAPPDATA%\ACET\  app\  workspaces\    &lt;workspace-id&gt;\      acet.db      artifacts\        sha256\ab\cd\&lt;sha256&gt;      derived\        &lt;processor&gt;\&lt;version&gt;\&lt;cache-key&gt;\      reports\      exports\      backups\      logs\      temp\      quarantine\  engines\    packs\  config\    settings.toml
+ACET-STO-001 — Content addressed store
+Un même SHA-256 n’est stocké qu’une fois par workspace.
+ACET-STO-002 — Atomicité
+Toute écriture dérivée passe par un fichier temporaire puis renommage atomique après validation.
+ACET-STO-003 — Quarantaine
+Les fichiers devenus orphelins ne sont pas supprimés immédiatement ; ils passent en quarantaine selon une rétention configurable, 30 jours par défaut.
+9. Schéma SQLite normatif
+Table
+Colonnes minimales
+workspace
+id TEXT PK, name TEXT, created_at TEXT, schema_version INTEGER
+product
+id TEXT PK, workspace_id FK, name TEXT, vendor TEXT NULL, profile_json TEXT, created_at TEXT
+release
+id TEXT PK, product_id FK, version_label TEXT, channel TEXT NULL, release_date TEXT NULL, notes TEXT NULL
+build
+id TEXT PK, product_id FK, release_id FK NULL, build_fingerprint TEXT UNIQUE, arch TEXT NULL, platform TEXT, status TEXT, created_at TEXT
+observation
+id TEXT PK, build_id FK, observed_at TEXT NULL, time_precision TEXT, source_type TEXT, source_label TEXT NULL, imported_at TEXT
+component
+id TEXT PK, build_id FK, role TEXT, role_confidence TEXT, label TEXT NULL, ordinal INTEGER
+artifact
+sha256 TEXT PK, size_bytes INTEGER, mime_hint TEXT NULL, format TEXT, arch TEXT NULL, store_relpath TEXT, imported_at TEXT, integrity_state TEXT
+component_artifact
+component_id FK, artifact_sha256 FK, purpose TEXT, PRIMARY KEY(component_id, artifact_sha256, purpose)
+analysis_profile
+id TEXT PK, name TEXT, version INTEGER, config_json TEXT, config_hash TEXT UNIQUE
+engine_pack
+id TEXT PK, name TEXT, version TEXT, manifest_json TEXT, manifest_hash TEXT UNIQUE
+analysis_run
+id TEXT PK, scope_type TEXT, scope_id TEXT, profile_id FK, engine_pack_id FK, status TEXT, started_at TEXT, finished_at TEXT NULL, coverage REAL NULL
+processor_run
+id TEXT PK, analysis_run_id FK, processor_id TEXT, processor_version TEXT, input_hash TEXT, config_hash TEXT, cache_key TEXT, status TEXT, started_at TEXT, finished_at TEXT NULL
+function_instance
+id TEXT PK, artifact_sha256 FK, extractor_run_id FK, address INTEGER, size INTEGER, name TEXT NULL, normalized_hash TEXT NULL, feature_schema_version INTEGER
+matcher_result
+id TEXT PK, analysis_run_id FK, engine TEXT, engine_version TEXT, left_function_id FK, right_function_id FK, raw_score REAL NULL, calibrated_strength REAL NULL, decision TEXT, evidence_json TEXT
+lineage
+id TEXT PK, product_id FK, created_by_run_id FK, status TEXT
+lineage_assignment
+id TEXT PK, lineage_id FK, function_instance_id FK, analysis_run_id FK, relation TEXT, strength REAL NULL, status TEXT
+detected_change
+id TEXT PK, analysis_run_id FK, change_type TEXT, severity_class TEXT, reliability_class TEXT, evidence_json TEXT
+external_event
+id TEXT PK, product_id FK, event_type TEXT, occurred_at TEXT NULL, time_precision TEXT, source_class TEXT, source_ref TEXT NULL, summary TEXT
+annotation
+id TEXT PK, target_type TEXT, target_id TEXT, author_id TEXT NULL, body TEXT, created_at TEXT, deleted_at TEXT NULL
+job
+id TEXT PK, job_type TEXT, analysis_run_id FK NULL, state TEXT, priority INTEGER, created_at TEXT, updated_at TEXT, checkpoint_json TEXT NULL, error_code TEXT NULL
+audit_event
+id TEXT PK, event_type TEXT, target_type TEXT NULL, target_id TEXT NULL, created_at TEXT, payload_json TEXT
+10. Contraintes et index
+UNIQUE artifact.sha256UNIQUE build.build_fingerprintUNIQUE analysis_profile.config_hashUNIQUE engine_pack.manifest_hashINDEX observation(build_id, observed_at)INDEX component(build_id, role)INDEX function_instance(artifact_sha256, address)INDEX matcher_result(analysis_run_id, engine, decision)INDEX lineage_assignment(lineage_id, analysis_run_id)INDEX job(state, priority, created_at)INDEX external_event(product_id, occurred_at)
+ACET-DB-001 — Foreign keys
+PRAGMA foreign_keys=ON est obligatoire.
+ACET-DB-002 — WAL
+SQLite utilise WAL sauf incompatibilité détectée ; l’application journalise tout fallback.
+ACET-DB-003 — Migrations
+Une migration suit backup → migration transactionnelle → integrity_check → commit. En cas d’échec, rollback et restauration de l’état précédent.
+IV. Import et modèle Build
+11. Pipeline d’import
+DISCOVER → PREVIEW → VALIDATE → HASH → COPY → VERIFY → CLASSIFY → COMMIT → OPTIONAL ANALYZE
+ACET-IMP-001 — Aucune exécution
+La détection de format et métadonnées est statique. Aucun fichier importé n’est exécuté.
+ACET-IMP-002 — Copie vérifiée
+Après copie vers le store, ACET recalcule SHA-256 et compare au hash source avant commit DB.
+ACET-IMP-003 — Doublon artefact
+Si SHA-256 existe déjà, les bytes ne sont pas recopiés ; une nouvelle référence et/ou observation est créée.
+ACET-IMP-004 — Doublon build
+Si build_fingerprint existe, ACET propose Ajouter observation / Ouvrir existant / Annuler. Il ne crée pas silencieusement un doublon.
+ACET-IMP-005 — Near duplicate
+Une forte similarité de composants peut déclencher un avertissement mais ne fusionne jamais automatiquement deux builds.
+ACET-IMP-006 — Import incomplet
+Un build peut être PARTIAL. Les composants manquants sont UNKNOWN, jamais implicitement absents.
+12. Fingerprint du build
+build_fingerprint = SHA256(  canonical_json(    sorted([      { role, artifact_sha256, purpose, ordinal }      for every component artifact    ])  ))
+Les labels de version, dates, chemins locaux et noms de fichiers ne participent pas au fingerprint technique.
+13. Rôles composants
+Role
+Description
+KERNEL_DRIVER
+Driver noyau
+SERVICE
+Service ou daemon
+USER_MODULE
+DLL/module user-mode
+EXECUTABLE
+Exécutable générique
+LAUNCHER
+Composant de lancement
+CONFIGURATION
+Configuration structurée
+DATA
+Donnée non exécutable
+OTHER
+Non classé
+La classification automatique produit une classe et une force de confiance. Une correction humaine est stockée séparément comme assertion.
+V. Pipeline d’analyse
+14. Profils d’analyse
+Profil
+Contenu
+FAST@1
+SHA-256, TLSH si disponible, format, PE metadata, signatures, imports/exports, strings bornées.
+STANDARD@1
+FAST + Ghidra headless + extraction fonctions/CFG + Ghidriff + lineage principal.
+DEEP@1
+STANDARD + BinExport/BinDiff + QBinDiff sur périmètres compatibles + consensus renforcé.
+RESEARCH@1
+DEEP + conservation intermédiaires + répétitions déterminisme + métriques benchmark.
+ACET-ANA-001 — Profils versionnés
+Une modification de paramètres crée une nouvelle version de profil.
+ACET-ANA-002 — Partial success
+Un moteur optionnel absent ou en échec peut conduire à COMPLETED_PARTIAL avec coverage et missing_evidence explicités.
+15. DAG de calcul
+Artifact ├─ HashFacts ├─ PEFacts ├─ StringFacts └─ GhidraExtract      ├─ FunctionFeatures      ├─ Ghidriff      ├─ BinExport      │    ├─ BinDiff      │    └─ QBinDiff      └─ NormalizedFunctionView             ↓         MatcherNormalizer             ↓          Consensus             ↓          Lineage             ↓       Change Detection             ↓      Historical Baseline             ↓           Reports
+ACET-ANA-003 — Invalidation
+Le changement d’un processor invalide uniquement ses descendants dans le DAG.
+ACET-ANA-004 — Cache key
+cache_key = SHA256(processor_id + processor_version + ordered_input_hashes + config_hash + feature_schema_version).
+16. Ghidra
+Ghidra est le désassembleur headless principal. L’intégration utilise analyzeHeadless et des scripts non-GUI. Les projets Ghidra sont dérivés/reconstructibles et ne constituent jamais la source de vérité.
+Paramètre
+Règle V1
+Mode
+Headless uniquement depuis worker
+Project
+Un projet de travail isolé par processor/cache key
+Timeout
+Configurable ; soft puis hard timeout
+Logs
+Capturés par processor run
+Output
+DTO normalisé ACET + artefacts dérivés
+Failure
+N’affecte pas les facts déjà validés
+17. Moteurs de diff
+Moteur
+Statut V1
+Rôle
+Ghidriff
+Principal
+Diff automatisé basé Ghidra ; sortie structurée normalisée.
+BinDiff
+Complément recommandé
+Matcher structurel ; entrée BinExport ; CLI disponible.
+QBinDiff
+Complément expérimental
+Matcher programmable ; mémoire contrôlée ; périmètre limité pour gros binaires.
+Diaphora
+Provider externe optionnel
+Nécessite IDA ; jamais dépendance obligatoire de la V1.
+Décision importante : Diaphora ne fait pas partie de l’Engine Pack par défaut car son fonctionnement repose sur IDA. ACET détecte une installation compatible et expose la capability correspondante. Cette décision évite qu’un produit « clé en main » dépende d’un outil commercial non fourni.
+18. Engine capability model
+Capabilities:  DISASSEMBLY  FUNCTION_EXTRACTION  STRUCTURAL_DIFF  PROGRAMMABLE_DIFF  SEMANTIC_FEATURES  REPORT_EXPORTProvider manifest:  provider_id  provider_version  protocol_version  capabilities[]  executable  license_mode  health_check  supported_formats[]  supported_architectures[]
+VI. Matching, consensus et lineage
+19. Représentation fonction
+Feature family
+Exemples
+Identity
+adresse, taille, nom, section
+Instruction
+mnemonics normalisés, catégories, histogrammes
+CFG
+nodes, edges, cyclomatic complexity, hashes
+Callgraph
+callers/callees et voisinage
+Data
+strings, constantes, imports référencés
+Normalized
+hash de représentation normalisée versionnée
+Semantic
+optionnel/futur, jamais requis pour V1
+ACET-MAT-001 — Feature versioning
+Toute Function Instance stocke feature_schema_version et normalizer_version.
+20. États d’appariement
+État
+Sens
+EXACT
+Identité déterministe selon une règle forte versionnée.
+STRONG
+Preuves convergentes suffisantes.
+PROBABLE
+Appariement plausible mais non certain.
+AMBIGUOUS
+Plusieurs candidats crédibles.
+CONFLICT
+Moteurs/preuves significativement contradictoires.
+UNRESOLVED
+Pas assez de preuve.
+ABSTAIN
+Le moteur choisit explicitement de ne pas classifier.
+Les seuils numériques internes sont calibrables. Avant calibration empirique, l’UI affiche des classes de force et non une fausse probabilité.
+21. Consensus par familles de preuve
+Evidence families:  identity  instruction  cfg  callgraph  data-reference  semantic  historical-lineageRule:  multiple engines using the same evidence family  DO NOT count as independent evidence.Consensus output:  decision  strength_class  evidence_diversity  supporting_evidence[]  contradicting_evidence[]  missing_evidence[]  calibration_profile_id
+ACET-MAT-002 — Pas de moyenne naïve
+Le consensus ne DOIT jamais être la moyenne arithmétique brute des scores de moteurs.
+ACET-MAT-003 — Raw preservation
+Chaque score brut et décision moteur est conservé même après consensus.
+22. Lineage
+Relation
+Description
+CONTINUATION
+Même fonction logique
+MODIFIED
+Même lignée, transformation significative
+SPLIT_PARENT
+Une fonction devient plusieurs candidates
+MERGE_PARENT
+Plusieurs fonctions convergent
+DISAPPEARED
+Aucune instance observée sur une version
+RESURRECTED_CANDIDATE
+Réapparition possible après absence
+UNRESOLVED
+Affectation non décidée
+ACET-LIN-001 — Versionnement affectation
+Les assignments de lineage sont liés à l’Analysis Run ; une réanalyse ne réécrit pas l’histoire.
+ACET-LIN-002 — N-way
+Le modèle doit permettre A→B→C→… et ne pas être limité à une paire.
+23. Détection de changement
+Dimension
+Exemples de mesures
+Binary
+taille, sections, TLSH, ressources
+Build
+toolchain hints, signatures, timestamps cohérents
+Structural
+fonctions, CFG, callgraph, clusters
+Semantic
+features de données/comportement si disponibles
+Deployment
+observations temporelles, variantes de build
+Ecosystem
+événements externes sourcés
+Analysis Reliability
+coverage, moteurs absents, difficultés de protection
+ACET-CHG-001 — Unknown
+Une dimension non mesurée vaut UNKNOWN, jamais 0.
+ACET-CHG-002 — Causalité
+Une proximité temporelle avec un événement externe est décrite comme corrélation temporelle, jamais comme causalité automatique.
+24. Baseline historique
+Pour chaque produit/composant, ACET maintient des distributions robustes : médiane, MAD, percentiles et historique. Les classes NORMAL / UNUSUAL / EXTREME sont déterminées par un profil statistique versionné. Aucune distribution n’est partagée implicitement entre produits différents.
+VII. Jobs, reprise et performance
+25. Machine d’état Job
+QUEUED  ↓PREPARING  ↓RUNNING ↔ PAUSING → PAUSED → RESUMING  ↓POST_PROCESSING  ↓COMPLETEDSide states:CANCELLING → CANCELLEDFAILED_RETRYABLEFAILED_PERMANENTINTERRUPTED → RECOVERINGBLOCKED_DEPENDENCY
+ACET-JOB-001 — Checkpoint
+Chaque étape durable écrit un checkpoint transactionnel.
+ACET-JOB-002 — Annulation
+Annuler un Analysis Run ne supprime pas les résultats déjà terminés et compatibles avec le cache.
+ACET-JOB-003 — Heartbeat
+Les workers lourds émettent un heartbeat ; absence prolongée mène à HUNG puis arrêt contrôlé.
+ACET-JOB-004 — Priorité
+Priorités LOW/NORMAL/HIGH/INTERACTIVE avec aging pour éviter la famine.
+26. Ressources
+Ressource
+Politique
+Heavy workers
+1 par défaut ; configurable selon RAM
+Light workers
+min(4, logical_cpu/2) par défaut
+Memory budget
+70 % de la RAM disponible par défaut, plafond configurable
+Disk preflight
+Estimation avant job lourd ; refus propre si espace insuffisant
+Battery
+Option pause des jobs lourds sur batterie
+QBinDiff est marqué memory-intensive : le provider peut refuser ou réduire le périmètre lorsque le nombre de fonctions dépasse le profil sûr configuré.
+27. Cache et STALE
+État
+Sens
+CURRENT
+Résultat compatible avec versions/config actuelles
+STALE
+Consultable mais un descendant ou processor a changé
+INCOMPLETE
+Résultat partiel
+FAILED
+Échec conservé avec diagnostics
+ACET-CACHE-001 — Recompute selective
+L’utilisateur peut recalculer un sous-ensemble ; le DAG ajoute automatiquement les dépendances nécessaires.
+VIII. UX complète
+28. Navigation
+DashboardProductsBuildsCompareTimelineLineageChangesBenchmarksReportsJobsSystemSettings
+Ctrl+K ouvre la recherche globale. La barre supérieure affiche l’état READY / DEGRADED / ACTION REQUIRED et les jobs actifs.
+29. Premier lancement
+Étape
+Contenu
+Welcome
+Nouveau projet / ouvrir / importer pack / démo
+Workspace
+Nom + emplacement + espace disponible
+System scan
+CPU/RAM/disque/Java/Ghidra/providers
+Engine Pack
+Installer/détecter le pack recommandé
+Self-test
+Dataset démo court avec résultat attendu
+Finish
+Dashboard + tutoriel contextuel optionnel
+30. Dashboard
+Widget
+Action
+Projects/Products
+Ouvrir produit
+Recent builds
+Ouvrir build
+Active jobs
+Pause/ouvrir file
+System health
+Doctor
+Storage
+Ouvrir gestion stockage
+Recent significant changes
+Ouvrir Change Explorer
+31. Product page
+Onglets : Overview, Releases, Components, Timeline, External Events, Settings. Actions : Add build, Import observation, Edit Product Profile, Export.
+32. Import wizard
+Écran
+Champs
+Source
+Fichiers/dossier ; aucune acquisition distante automatique
+Metadata
+Product, release label, channel, observed_at, source
+Detection
+Liste fichiers + rôle proposé + confidence
+Duplicates
+Existing artifacts/builds/near duplicates
+Storage
+Nouveaux bytes + espace disponible
+Action
+Import only / Import + FAST / STANDARD / DEEP
+Summary
+IDs créés + warnings
+33. Build page
+Onglets : Summary, Components, Artifacts, Analysis Runs, Functions, Changes, Observations, Evidence, Notes. Un bandeau indique completeness, build fingerprint, première/dernière observation et analyse recommandée.
+34. Compare page
+Sélection Left/Right ou historique multi-build. Filtres : component, change class, matcher state, confidence class, tags. Panneaux synchronisés : summary, function table, evidence inspector, raw engine results.
+35. Lineage explorer
+Vue graphe versionnelle avec navigation clavier, zoom, filtre par produit/composant, first observed, last observed, transformations majeures, split/merge et conflits. Chaque nœud ouvre Function Instance.
+36. Change explorer
+Liste des Detected Changes avec dimensions séparées, reliability, cluster membership, supporting/contradicting evidence et événements externes corrélés.
+37. Jobs
+File avec état, progression par étape, ETA indicative, CPU/RAM, logs simplifiés, pause/reprise/annulation/retry missing engines.
+38. System / Doctor
+Check
+Actions
+Database
+integrity_check / backup / repair guidance
+Artifact store
+hash sampling / reconcile
+Ghidra
+version + functional self-test
+Ghidriff
+version + functional self-test
+BinExport/BinDiff
+detect + test
+QBinDiff
+detect + memory profile
+Diaphora/IDA
+external provider detect only
+Disk
+space + permissions
+Workers
+spawn/heartbeat test
+IX. Benchmark et calibration
+39. Benchmark Lab
+Vue
+Fonction
+Datasets
+Importer/enregistrer datasets et licences
+Ground Truth
+Versionner correspondances connues
+Runs
+Lancer profile/engine pack
+Metrics
+Precision, recall, F1, coverage, false-new, wrong-lineage
+Performance
+Temps, RAM, disque, cache hit
+Calibration
+Reliability diagrams / score classes
+Regression
+Comparer versions ACET/Engine Pack
+40. Datasets initiaux
+Le benchmark initial utilise : (1) un petit dataset de démonstration open source distribué avec ACET ; (2) BinKit 2.0 comme corpus externe pour robustesse compilateur/optimisation ; (3) projets open source compilés par ACET CI pour patches connus ; (4) corpus anti-cheat apporté légalement par l’utilisateur, jamais redistribué par défaut.
+ACET-BEN-001 — Blind evaluation
+Pour les cas ground truth, le détecteur ne reçoit pas le label attendu pendant l’analyse.
+ACET-BEN-002 — Lineage metrics
+Mesurer purity, fragmentation, wrong merge, wrong split et recovery multi-version.
+ACET-BEN-003 — Calibration
+Un nombre affiché comme probabilité n’est autorisé qu’après calibration empirique documentée ; sinon afficher classes de force.
+41. Regression gates
+Required release gates (initial policy):- no schema migration failure on supported fixtures- no deterministic golden-test mismatch- no critical false-new regression above configured tolerance- no lineage recall regression above configured tolerance- no UI-blocking operation &gt; configured threshold- all mandatory acceptance tests green
+X. Rapports, export et diagnostic
+42. Rapport
+Format
+Usage
+JSON
+Machine-readable canonique
+HTML
+Rapport interactif local
+Markdown
+Rapport texte versionnable
+CSV
+Exports tabulaires ciblés
+Le rapport Executive résume sans masquer l’incertitude. Le rapport Technical contient provenance, moteur, versions, preuves, fonctions et métriques. Les deux sont dérivés du même modèle canonique.
+43. .acetpack
+ACETPACK/  manifest.json  schema/  metadata/  results/  annotations/  reports/  artifacts/        # optional  checksums.txt
+ACET-EXP-001 — Artifacts opt-in
+Les bytes originaux ne sont inclus dans un .acetpack que sur choix explicite.
+ACET-EXP-002 — Integrity
+Chaque fichier du pack est couvert par checksums ; import vérifie avant commit.
+44. Diagnostic package
+Contient versions, état providers, logs filtrés, job states, résultat integrity_check, config sanitizée. Par défaut : aucun artifact et aucun chemin utilisateur complet.
+XI. Installation et mises à jour
+45. Packaging Windows
+Élément
+Décision
+App
+Installer Windows + option portable
+Python
+Runtime embarqué avec application packagée
+Ghidra
+Engine Pack géré séparément selon licence/distribution
+Ghidriff
+Provider packagé ou installé selon audit licence final
+BinDiff/BinExport
+Provider installable/détectable ; version verrouillable
+QBinDiff
+Provider Python isolé dans Engine Pack
+Diaphora
+External provider uniquement ; nécessite environnement IDA compatible
+Les licences doivent être auditées avant redistribution. La spec impose un manifest de licences et notices par Engine Pack ; elle ne présume pas qu’un composant tiers peut être embarqué.
+46. Engine Pack
+engine-pack.json{  "id": "...",  "version": "1.0.0",  "protocol_version": 1,  "providers": [...],  "licenses": [...],  "checksums": {...},  "supported_acet": "&gt;=1.0,&lt;2.0"}
+ACET-UPD-001 — Pas d’update silencieuse moteur
+Une mise à jour d’Engine Pack susceptible de changer les résultats n’est jamais appliquée silencieusement à un workspace.
+ACET-UPD-002 — Workspace pin
+Un workspace peut rester épinglé à un Engine Pack pour reproductibilité.
+ACET-UPD-003 — Application migration
+Mise à jour app : backup DB → migration → validation → commit ; rollback si échec.
+47. Désinstallation et réparation
+Désinstaller l’application conserve les workspaces par défaut. L’utilisateur doit confirmer séparément toute suppression de données de recherche. Repair réinstalle les fichiers applicatifs/providers distribuables sans toucher aux workspaces.
+XII. Sécurité et confidentialité
+48. Threat model
+Risque
+Mitigation
+Binaire hostile
+Jamais exécuté ; worker isolé ; timeouts ; copies contrôlées
+Parser crash
+Process isolation + FAILED_RETRYABLE/PERMANENT
+Path traversal
+Canonicalisation + store contrôlé
+Zip bomb .acetpack
+Limites taille/nombre fichiers avant extraction
+Disk exhaustion
+Preflight + quotas + atomic writes
+Corruption DB
+WAL, backups, integrity_check, migrations atomiques
+Exfiltration
+Offline-first, réseau opt-in, artifacts jamais uploadés implicitement
+Log leakage
+Paths et données sensibles minimisés/sanitisés
+ACET-SEC-001 — No execution
+Aucun workflow V1 ne démarre un artefact analysé ni ne charge son code dans le système comme module exécutable.
+ACET-SEC-002 — Network
+Toutes les fonctions cœur fonctionnent réseau coupé. Les appels externes sont séparés, visibles et désactivables.
+ACET-SEC-003 — Workspace trust
+Un workspace importé est traité comme non fiable jusqu’à validation de structure et checksums.
+XIII. Tests et qualité
+49. Pyramide de tests
+Niveau
+Cible
+Unit
+Domain rules, fingerprints, state machines, parsers
+Contract
+JSON schemas, provider protocol
+Integration
+SQLite, content store, workers, Ghidra providers
+Golden
+Dataset démo avec sorties attendues
+Benchmark
+Matching/lineage/calibration
+Recovery
+Crash, reboot simulé, disque plein, timeout
+Migration
+Chaque schema version supportée
+UI
+Navigation, import, compare, jobs, accessibility
+Packaging
+Installation sur VM Windows propre
+50. Matrice de cas hostiles
+Cas
+Résultat attendu
+Fichier disparaît pendant import
+Import annulé, aucun commit partiel
+SHA déjà présent
+Réutilisation bytes, nouvelle référence
+Build fingerprint existant
+Proposition nouvelle observation
+Ghidra crash
+Run partiel/retry, UI vivante
+Worker hung
+Watchdog → timeout → état explicite
+Disque plein
+Arrêt propre, aucune sortie finale corrompue
+DB migration fail
+Rollback vers backup
+Provider absent
+DEGRADED, profils compatibles restent utilisables
+App fermée pendant analyse
+Jobs INTERRUPTED puis Resume proposé
+Artifact corrompu sur disque
+Integrity state CORRUPTED, analyse bloquée
+Résultat ancien
+STALE, consultable et recalculable
+51. Accessibilité
+Navigation clavier complète des écrans principaux, focus visible, labels accessibles, contrastes suffisants, tableaux triables au clavier, aucune information portée uniquement par la couleur, zoom UI compatible Windows.
+XIV. Contrats et critères d’acceptation
+52. Protocole Worker v1
+Request:{  "protocol_version": 1,  "job_id": "uuid",  "processor": {"id": "...", "version": "..."},  "inputs": [{"kind": "artifact", "sha256": "...", "path": "..."}],  "config": {...},  "output_dir": "..."}Response:{  "protocol_version": 1,  "job_id": "uuid",  "status": "success|partial|failed",  "facts": [...],  "results": [...],  "warnings": [...],  "metrics": {"wall_ms": 0, "peak_rss_bytes": 0},  "artifacts": [...]}
+53. CLI
+acet doctor [--full] [--json]acet workspace create &lt;name&gt;acet product create ...acet import &lt;path&gt; --product &lt;id&gt; [--release ...]acet analyze &lt;scope&gt; --profile STANDARD@1acet compare &lt;left&gt; &lt;right&gt; [--json]acet benchmark run &lt;dataset&gt; --profile ...acet jobs listacet jobs resume &lt;id&gt;acet export &lt;scope&gt; --format json|html|mdacet pack create &lt;project&gt; [--include-artifacts]
+Exit
+Sens
+0
+Succès
+10
+Succès partiel
+20
+Erreur utilisateur
+30
+Échec analyse
+40
+Échec système
+54. Catalogue initial d’erreurs
+Code
+Message court
+ACET-IMP-001
+Source inaccessible
+ACET-IMP-002
+Hash mismatch après copie
+ACET-IMP-003
+Espace disque insuffisant
+ACET-STO-001
+Artifact manquant
+ACET-STO-002
+Artifact corrompu
+ACET-DB-001
+Integrity check failed
+ACET-DB-002
+Migration failed
+ACET-GHD-001
+Ghidra unavailable
+ACET-GHD-002
+Ghidra timeout
+ACET-GHD-003
+Ghidra worker crash
+ACET-DIF-001
+Diff provider unavailable
+ACET-DIF-002
+Input incompatible
+ACET-JOB-001
+Worker heartbeat lost
+ACET-JOB-002
+Job interrupted
+ACET-PACK-001
+Pack checksum invalid
+ACET-UPD-001
+Engine pack incompatible
+ACET-SEC-001
+Unsafe archive path
+ACET-REP-001
+Report generation failed
+Chaque erreur utilisateur DOIT fournir : résumé, impact sur les données, action recommandée, bouton diagnostics, code stable. Les stacktraces sont cachées sous Developer details.
+55. Critères d’acceptation numérotés
+ID
+Domaine
+Critère
+ACC-001
+Installation propre
+Sur VM Windows 11 propre, l’installateur termine et ACET démarre sans Python système.
+ACC-002
+Premier lancement
+Le wizard crée un workspace, diagnostique les moteurs et lance le self-test.
+ACC-003
+Offline
+Débranché du réseau, import/analyse/compare/report fonctionnent.
+ACC-004
+No execution
+Les tests d’intégration démontrent qu’aucun artefact importé n’est exécuté.
+ACC-005
+Duplicate artifact
+Importer deux fois le même fichier ne duplique pas ses bytes.
+ACC-006
+Duplicate build
+Un fingerprint identique propose une nouvelle observation.
+ACC-007
+Atomic import
+Un échec avant COMMIT ne laisse aucun build partiel visible.
+ACC-008
+Integrity
+La corruption d’un artifact est détectée avant analyse.
+ACC-009
+Ghidra isolation
+Tuer le worker Ghidra ne tue pas l’UI.
+ACC-010
+Resume
+Après arrêt forcé de l’application, les jobs interrompus sont proposés à la reprise.
+ACC-011
+Partial
+Échec d’un moteur optionnel produit COMPLETED_PARTIAL et missing_evidence.
+ACC-012
+Cache
+Relancer même processor/config/input produit cache hit.
+ACC-013
+Stale
+Changer processor version marque les descendants STALE sans supprimer les anciens résultats.
+ACC-014
+Reproducibility
+Chaque Analysis Run expose versions, config hashes et input hashes.
+ACC-015
+Explainability
+Chaque consensus match ouvre supporting/contradicting evidence.
+ACC-016
+No magic score
+L’UI n’affiche aucun score global fusionnant toutes les dimensions d’anomalie.
+ACC-017
+Unknown semantics
+Une métrique non mesurée apparaît UNKNOWN et non 0.
+ACC-018
+Lineage history
+Ajouter Build C étend la lineage sans supprimer les assignments de l’ancien run.
+ACC-019
+Split/merge
+Le modèle accepte au moins un split et un merge dans les fixtures.
+ACC-020
+Search
+Ctrl+K retrouve build, artifact hash, lineage et annotation.
+ACC-021
+Report JSON
+Le JSON exporté valide son schema.
+ACC-022
+ACET pack
+Un pack sans artifacts se réimporte avec résultats et annotations.
+ACC-023
+Pack safety
+Un pack avec traversal ou checksum invalide est refusé.
+ACC-024
+DB migration
+Toutes les migrations fixtures réussissent ou rollbackent atomiquement.
+ACC-025
+Uninstall
+Désinstaller conserve les workspaces par défaut.
+ACC-026
+Doctor
+Doctor --full exécute un golden self-test fonctionnel.
+ACC-027
+Benchmark blind
+Les labels ground truth ne sont pas fournis au détecteur pendant le run.
+ACC-028
+Calibration honesty
+Aucune probabilité n’est affichée avant calibration validée.
+ACC-029
+Performance UI
+Les opérations longues ne bloquent jamais le thread UI.
+ACC-030
+Large table
+Une table de 10 000 fonctions reste navigable et filtrable sans gel prolongé.
+ACC-031
+Disk preflight
+Un job lourd refuse de démarrer si l’espace estimé est insuffisant.
+ACC-032
+Logs privacy
+Le diagnostic par défaut ne contient ni artifact bytes ni chemin utilisateur complet.
+ACC-033
+Provider capability
+L’UI dépend des capabilities, pas du nom d’un moteur spécifique.
+ACC-034
+Engine pin
+Un workspace peut rester sur un Engine Pack ancien installé.
+ACC-035
+Audit
+Import, suppression logique, analyse et annotation créent un audit event.
+ACC-036
+Trash
+Une suppression de build est récupérable avant purge.
+ACC-037
+Reconcile
+Doctor détecte référence DB pendante et artifact orphelin dans fixtures.
+ACC-038
+Determinism
+Le golden dataset répété produit les mêmes facts et sorties déterministes définies.
+ACC-039
+Coverage
+Un run partiel expose coverage et raisons de non-couverture.
+ACC-040
+External events
+Une corrélation temporelle n’est jamais libellée causalité automatiquement.
+ACC-041
+Product agnostic
+Le test de domaine utilise un produit fictif sans branche spécifique anti-cheat.
+ACC-042
+CLI parity
+Les use cases import/analyze/compare/export sont utilisables via CLI.
+ACC-043
+Exit codes
+Les scénarios CLI renvoient les codes documentés.
+ACC-044
+Accessibility
+Les parcours Import→Analyze→Compare sont réalisables au clavier.
+ACC-045
+Backup
+Un backup metadata peut restaurer DB/annotations/settings sans artifact duplication.
+ACC-046
+Storage cleanup
+Clean rebuildable cache ne supprime ni SOURCE ni FACT non reconstructible.
+ACC-047
+Build completeness
+Un build partiel indique UNKNOWN pour composant attendu non observé.
+ACC-048
+Raw scores
+Les scores moteurs originaux restent accessibles après consensus.
+ACC-049
+Evidence diversity
+Le consensus distingue nombre de moteurs et diversité de familles de preuve.
+ACC-050
+Release gate
+Aucune release stable n’est produite si les tests mandatory/golden/migration échouent.
+56. Roadmap d’implémentation verrouillée
+Phase
+Livrable
+Gate
+P0
+Repo, packaging skeleton, domain conventions, CI
+Unit + lint + typed contracts
+P1
+Workspace, SQLite, migrations, content store
+ACC-005/007/008/024
+P2
+Import wizard + CLI import
+Import hostile matrix
+P3
+Jobs/workers/checkpoints/doctor
+ACC-009/010/031/038
+P4
+FAST analysis
+Facts reproducibles
+P5
+Ghidra + function extraction
+Golden extraction
+P6
+Ghidriff + normalized matcher DTO
+Pairwise benchmark
+P7
+Consensus + lineage
+Multi-version benchmark
+P8
+BinExport/BinDiff + QBinDiff providers
+Capability degradation
+P9
+Change detector + baselines + timeline
+No magic score / reliability
+P10
+Benchmark Lab + calibration
+Regression gates
+P11
+Reports/.acetpack/backup/reconcile
+Export/import safety
+P12
+Installer/Engine Packs/update/repair
+Clean VM acceptance
+P13
+UX polish/accessibility/performance
+Full acceptance suite
+1.0
+Stable release
+ACC-001..050 mandatory green
+57. Definition of Done ACET 1.0
+ACET 1.0 est considéré clé en main uniquement lorsqu’un utilisateur sur un PC Windows propre peut installer l’application, exécuter le self-test, créer un workspace, importer deux builds, lancer STANDARD, obtenir une comparaison et une lineage explicables, fermer/reprendre, ajouter un troisième build sans recalcul intégral, générer un rapport, exporter un pack, mettre à jour l’application avec migration sûre et retrouver les résultats historiques reproductibles.
+Les scénarios de panne obligatoires sont : crash Ghidra, worker hung, provider absent, fichier corrompu, disque insuffisant, doublon, analyse interrompue, DB migration échouée, résultat stale et Engine Pack ancien.
+XV. Décisions figées / décisions calibrables
+Figé
+Calibrable
+Fact/Inference/Human séparés
+Seuils matcher
+Artifact immutable SHA-256
+Seuils anomaly
+Build ≠ Observation
+Budgets temps/RAM après mesures
+Aucune exécution artefact
+Pondérations evidence families
+Offline-first
+Calibration confidence
+Workers isolés
+Product baselines
+DAG + cache versionné
+Heuristiques de clustering
+Pas de score global magique
+Valeurs de timeout par profil
+Lineage multi-version
+Provider preference order
+Diaphora optionnel externe
+Nombre de workers recommandé
+XVI. Références techniques retenues
+Les références suivantes justifient les choix d’intégration ; elles ne sont pas des dépendances conceptuelles du modèle ACET.
+Référence
+Usage ACET
+Ghidra Headless Analyzer
+Analyse non-GUI, import, scripts et traitements répétitifs ; licence principale Apache 2.0 avec notices tierces/GPL séparées.
+Ghidriff
+CLI Python/Ghidra ; GPL-3.0 ; provider principal à auditer pour redistribution.
+Google BinDiff/BinExport
+BinDiff possède une version ligne de commande ; BinExport supporte Ghidra et peut être scripté en headless.
+QBinDiff
+Apache-2.0, CLI et bibliothèque Python, features/weights configurables ; documentation avertit de la consommation mémoire sur gros graphes.
+Diaphora
+Batch automation mais provider IDA ; AGPL-3.0 depuis 2.0 ; externe/optionnel dans ACET.
+BinKit 2.0
+Benchmark BCSA : 371 928 binaires, 1 904 combinaisons, 8 architectures, 6 niveaux d’optimisation et 23 compilateurs.
+XVII. Annexe — Checklist avant première ligne de code
+Créer ADR-0001 Architecture en couches
+Créer ADR-0002 Fact/Derived/Inference/Human
+Créer ADR-0003 Content-addressable artifact store
+Créer ADR-0004 SQLite WAL + migrations atomiques
+Créer ADR-0005 Worker protocol v1
+Créer ADR-0006 Analysis DAG/cache invalidation
+Créer ADR-0007 Engine capability/provider model
+Créer ADR-0008 Confidence classes before calibration
+Créer ADR-0009 Diaphora external-only
+Créer ADR-0010 No artifact execution
+Créer JSON Schemas v1
+Créer migration 0001_initial
+Créer golden demo dataset légal/open-source
+Créer error_codes.py depuis le catalogue
+Créer acceptance/ACC-001..050 sous forme de tests/fixtures
+Créer Engine Pack manifest schema
+Créer .acetpack schema
+Créer threat-model.md
+Créer license-audit.md avant redistribution de tiers
+
+XVIII. Audit de complétude v2.0
+Cette extension résulte d’un audit de production, de sécurité, de reproductibilité et de robustesse des moteurs. Elle complète la v1.0 sans modifier son principe central. En cas de conflit, les exigences v2.0 ci-dessous prévalent.
+58. Définition renforcée de « clé en main »
+Dimension
+Exigence de sortie
+Installation
+Aucun Python/Java/Ghidra préinstallé requis lorsque l’Engine Pack officiel est utilisé.
+Utilisation
+Un utilisateur non spécialiste peut Importer → Analyser → Comparer → Comprendre → Exporter.
+Résilience
+Crash moteur, reboot, timeout, disque plein, DB stale et provider absent n’entraînent pas de perte silencieuse.
+Reproductibilité
+Toute conclusion est reliée aux entrées, versions, paramètres, logs de complétion et calibration.
+Distribution
+Application et Engine Packs signés, vérifiables, versionnés, avec SBOM et notices de licences.
+Maintenance
+Upgrade, downgrade contrôlé, migration, repair, uninstall, backup et restore sont spécifiés.
+Support
+Doctor, diagnostic bundle, error codes et runbook de récupération existent avant 1.0.
+Science
+Résultats calibrés par contexte ; UNKNOWN/ABSTAIN sont des résultats normaux.
+59. Validation de complétion des moteurs
+Un code de retour 0 ne constitue jamais à lui seul la preuve qu’une analyse est complète. Chaque provider doit produire un Completion Manifest ACET et ACET doit valider les invariants de sortie.
+completion-manifest.json{  "protocol_version": 1,  "provider_id": "...",  "provider_version": "...",  "run_id": "...",  "started_at": "...",  "finished_at": "...",  "termination": "normal|timeout|killed|crash|unknown",  "engine_exit_code": 0,  "engine_reported_errors": 0,  "engine_reported_warnings": 0,  "expected_outputs": [...],  "present_outputs": [...],  "output_checksums": {...},  "analysis_counts": {...},  "completion_state": "complete|partial|invalid"}
+ACET-ENG-001 — Exit code insuffisant
+Le Supervisor DOIT combiner exit code, completion manifest, présence/checksum des sorties, compteurs et analyse des erreurs structurées avant de déclarer un processor COMPLETED.
+ACET-ENG-002 — Résultat partiel Ghidra
+Un timeout ou une exception interne détectée produit PARTIAL/INVALID selon les sorties réellement validées ; jamais COMPLETED par défaut.
+ACET-ENG-003 — Log parser versionné
+Chaque provider peut posséder un parser de diagnostics versionné. Une règle de log n’est pas un fait scientifique : elle est stockée comme mécanisme de validation du provider.
+60. Supervision Windows des processus
+Chaque arbre de processus externe doit être placé dans un Windows Job Object dédié. Les enfants héritent du Job Object ; la fermeture/annulation dure utilise la terminaison du Job Object afin d’éviter les descendants orphelins.
+ACET-WIN-001 — Job Object
+Tout provider externe lancé sous Windows DOIT être associé à un Job Object ACET avec politique kill-on-close lorsque compatible.
+ACET-WIN-002 — Two-stage termination
+Annulation : demande gracieuse → délai configurable → TerminateJobObject. ACET journalise la méthode de terminaison.
+ACET-WIN-003 — Pipe safety
+Les stdout/stderr lourds sont drainés vers fichiers bornés/rotation ou lecteurs asynchrones ; le Supervisor ne dépend pas d’un EOF de pipe pour conclure qu’un Job Object est terminé.
+61. Sandbox et moindre privilège
+Niveau
+Politique
+UI/Core
+Compte utilisateur normal ; aucune élévation permanente.
+Workers standards
+Processus séparés, workspace de travail dédié, Job Object, variables d’environnement minimales.
+Workers renforcés
+AppContainer/low-integrity expérimental uniquement après validation de compatibilité des moteurs.
+Network
+Désactivé pour les workers d’analyse sauf capability explicitement nécessaire.
+Filesystem
+Entrées en lecture seule logique ; sorties uniquement dans le workdir attribué.
+ACET-SEC-004 — No admin by default
+ACET ne demande pas de droits administrateur pour l’analyse normale. Toute opération nécessitant élévation est séparée et expliquée.
+ACET-SEC-005 — Sandbox compatibility gate
+Aucune restriction AppContainer/mitigation ne peut être activée globalement avant un golden test de compatibilité du provider concerné.
+62. Windows filesystem réel
+Sujet
+Décision
+Long paths
+Manifest ACET longPathAware ; store interne à chemins courts ; Doctor détecte politique OS incompatible.
+Unicode
+API Unicode uniquement ; tests noms non ASCII, RTL et caractères combinés.
+Case
+Identités internes indépendantes de la casse du chemin Windows.
+Symlink/reparse
+Imports résolvent la cible ; politique anti-loop et profondeur maximale.
+Network shares
+Support lecture/import ; workspace actif local recommandé ; WAL non présumé sûr sur partage réseau.
+Removable media
+Import autorisé ; workspace actif avertit sur risque de déconnexion.
+ACET-FS-001 — Canonical path
+Avant lecture, ACET canonicalise, résout reparse points selon politique, détecte boucles et ne laisse jamais un chemin sortir d’une extraction contrôlée.
+ACET-FS-002 — Workspace local
+La création d’un workspace sur un filesystem non validé déclenche un avertissement et peut forcer un journal SQLite compatible plutôt que WAL.
+63. SQLite : sauvegarde et cohérence
+Les sauvegardes d’une base active utilisent l’Online Backup API/VACUUM INTO ou une fermeture/checkpoint contrôlé. ACET ne copie jamais naïvement seulement acet.db pendant qu’un WAL actif peut contenir des commits.
+ACET-DB-004 — WAL-aware backup
+Toute sauvegarde à chaud utilise une méthode SQLite cohérente ; DB, WAL et SHM ne sont jamais séparés par une copie naïve.
+ACET-DB-005 — Checkpoint policy
+Le service DB possède une politique de checkpoint observable et un checkpoint explicite avant opérations nécessitant un snapshot fichier.
+ACET-DB-006 — Restore validation
+Restore → copie temporaire → integrity_check → vérification schema/app compatibility → swap atomique.
+64. Supply chain ACET
+Artefact distribué
+Obligations
+Installer/app
+Signature de code de production + horodatage RFC3161/SHA-256 + hash publié.
+Engine Pack
+Manifest signé, hashes de chaque fichier, provenance, licences, SBOM.
+Update manifest
+Signé séparément ; version, channel, minimum/maximum compatible, hashes, rollback metadata.
+Source release
+Tag immuable, build ID, commit SHA, provenance CI.
+Dependencies
+Lockfiles + hash pinning lorsque possible.
+ACET-SUP-001 — Verify before install
+Une mise à jour ou Engine Pack téléchargé n’est jamais exécuté/installé avant validation signature + hash + compatibilité.
+ACET-SUP-002 — Timestamp
+Les exécutables/installers de production sont signés avec SHA-256 et horodatés ; la CI vérifie la signature après packaging.
+ACET-SUP-003 — SBOM
+Chaque release stable produit un SBOM machine-readable contenant dépendances directes et composants redistribués.
+ACET-SUP-004 — Provenance
+Le release manifest lie version ACET, commit source, workflow/build ID, hashes, SBOM et signature.
+ACET-SUP-005 — Revocation
+Le système d’update supporte une denylist de versions/Engine Packs compromis, sans effacer les résultats historiques qui les référencent.
+65. Politique de mises à jour
+Channels:STABLEBETADEVELOPERUpdate states:AVAILABLE → DOWNLOADED → VERIFIED → STAGED → APPLYING → VALIDATING → COMMITTED                                      ↘ FAILED → ROLLBACKNever:download → execute directly
+ACET-UPD-004 — Rollback app
+L’application conserve suffisamment d’état pour revenir à la version précédente si validation post-update échoue, sauf migration explicitement non réversible signalée avant installation.
+ACET-UPD-005 — Engine coexistence
+Plusieurs Engine Packs peuvent coexister afin d’ouvrir/reproduire d’anciens Analysis Runs.
+ACET-UPD-006 — Offline update
+Un bundle d’update hors ligne signé peut être importé et vérifié sans accès Internet.
+66. Compatibilité et support matrix
+Axe
+V1 garanti
+Hors garantie / explicite
+OS
+Windows 10/11 x64 supportés par la matrice release
+Windows Server/ARM64 selon validation ultérieure
+Formats
+PE32/PE32+ x86/x64
+ELF/Mach-O futurs
+Filesystems
+NTFS local
+Réseau/ReFS/exotiques selon tests
+Ghidra
+Version exacte de l’Engine Pack
+Autres versions = external provider non garanti
+BinDiff/BinExport
+Versions exactes pack
+Combinaisons externes marquées unverified
+IDA/Diaphora
+Provider externe
+Jamais requis pour STANDARD
+ACET-COMP-001 — Matrix file
+La matrice de compatibilité est machine-readable et incluse dans la release ; Doctor la consulte.
+67. Context stratification scientifique
+Les performances d’un matcher varient avec architecture, compilateur, optimisation, linkage, stripping et transformations de code. Les calibrations ne doivent donc pas être globales.
+analysis_context:  format  architecture  compiler_family_hint  compiler_version_hint  optimization_hint  linkage  symbols_present  packing_indicators  virtualization_indicators  function_count_bucket  binary_size_bucket  extraction_quality  provider_versions
+ACET-SCI-001 — Stratified calibration
+Une calibration de score est liée à un contexte/dataset. Si le contexte cible sort du domaine validé, ACET dégrade la classe de confiance ou ABSTAIN.
+ACET-SCI-002 — OOD
+ACET possède un état OUT_OF_DISTRIBUTION pour les cas non couverts par les benchmarks disponibles.
+ACET-SCI-003 — Extraction quality
+La qualité de désassemblage/extraction est une dimension explicite de reliability ; un mauvais function boundary recovery ne doit pas être interprété comme changement logiciel.
+68. Compatibilité moteur et fallbacks
+Condition
+Action
+Ghidriff indisponible
+STANDARD peut continuer avec extraction + BinDiff si capability présente ; coverage réduit.
+BinDiff échec spécifique
+Conserver Ghidriff ; marquer structural provider failed.
+QBinDiff &gt; budget
+Skip automatique ou périmètre réduit ; jamais OOM volontaire.
+Ghidra timeout
+Conserver facts validés ; extraction marquée partial.
+Input incompatible
+Provider SKIPPED_INCOMPATIBLE, pas FAILED.
+Provider bug connu
+Doctor peut appliquer deny rule versionnée et recommander autre Engine Pack.
+ACET-ENG-004 — Provider quirks registry
+ACET maintient un registre versionné de limitations connues par combinaison provider/version/format afin de distinguer incompatibilité connue et anomalie du binaire.
+69. Politique QBinDiff
+ACET-QBD-001 — Memory gate
+QBinDiff n’est pas lancé automatiquement au-delà du seuil validé de fonctions/budget mémoire du profil. Le seuil initial doit rester conservateur et être calibré.
+ACET-QBD-002 — Experimental label
+Les résultats QBinDiff sont identifiés comme provider expérimental tant que les regression gates définis pour son contexte ne sont pas atteints.
+70. Politique BinDiff/BinExport
+ACET-BDF-001 — Official structural provider
+BinDiff/BinExport devient un provider structurel officiel de DEEP@2 et un provider facultatif de STANDARD@2 si installé dans l’Engine Pack.
+ACET-BDF-002 — Known incompatibility handling
+Les erreurs connues de BinExport/BinDiff sur certains régimes de binaires produisent SKIPPED_KNOWN_LIMITATION ou FAILED_PROVIDER, jamais une conclusion fonctionnelle.
+ACET-BDF-003 — Result size
+Avant diff de très gros inputs, ACET estime tailles/limites provider et peut refuser proprement une combinaison susceptible de dépasser une limite de format ou de mémoire.
+71. Politique Ghidra
+ACET-GHD-004 — Analyzer profile
+La liste des analyzers Ghidra activés/désactivés fait partie du Analysis Profile et de son hash.
+ACET-GHD-005 — Timeout double
+ACET utilise le timeout natif Ghidra lorsque pertinent ET un watchdog externe Supervisor ; aucun des deux n’est considéré suffisant seul.
+ACET-GHD-006 — Project isolation
+Chaque traitement utilise un projet/workdir non partagé simultanément, évitant les conflits de projet headless.
+72. Données PE supplémentaires à prévoir
+Famille
+Facts à stocker
+Headers
+machine, subsystem, characteristics, image base, alignments, entry point
+Sections
+name, RVA, raw/virtual size, entropy, characteristics, hashes
+Imports/Exports
+DLL, symbol/ordinal, delay imports
+Relocations
+presence/count/type summary
+Resources
+type/name/lang/hash sans exécuter le contenu
+Debug
+PDB path sanitized, GUID/age si présent
+Load config
+CFG/CET/security cookie related facts lorsque parsables
+TLS
+callbacks metadata uniquement
+Authenticode
+presence, signer, chain status, timestamp, digest algorithms
+Version info
+company/product/file version/original filename comme metadata non-identitaire
+Overlay
+offset/size/hash
+ACET-PE-001 — Authenticode as fact
+Signature Authenticode et état de chaîne sont stockés comme faits observés avec heure de vérification ; ils ne définissent pas l’identité du fichier.
+ACET-PE-002 — Timestamp skepticism
+PE timestamp est un champ de provenance distinct et ne sert jamais seul de date de build/release.
+73. Symboles et PDB
+ACET-SYM-001 — Symbols optional
+L’analyse fonctionne sans symboles. Les symboles disponibles sont une couche d’enrichissement séparée.
+ACET-SYM-002 — No automatic remote fetch
+Aucun téléchargement de symboles distant n’est effectué par défaut. Un Symbol Provider réseau est opt-in et journalisé.
+ACET-SYM-003 — Symbol provenance
+Tout symbole importé conserve source, hash du fichier de symboles et provider/version.
+74. Privacy et chemins
+ACET-PRI-001 — Path minimization
+Le chemin source complet n’est pas nécessaire à l’identité et n’est pas exporté/diagnostiqué par défaut.
+ACET-PRI-002 — PDB path sanitation
+Les chemins PDB ou strings susceptibles de contenir des noms utilisateur sont considérés potentiellement sensibles dans exports/diagnostics.
+ACET-PRI-003 — Telemetry
+Télémétrie désactivée par défaut. Si ajoutée plus tard, elle est opt-in, documentée, inspectable et ne contient jamais artifact bytes/function content.
+75. Reproducible release engineering
+Contrôle
+Exigence
+Locking
+Versions exactes des dépendances de build.
+Build VM
+Image/runner documenté et versionné.
+Artifacts
+Hashes calculés après build, avant signature et après signature selon type.
+Signing
+Étape séparée avec clés hors repo.
+Verification
+Installation smoke test sur VM propre.
+Golden
+Self-test ACET après installation.
+SBOM
+Généré depuis le build réel, archivé avec release.
+Archive
+Conserver manifest, symbols ACET si nécessaires, logs CI et provenance.
+76. Observabilité sans fuite
+Signal
+Rétention
+Application log
+Rotation taille + nombre de fichiers
+Provider log
+Par processor run, compression optionnelle
+Metrics
+Durée, CPU, peak RSS, I/O, cache hit, exit/termination
+Audit
+Actions utilisateur importantes, append-oriented
+Crash dump ACET
+Opt-in ou local ; sanitisation avant partage
+ACET-OBS-001 — Correlation IDs
+Workspace/run/job/processor IDs sont présents dans les logs afin de reconstruire un incident sans utiliser les chemins personnels.
+ACET-OBS-002 — Log budgets
+Les logs de moteurs ont une taille maximale et une stratégie de troncature conservant début, fin et compteurs d’erreurs.
+77. UX : aucun état caché
+État
+Affichage obligatoire
+PARTIAL
+Pourquoi + moteurs/étapes manquants + Retry missing
+STALE
+Quelle dépendance a changé + Recompute impact
+OOD
+Pourquoi la calibration ne couvre pas ce cas
+DEGRADED
+Capability absente mais fonctions encore disponibles
+CORRUPTED
+Objet concerné + actions de restauration/réimport
+UNVERIFIED ENGINE
+Provider externe détecté mais combinaison non validée
+ACET-UX-001 — No silent fallback
+Tout fallback modifiant la qualité scientifique du résultat est visible dans le run et le rapport.
+78. Estimation et planification
+ACET-RES-001 — Estimate confidence
+Les ETA/RAM/disque sont affichés comme estimations avec qualité LOW/MEDIUM/HIGH selon historique.
+ACET-RES-002 — Power behavior
+Par défaut ACET peut empêcher la veille automatique uniquement pendant un job lourd si l’utilisateur l’autorise ; il ne bloque jamais une mise en veille explicitement demandée par l’utilisateur.
+79. Import d’archives
+ACET-ARC-001 — Archive limits
+Extraction contrôlée avec limites : nombre d’entrées, taille totale décompressée, ratio de compression, profondeur, liens et chemins.
+ACET-ARC-002 — Archive provenance
+Le hash de l’archive source peut être conservé comme provenance, mais chaque fichier extrait devient son propre Artifact.
+ACET-ARC-003 — No password guessing
+Archives chiffrées : mot de passe fourni explicitement par l’utilisateur ; aucune tentative automatisée de cassage.
+80. Suppression, rétention et droit à l’erreur
+ACET-RET-001 — Two-phase purge
+Soft delete → Trash → purge explicite. Une purge calcule les références partagées avant suppression de bytes.
+ACET-RET-002 — Retention policy
+Cache, logs, temp, backups et quarantine ont chacun une politique de rétention indépendante.
+ACET-RET-003 — Dry run cleanup
+Toute opération de nettoyage importante propose un dry-run indiquant précisément ce qui sera supprimé et l’espace récupérable.
+81. Import/export à long terme
+ACET-FMT-001 — Schema evolution
+.acetpack et JSON reports possèdent schema_version et règles de migration explicites.
+ACET-FMT-002 — Forward compatibility
+Une version ancienne d’ACET refuse proprement un pack plus récent non compris plutôt que d’ignorer silencieusement des champs.
+ACET-FMT-003 — Canonical JSON
+Les objets utilisés pour fingerprints/signatures utilisent une sérialisation canonique spécifiée et testée.
+82. Product Profile v2
+product_profile:  schema_version  product_name  expected_roles[]  optional_roles[]  filename_hints[]  signature_hints[]  version_extractors[]  channel_hints[]  completeness_rules[]  notesRules:- hints only- never execute files- never fetch protected content- user can override classification
+ACET-PROF-001 — Declarative only
+Un Product Profile ne contient pas de code arbitraire exécutable en V1.
+83. External events et sources
+Classe source
+Usage
+OFFICIAL
+Contexte de release/incidents documentés
+RESEARCH
+Analyse technique reproductible/publiée
+COMMUNITY
+Signal faible à moyen, jamais ground truth technique seul
+LOCAL_NOTE
+Annotation utilisateur
+ACET-EVT-001 — Evidence quality
+Chaque External Event possède source_class, retrieved/recorded_at, résumé et niveau de corroboration.
+ACET-EVT-002 — No automated causal claim
+Même plusieurs sources concordantes ne transforment pas automatiquement une corrélation en causalité.
+84. Limites connues comme données
+ACET doit embarquer un Known Limitations Registry versionné. Il est consultable dans System et inclus dans les rapports lorsqu’une limitation touche un run.
+known_limit:  id  provider_id  provider_version_range  input_context  symptom  severity  workaround  source  status
+85. Modes d’utilisation
+Mode
+Comportement
+Normal
+STANDARD, explications simplifiées, safe defaults.
+Advanced
+Choix providers/profiles, diagnostics plus riches.
+Research
+Paramètres expérimentaux, benchmark, raw outputs.
+Developer
+Protocol traces, schema inspection, fixtures ; caché par défaut.
+ACET-MODE-001 — Safe defaults
+Le mode Normal ne permet pas accidentellement de modifier des paramètres de calibration ou de provider susceptibles d’invalider la comparabilité.
+86. Politique de compatibilité des résultats
+Comparable analysis runs require:- compatible feature schema- compatible normalizer semantics- known calibration relationship- compatible artifact format/architecture scope- explicit provider result mappingOtherwise:COMPARABILITY = PARTIAL or NONE
+ACET-CMP-001 — No forced comparison
+ACET ne compare pas numériquement deux métriques dont les définitions/versionnements sont incompatibles.
+87. Tests supplémentaires obligatoires
+Test
+Attendu
+Process tree leak
+Provider crée enfant/petit-enfant puis timeout ; aucun processus ne survit au Job Object.
+False success
+Provider renvoie exit 0 mais completion manifest incomplet ; run INVALID.
+Long paths
+Workspace/import avec chemins &gt;260 caractères dans environnement compatible.
+Unicode
+Noms FR/UA/CJK/emoji et normalization Unicode.
+Reparse loop
+Dossier avec junction/symlink cyclique ; découverte s’arrête proprement.
+WAL backup
+Écritures concurrentes pendant backup ; snapshot restaurable cohérent.
+Engine downgrade
+Ouvrir run historique avec Engine Pack épinglé.
+Tampered engine
+Hash/signature Engine Pack modifié ; provider refusé.
+Tampered update
+Manifest/update modifié ; update refusée.
+OOD calibration
+Contexte non benchmarké ; confidence probability non affichée.
+QBinDiff budget
+Input au-dessus du budget ; skip contrôlé sans OOM.
+BinDiff provider failure
+Échec provider ; Ghidriff results conservés.
+Ghidra internal error
+Log ERROR avec exit global réussi ; PARTIAL/INVALID détecté.
+Archive bomb
+Ratio/size excessif ; extraction refusée avant épuisement disque.
+Power interruption
+Process tué pendant write ; aucun output final semi-écrit.
+88. Critères d’acceptation additionnels ACC-051 à ACC-100
+ID
+Sujet
+Critère
+ACC-051
+Provider completion
+Exit 0 + sortie manquante ne peut jamais produire COMPLETED.
+ACC-052
+Job Object
+Tous les descendants d’un provider sont terminés après hard cancel.
+ACC-053
+Ghidra false-success
+Une erreur interne connue dans les logs dégrade le run.
+ACC-054
+Ghidra timeout
+Timeout natif ou externe est visible dans completion manifest.
+ACC-055
+WAL backup
+Backup à chaud restauré passe integrity_check.
+ACC-056
+Signed release
+Installer production vérifie signature et timestamp en CI.
+ACC-057
+Engine manifest
+Chaque Engine Pack valide hashes, compatibilité et licences.
+ACC-058
+Tamper rejection
+Un Engine Pack altéré est refusé avant exécution.
+ACC-059
+SBOM
+Chaque release stable possède un SBOM archivé.
+ACC-060
+Offline update
+Bundle signé hors ligne s’installe sans réseau.
+ACC-061
+Engine coexistence
+Deux Engine Packs compatibles peuvent coexister.
+ACC-062
+Pinned reproduction
+Un ancien run peut demander son Engine Pack exact.
+ACC-063
+Long path
+Golden filesystem test &gt;260 caractères passe lorsque OS compatible.
+ACC-064
+Unicode
+Import/recherche/export préservent les noms Unicode.
+ACC-065
+Reparse safety
+Une boucle de reparse point ne boucle jamais la découverte.
+ACC-066
+Archive bomb
+Extraction bornée refuse une fixture bomb.
+ACC-067
+Canonical JSON
+Même objet logique produit le même fingerprint sur deux runs.
+ACC-068
+OOD
+Un contexte hors calibration est affiché OUT_OF_DISTRIBUTION.
+ACC-069
+No fake probability
+OOD ou calibration absente interdit l’affichage d’un pourcentage probabiliste.
+ACC-070
+Stratified calibration
+Deux contextes de calibration peuvent produire des mappings différents sans écraser les raw scores.
+ACC-071
+Extraction quality
+Une extraction partielle réduit reliability et reste visible.
+ACC-072
+QBinDiff guard
+Le provider refuse/limite automatiquement un input dépassant le budget configuré.
+ACC-073
+BinDiff known limitation
+Une limitation provider connue devient SKIPPED_KNOWN_LIMITATION.
+ACC-074
+Provider registry
+Doctor affiche limitations applicables au pack courant.
+ACC-075
+PE signature facts
+Signer/timestamp/chain status sont stockés sans modifier Artifact identity.
+ACC-076
+PDB privacy
+Diagnostic standard masque les chemins PDB sensibles.
+ACC-077
+Symbols opt-in
+Aucun fetch symboles réseau ne se produit sans activation.
+ACC-078
+Network isolation
+STANDARD fonctionne avec firewall bloquant ACET/providers.
+ACC-079
+No admin
+Import/analyse standard passent sous compte utilisateur normal.
+ACC-080
+No silent fallback
+Tout provider remplacé/skippé apparaît dans run/report.
+ACC-081
+Restore atomic
+Un restore invalide ne remplace jamais la DB active.
+ACC-082
+Reconcile after crash
+Artifact copié sans commit DB est détecté comme orphan.
+ACC-083
+Retention dry-run
+Cleanup affiche objets et octets avant purge.
+ACC-084
+Shared artifact delete
+Supprimer un build ne supprime pas un Artifact encore référencé.
+ACC-085
+Pack forward reject
+Ancienne version refuse proprement un schema .acetpack inconnu.
+ACC-086
+Provider protocol reject
+Protocol version incompatible empêche lancement.
+ACC-087
+Log bounds
+Provider très bavard ne remplit pas indéfiniment le disque.
+ACC-088
+Correlation IDs
+Un incident peut être suivi UI→job→processor→logs par IDs.
+ACC-089
+Update rollback
+Échec validation post-update restaure version précédente quand rollback supporté.
+ACC-090
+Revoked engine
+Engine Pack denylisted n’est plus utilisé pour nouveaux runs.
+ACC-091
+Historical preservation
+Denylist n’efface pas les résultats historiques.
+ACC-092
+Compatibility matrix
+Doctor marque une combinaison provider non validée.
+ACC-093
+Compare compatibility
+Métriques incompatibles ne sont pas fusionnées/comparées numériquement.
+ACC-094
+Power policy
+Annuler/finir un job restaure toujours l’état de prévention de veille.
+ACC-095
+Crash atomic output
+Aucun fichier .tmp n’est traité comme output valide après crash.
+ACC-096
+Source class
+External Event sans classe/source ne peut être élevé en evidence forte.
+ACC-097
+Product profile safe
+Un Product Profile V1 ne peut exécuter aucun code.
+ACC-098
+Mode normal safety
+Mode Normal ne modifie pas les paramètres scientifiques avancés.
+ACC-099
+Signed manifest provenance
+Release manifest relie commit/build/hashes/SBOM/signature.
+ACC-100
+Clean-machine E2E
+Sur VM propre : install→doctor→demo→import→STANDARD→compare→report→backup→update→restore réussissent.
+89. Gates de release v2
+A release STABLE is forbidden if any is false:SECURITY[ ] installer/app signature verified[ ] timestamp verified[ ] update manifest signature verified[ ] SBOM generated[ ] dependency vulnerability review completed[ ] Engine Pack checksums verifiedDATA[ ] migrations all green[ ] backup/restore all green[ ] reconcile all green[ ] canonical fingerprints stableANALYSIS[ ] golden deterministic facts green[ ] provider completion validation green[ ] false-success fixtures green[ ] benchmark regression gates green[ ] calibration domain documentedWINDOWS[ ] clean Windows 10 VM E2E[ ] clean Windows 11 VM E2E[ ] SmartScreen/signature smoke documented[ ] long-path/unicode tests greenUX[ ] keyboard critical path green[ ] no hidden partial/stale/OOD states[ ] error recovery actions tested
+90. Nouvelle hiérarchie de priorité des moteurs
+Fonction
+Provider V2
+Statut
+Disassembly/extraction
+Ghidra headless
+Obligatoire
+Primary patch diff
+Ghidriff
+Obligatoire STANDARD
+Structural cross-check
+BinExport + BinDiff
+Officiel DEEP ; option STANDARD
+Programmable research diff
+QBinDiff
+Expérimental/budgeté
+IDA-based cross-check
+Diaphora
+Externe optionnel
+Le consensus conserve toujours les sorties originales. La présence de plusieurs moteurs ne signifie pas indépendance statistique ; la diversité des familles de preuve reste la métrique pertinente.
+91. Ce qui n’entre volontairement pas en V1
+Élément
+Raison
+Exécution dynamique des anti-cheats
+Hors périmètre sécurité et reproductibilité V1.
+Injection/attachement processus
+Hors périmètre.
+Acquisition automatique depuis infrastructure protégée
+Hors périmètre ; utilisateur fournit les artefacts.
+Cloud obligatoire
+Contradictoire avec offline-first.
+Serveur multi-utilisateur
+Complexité inutile avant validation desktop.
+ML opaque de décision finale
+Calibration/explicabilité insuffisantes pour V1.
+Auto-update silencieux des moteurs
+Casse la reproductibilité.
+Score global unique
+Masque les dimensions et l’incertitude.
+92. Definition of Done v2.0
+ACET n’est « clé en main » que si la totalité du parcours utilisateur et du cycle de vie logiciel est couverte : installation signée, self-test, création/import, analyse avec supervision robuste, résultats explicables et calibrés, reprise après incident, stockage cohérent, sauvegarde/restauration, export/import versionné, mise à jour vérifiée et rollback, diagnostic/support, puis désinstallation sans perte de données. Les critères ACC-001 à ACC-100 constituent le minimum de conformité 1.0 ; aucun critère critique de sécurité, données, reproductibilité ou recovery ne peut être reporté après la release stable.
+93. Références de l’audit v2.0
+Source
+Constat retenu
+Ghidra Headless documentation
+Batch/scripts, timeout par fichier et résultats potentiellement partiels.
+Ghidra issues 2026
+Nécessité d’une validation ACET indépendante du seul statut global et d’une supervision d’arbre de processus.
+Google BinDiff/BinExport
+BinDiff open source Apache-2.0, CLI ; BinExport Ghidra scriptable en headless.
+QBinDiff
+Outil expérimental, réglable et très gourmand en mémoire ; prudence sur gros graphes.
+Diaphora
+IDA plugin, batch automation, AGPL-3.0 depuis 2.0 ; provider externe.
+BinKit 2.0
+371 928 binaires, 1 904 combinaisons, 8 architectures, 6 optimisations, 23 compilateurs.
+Microsoft Windows signing
+MSIX signé ; Authenticode SHA-256 + horodatage recommandé pour validité long terme.
+Microsoft Job Objects
+Gestion/termination d’un arbre de processus comme unité.
+SQLite WAL/Backup
+WAL fait partie de l’état persistant ; backup à chaud via API/VACUUM INTO.
+
+XIX. Fermeture systémique v3.0
+Cette section transforme la spécification en système fermé par catégories. L’objectif n’est pas de prétendre connaître chaque bug futur, mais de garantir que tout état inconnu tombe dans une classe définie disposant d’une politique de détection, confinement, récupération, observabilité et test. En cas de conflit, v3.0 prévaut.
+94. Critère formel de complétude d’un composant
+Dimension
+Question obligatoire
+Nominal
+Que fait le composant quand tout va bien ?
+Inputs
+Quels types, tailles, versions et niveaux de confiance accepte-t-il ?
+Outputs
+Quels objets produit-il et quels invariants garantissent leur validité ?
+Preconditions
+Qu’est-ce qui doit être vrai avant exécution ?
+Postconditions
+Qu’est-ce qui doit être vrai après succès ?
+Idempotence
+Que se passe-t-il si la même opération est rejouée ?
+Concurrency
+Peut-elle s’exécuter en parallèle ? Quels verrous/transactions ?
+Cancellation
+Quel point est annulable et que reste-t-il ?
+Timeout
+Soft/hard timeout et état final ?
+Partial
+Quels résultats partiels sont conservables ?
+Corruption
+Comment détectée, isolée, réparée ?
+Resource pressure
+RAM/CPU/disque/handles insuffisants ?
+Dependency
+Absente, vieille, nouvelle, incompatible, compromise ?
+Versioning
+Quelles versions rendent le résultat stale/incompatible ?
+Security
+Quels inputs hostiles et quelles limites ?
+Privacy
+Quelles données sensibles potentielles ?
+Observability
+Quels logs/metrics/audit/correlation IDs ?
+Recovery
+Après crash/reboot, où reprend-on ?
+UX
+Que voit l’utilisateur et quelle action lui est proposée ?
+Test
+Unit/contract/integration/fault/property/golden ?
+Acceptance
+Quel ACC prouve que le comportement existe ?
+ACET-CLOSE-001 — Definition of specified
+Aucun composant ne peut être marqué IMPLEMENTATION_READY tant que les 21 dimensions ci-dessus n’ont pas une réponse ou une justification NOT_APPLICABLE.
+95. Taxonomie fermée des résultats d’opération
+OperationOutcome =SUCCESSSUCCESS_WITH_WARNINGSPARTIALSKIPPED_UNSUPPORTEDSKIPPED_INCOMPATIBLESKIPPED_POLICYABSTAINCANCELLEDINTERRUPTEDRETRYABLE_FAILUREPERMANENT_FAILUREINTEGRITY_FAILURESECURITY_REJECTIONRESOURCE_EXHAUSTEDINTERNAL_INVARIANT_VIOLATION
+ACET-CLOSE-002 — No unclassified failure
+Toute fin d’opération doit être mappée sur OperationOutcome. Une exception non mappée devient INTERNAL_INVARIANT_VIOLATION et déclenche diagnostic.
+96. Taxonomie fermée des causes de panne
+Famille
+Exemples
+INPUT
+missing, unreadable, malformed, unsupported
+FORMAT
+PE inconsistency, archive structure, schema invalid
+STORAGE
+disk full, permission, missing artifact, checksum mismatch
+DATABASE
+busy, corrupt, migration, constraint
+ENGINE
+crash, bad output, false success, known limitation
+PROTOCOL
+schema/version/manifest mismatch
+RESOURCE
+RAM, disk, process handles, temp quota
+TIMEOUT
+soft/hard/watchdog
+CANCELLATION
+user/app shutdown/policy
+OS
+filesystem, process creation, power, locale
+SECURITY
+signature invalid, traversal, tampering, unsafe archive
+INTEGRITY
+hash mismatch, stale derived object
+COMPATIBILITY
+architecture/provider/schema/result incompatibility
+CONFIGURATION
+invalid profile/path/threshold
+NETWORK
+only optional services/update/symbol providers
+UPDATE
+download/verify/stage/apply/validate/rollback
+MIGRATION
+forward/backward/restore incompatibility
+EXPORT
+schema/permission/destination/space
+INTERNAL
+violated invariant/bug
+ACET-CLOSE-003 — Failure envelope
+Toute erreur nouvelle doit pouvoir être confinée par sa famille même si son code précis n’existait pas lors de la release.
+97. États scientifiques fermés
+MeasurementState =MEASUREDNOT_MEASUREDUNSUPPORTEDINCOMPATIBLEPARTIALUNRELIABLEOUT_OF_DISTRIBUTIONInferenceState =CONFIRMED_BY_RULESTRONGPROBABLEAMBIGUOUSCONFLICTINGUNRESOLVEDABSTAINNever map UNKNOWN to 0.Never map ABSTAIN to negative.Never map UNMATCHED directly to NEW.
+ACET-CLOSE-004 — Scientific totality
+Toute cellule scientifique de rapport possède MeasurementState et, si inférée, InferenceState.
+98. Invariants globaux
+ID
+Invariant
+Règle
+INV-001
+Artifact identity
+Même SHA-256 ⇒ mêmes bytes dans un workspace ; violation = integrity failure.
+INV-002
+Artifact immutability
+Les bytes d’un artifact référencé ne changent jamais.
+INV-003
+No execution
+Aucun artifact étudié n’est exécuté/chargé comme code par ACET.
+INV-004
+Fact immutability
+Un FACT validé n’est jamais réécrit ; une nouvelle extraction crée une nouvelle version dérivée.
+INV-005
+Inference provenance
+Toute inférence pointe vers ses facts/derived inputs et algorithm/version.
+INV-006
+Run reproducibility
+Tout run a profile, engine pack, configs, inputs, schemas et timestamps.
+INV-007
+No silent fallback
+Tout fallback influençant la qualité est observable.
+INV-008
+No silent data loss
+Aucune purge/destruction durable sans transaction/audit/politique explicite.
+INV-009
+Atomic visibility
+Un objet n’est visible comme valide qu’après commit et validation complète.
+INV-010
+Cache correctness
+Un cache hit exige identité exacte de la cache key.
+INV-011
+Historical preservation
+Recompute/update n’écrase pas les anciens résultats.
+INV-012
+Score honesty
+Un score brut n’est jamais présenté comme probabilité sans calibration.
+INV-013
+Correlation honesty
+Corrélation externe ≠ causalité.
+INV-014
+Provider distrust
+Un provider externe ne peut s’auto-déclarer fiable sans validation ACET.
+INV-015
+User-data survival
+Update/repair/uninstall ne détruit jamais un workspace par défaut.
+INV-016
+Schema honesty
+Un schema inconnu est refusé, jamais partiellement deviné.
+99. Machines d’état canoniques
+ARTIFACT:DISCOVERED → HASHING → COPYING → VERIFYING → AVAILABLE                                  ↘ QUARANTINEDAVAILABLE → CORRUPTEDAVAILABLE → ORPHANED → QUARANTINED → PURGEDANALYSIS RUN:CREATED → PLANNING → QUEUED → RUNNING → VALIDATING→ COMPLETED | COMPLETED_PARTIAL | FAILED | CANCELLED | INTERRUPTEDINTERRUPTED → RECOVERING → QUEUED|FAILEDDERIVED RESULT:BUILDING → VALIDATING → CURRENTCURRENT → STALECURRENT|STALE → CORRUPTEDSTALE → REBUILDING → CURRENTUPDATE:AVAILABLE → DOWNLOADING → DOWNLOADED → VERIFYING → VERIFIED→ STAGING → STAGED → APPLYING → VALIDATING → COMMITTEDany pre-commit failure → FAILEDpost-apply validation failure → ROLLBACK → ROLLED_BACK|RECOVERY_REQUIRED
+ACET-CLOSE-005 — Illegal transitions
+Chaque machine d’état possède une table de transitions ; toute transition non listée lève DomainTransitionError et n’est pas persistée.
+100. Concurrence et verrous
+Ressource
+Politique
+Artifact SHA
+Verrou par hash pendant COPY/VERIFY ; lecteurs après AVAILABLE.
+Workspace DB
+Transactions courtes ; writer unique SQLite ; opérations lourdes hors transaction.
+Analysis cache key
+Single-flight : un calcul par cache key ; les suivants attendent/réutilisent.
+Ghidra workdir
+Exclusif par processor run.
+Migration
+Workspace lock exclusif.
+Backup/restore
+Restore exclusif ; backup cohérent sans bloquer durablement la lecture.
+Cleanup/purge
+Ne purge jamais un objet locked/running/referenced.
+ACET-CON-001 — Single flight
+Deux demandes identiques simultanées ne lancent pas deux calculs lourds pour la même cache key.
+ACET-CON-002 — Crash lock recovery
+Les locks applicatifs ont owner/run ID et mécanisme de détection des propriétaires morts.
+101. Transaction boundaries
+IMPORT TRANSACTIONpreflight (no DB tx)hash/copy/verify (no long DB tx)BEGIN  create/reuse artifact rows  create build/components/observation  auditCOMMITANALYSIS RESULTworker computes outside DB txvalidate manifest/checksumsBEGIN  register processor_run outputs  facts/derived references  cache indexCOMMITrename/finalization ordering is defined so recovery can reconcile both sides.
+ACET-TXN-001 — No long external work in DB transaction
+Aucun appel Ghidra/matcher/copie lourde n’est effectué avec transaction SQLite longue ouverte.
+102. Fault injection plan
+ID
+Injection
+Couverture
+FI-001
+Kill app
+Chaque étape durable import/analyse/update.
+FI-002
+Kill worker
+Avant output, pendant output, après output avant commit.
+FI-003
+Disk full
+Copy, temp, DB commit, report, backup, update.
+FI-004
+Permission denied
+Source/store/temp/report/backup.
+FI-005
+Corrupt bytes
+Artifact, derived output, cache, pack, update.
+FI-006
+DB busy
+Writer contention et long reader.
+FI-007
+DB corrupt
+Pages/metadata fixture corrompues.
+FI-008
+Clock anomaly
+Horloge reculée/avancée ; ordre logique ne dépend pas uniquement du wall clock.
+FI-009
+Engine exit 0 bad output
+False-success.
+FI-010
+Engine hangs
+No heartbeat / CPU active / child process survives.
+FI-011
+Protocol mismatch
+Older/newer provider.
+FI-012
+Huge logs
+stdout/stderr &gt; budget.
+FI-013
+Huge function graph
+Memory guard.
+FI-014
+Archive bomb
+Count/ratio/depth.
+FI-015
+Path edge
+Long/Unicode/reserved/reparse.
+FI-016
+Power loss simulation
+Atomic file/DB recovery.
+FI-017
+Update tamper
+Manifest/package/hash/signature.
+FI-018
+Migration failure
+Every migration boundary.
+FI-019
+OOM
+Worker killed / MemoryError.
+FI-020
+Partial network
+Update metadata succeeds, payload fails; core analysis unaffected.
+103. Property-based testing
+ID
+Propriété
+Invariant testé
+PROP-001
+Hash determinism
+bytes identiques ⇒ SHA identique ; modification quelconque fixture ⇒ hash recalculé.
+PROP-002
+Canonical build fingerprint
+Permutation de l’ordre d’entrée ⇒ même fingerprint canonique.
+PROP-003
+Import idempotence
+Importer N fois mêmes bytes n’augmente pas le nombre de blobs.
+PROP-004
+Cache idempotence
+Même inputs/config/version ⇒ même cache key.
+PROP-005
+State safety
+Aucune séquence générée ne traverse une transition interdite.
+PROP-006
+Reference safety
+Un artifact référencé n’est jamais purgeable.
+PROP-007
+Pack round-trip
+export→import conserve objets canoniques et checksums.
+PROP-008
+Report schema
+Tout rapport généré valide le schema correspondant.
+PROP-009
+Unknown preservation
+NULL/UNKNOWN ne devient jamais zéro lors des transformations.
+PROP-010
+Evidence preservation
+Consensus ne supprime jamais un matcher_result brut.
+PROP-011
+Lineage history
+Nouveau run n’altère pas assignments de l’ancien run.
+PROP-012
+Cancellation safety
+Annulation à n’importe quel checkpoint laisse état réconciliable.
+104. Modèle de traçabilité
+REQUIREMENT  ↓ implemented_byMODULE / ADR / MIGRATION / SCHEMA  ↓ verified_byTEST(S)  ↓ demonstrated_byACCEPTANCE CRITERION  ↓ release evidenceCI ARTIFACT / BENCHMARK RUN / SIGNED MANIFESTEvery mandatory requirement must have:requirement_idowner_moduleimplementation_statustest_ids[]acceptance_ids[]release_gate
+ACET-TRACE-001 — No orphan requirement
+La CI de documentation échoue si une exigence MUST n’a aucun test/acceptance mapping, sauf waiver versionné et justifié.
+ACET-TRACE-002 — No orphan acceptance
+Chaque ACC doit référencer au moins un test automatisé ou un protocole manuel explicitement versionné.
+105. Matrice de complétude par sous-système
+Sous-système
+Checklist fermeture
+Gate
+Installer
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Updater
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Engine Pack
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Workspace
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+SQLite
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Artifact Store
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Importer
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Archive Import
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+PE Parser
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Ghidra Provider
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Ghidriff Provider
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+BinExport Provider
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+BinDiff Provider
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+QBinDiff Provider
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+External Diaphora
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Normalizer
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Matcher Normalizer
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Consensus
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Lineage
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Change Detector
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Baseline
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+External Events
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Jobs
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Worker Supervisor
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Cache
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Backup
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Restore
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Reconcile
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Cleanup
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Reports
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+ACETPack
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+CLI
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+UI
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Doctor
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Logging
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Audit
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Benchmark
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Calibration
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+Product Profiles
+N/P/I/O/Cancel/Timeout/Partial/Recovery/Security/Obs/Test
+MANDATORY
+N=nominal, P=preconditions, I=inputs, O=outputs, Obs=observability. La checklist détaillée est celle de §94.
+106. Budgets et SLO de produit
+Objet
+Cible V1 / règle
+UI responsiveness
+Aucun travail &gt;100 ms volontaire sur thread UI ; opérations longues asynchrones.
+Startup
+Cible ≤5 s sur machine de référence après warm OS cache ; mesurer P50/P95.
+Ctrl+K
+Cible P95 ≤250 ms sur workspace de référence indexé.
+10k functions table
+Scroll/filter interactif ; virtualisation/pagination si nécessaire.
+100 builds timeline
+Interaction sans recalcul lourd synchrone.
+Crash recovery scan
+Cible ≤10 s hors integrity scan profond.
+Log disk budget
+Configurable ; défaut 1 GiB workspace hors logs explicitement conservés de runs.
+Temp budget
+Préflight obligatoire ; cleanup automatique des temp non référencés.
+Backup metadata
+Conserver 7 quotidiens + 4 hebdomadaires par défaut, configurable.
+Data durability
+Aucune perte d’objet COMMITTED après crash normal OS/process selon garanties filesystem/SQLite.
+ACET-SLO-001 — Reference machine
+Les SLO publiés indiquent toujours la machine/dataset de référence ; aucun chiffre de performance n’est présenté sans contexte.
+107. Capacity planning
+Workspace capacity classes:S: &lt;= 25 builds / &lt;= 50k function instancesM: &lt;= 250 builds / &lt;= 1M function instancesL: &lt;= 2,500 builds / &lt;= 10M function instancesXL: beyond validated V1 envelopeV1 release must validate S and M.L is a scalability target.XL =&gt; OUTSIDE_VALIDATED_CAPACITY unless explicitly benchmarked.
+ACET-CAP-001 — Capacity honesty
+Au-delà de l’enveloppe validée, ACET avertit sans prétendre aux SLO publiés.
+108. Indexation et recherche
+Objet
+Index
+Artifacts
+SHA prefix/exact
+Builds
+product/release/channel/fingerprint
+Functions
+artifact/address/name/normalized hash
+Lineages
+product/first/last/change class
+Annotations
+FTS
+External events
+product/time/source class
+Reports
+run/build/product/time
+ACET-SRCH-001 — Index rebuild
+Tous les index secondaires de recherche sont reconstructibles depuis la source DB canonique.
+109. Clock, ordering et IDs
+ACET-TIME-001 — Wall clock distrust
+L’ordre causal des opérations internes utilise IDs/transactions/séquences ; observed_at reste une donnée externe avec précision.
+ACET-TIME-002 — Timezone
+Timestamps système persistés en UTC ISO-8601 ; UI affiche timezone locale ; événements externes conservent timezone/source lorsqu’elle est connue.
+ACET-TIME-003 — UUID monotonicity caveat
+UUIDv7 sert à l’ergonomie/ordre approximatif, jamais comme preuve unique d’ordre causal.
+110. Configuration precedence
+lowest → highestbuilt-in defaultsengine-pack defaultsworkspace settingsproduct profile hintsanalysis profileexplicit run overrides (Research/Developer only)Every effective run stores resolved_config.json + hash.
+ACET-CFG-001 — Resolved config
+Un run sauvegarde la configuration effectivement appliquée, pas seulement les fichiers de configuration sources.
+111. Secrets et credentials
+Le cœur V1 n’a besoin d’aucun secret pour analyser. Si des providers réseau optionnels sont ajoutés, leurs tokens ne sont jamais stockés en clair dans config.toml.
+ACET-SEC-006 — Credential storage
+Secrets optionnels utilisent Windows Credential Manager/DPAPI ou mécanisme OS équivalent, avec référence opaque dans la configuration.
+112. Dependency vulnerability lifecycle
+Étape
+Règle
+Inventory
+SBOM release + lockfiles
+Scan
+CI et revue avant stable
+Triage
+Exploitability dans contexte ACET, pas seulement CVSS
+Patch
+Nouvel app/Engine Pack selon composant
+Emergency
+Denylist/update manifest si provider compromis
+Historical
+Résultats anciens conservés avec bannière de provenance si moteur révoqué
+ACET-VULN-001 — Security response
+Le projet possède SECURITY.md et procédure de publication/rotation/révocation avant 1.0.
+113. Licensing closure
+Objet
+Doit être connu avant redistribution
+License identifier
+SPDX ou texte exact
+Redistribution
+Oui/non/conditions
+Notice
+Texte à inclure
+Source obligation
+Si applicable
+Modification obligation
+Si applicable
+Patent clause
+Si applicable
+Bundling decision
+Bundled/external/downloaded by user
+Version audited
+Exacte
+ACET-LIC-001 — No unaudited bundling
+Aucun binaire tiers n’entre dans l’installer/Engine Pack stable sans ligne complète dans license manifest et revue.
+114. Disaster recovery
+Recovery priority:1. Preserve active workspace bytes2. Stop writers/workers3. Snapshot diagnostics4. Validate latest backup5. Rebuild indexes/cache from canonical data6. Restore DB only if required7. Reconcile artifact store8. Re-run derived computations as neededNever "repair" by deleting unknown data automatically.
+ACET-DR-001 — Recovery mode
+Si DB/invariants critiques échouent au startup, workspace s’ouvre en RECOVERY_READ_ONLY plutôt que tenter des écritures normales.
+115. Forward/backward compatibility policy
+Cas
+Politique
+New app / old DB
+Migrate after backup if supported.
+Old app / new DB
+Refuse read-write ; proposer compatible app.
+New app / old Engine Pack
+Allowed if compatibility matrix says yes.
+Old app / new Engine Pack
+Refuse if protocol/manifest incompatible.
+Old report schema
+Reader migration/adapter.
+Future report schema
+Refuse unknown required semantics.
+Old .acetpack
+Migrate import into current schema.
+Future .acetpack
+Reject safely.
+116. Human review workflow
+AUTO RESULT  ↓REVIEW QUEUE  ├─ accept automatic interpretation  ├─ add human assertion  ├─ mark needs evidence  └─ dismiss from current investigationHuman assertion:never mutates raw engine resultnever changes benchmark ground truth automaticallyhas author/time/reason/evidence refs
+ACET-HUM-001 — Ground truth separation
+Une annotation humaine de projet ne devient jamais automatiquement ground truth de benchmark.
+117. Benchmark anti-leakage
+ACET-BEN-004 — Dataset split
+Calibration/tuning et évaluation finale utilisent des partitions séparées quand un modèle/seuil est ajusté.
+ACET-BEN-005 — Version leakage
+Les versions très proches d’une même famille doivent être groupées lorsque nécessaire pour éviter une évaluation artificiellement facile.
+ACET-BEN-006 — Benchmark manifest
+Chaque résultat publie dataset hash/version, split, ground truth, profile, engine pack et seed si une étape est stochastique.
+118. Determinism classes
+Classe
+Définition
+D0
+Bit-for-bit deterministic output
+D1
+Semantic deterministic; ordering/metadata may differ
+D2
+Bounded nondeterminism documented and normalized
+D3
+Experimental/non-reproducible; forbidden for stable inference unless explicitly marked
+ACET-DET-001 — Processor determinism declaration
+Chaque processor déclare D0-D3 et possède le test approprié.
+119. Release evidence bundle
+release-evidence/  release-manifest.json  signatures/  sbom/  licenses/  compatibility-matrix.json  migration-test-report.json  acceptance-matrix.json  benchmark-summary.json  golden-results/  clean-vm-install-results/  security-scan-summary.json  known-limitations.json  checksums.txt
+ACET-REL-001 — Evidence required
+Une release STABLE n’existe pas sans Release Evidence Bundle complet et archivé.
+120. ACC-101 à ACC-150 — fermeture
+ID
+Sujet
+Critère
+ACC-101
+21-dimension gate
+Chaque sous-système mandatory possède sa checklist §94 complète.
+ACC-102
+Outcome totality
+Toute fin de processor mappe OperationOutcome.
+ACC-103
+Failure family
+Toute exception capturée possède failure_family.
+ACC-104
+Illegal transition
+Une transition illégale est refusée sans mutation DB.
+ACC-105
+Single-flight
+100 requêtes concurrentes même cache key ⇒ un calcul lourd.
+ACC-106
+Dead lock recovery
+Lock owner mort est détecté/récupéré.
+ACC-107
+No long tx
+Instrumentation confirme absence d’appel moteur sous transaction DB longue.
+ACC-108
+Fault kill app
+Chaque checkpoint critique survit au kill app.
+ACC-109
+Fault disk full
+Chaque chemin d’écriture critique échoue sans corruption finale.
+ACC-110
+Fault permissions
+Permission denied produit erreur actionnable sans stacktrace utilisateur.
+ACC-111
+Fault DB busy
+Contention DB respecte retry/backoff borné.
+ACC-112
+Fault OOM
+Worker OOM n’abat pas Core/UI.
+ACC-113
+Property fingerprint
+Permutation inputs ne change pas build fingerprint.
+ACC-114
+Property pack roundtrip
+Pack roundtrip conserve canonical hashes.
+ACC-115
+Property unknown
+Transformations ne convertissent jamais UNKNOWN en zéro.
+ACC-116
+Traceability
+100% exigences MUST ont implementation/test/ACC ou waiver.
+ACC-117
+Acceptance trace
+100% ACC ont test/protocole versionné.
+ACC-118
+SLO UI
+Aucun job lourd ne bloque event loop au-delà du seuil instrumenté.
+ACC-119
+Search P95
+Recherche respecte SLO sur dataset de référence.
+ACC-120
+Capacity M
+Dataset M validé sans perte/invariant failure.
+ACC-121
+Capacity warning
+Au-delà enveloppe validée, avertissement explicite.
+ACC-122
+UTC persistence
+Timestamps internes persistés UTC et affichés localement correctement.
+ACC-123
+Clock rollback
+Horloge système reculée ne casse pas ordre transactionnel.
+ACC-124
+Resolved config
+Chaque run exporte resolved config + hash.
+ACC-125
+Secret storage
+Fixture token optionnel absent des configs/logs en clair.
+ACC-126
+Vulnerability manifest
+Release SBOM scannée et triage archivé.
+ACC-127
+License closure
+Chaque composant redistribué possède décision licence.
+ACC-128
+Recovery read-only
+DB critique invalide ouvre RECOVERY_READ_ONLY.
+ACC-129
+Old app/new DB
+Ancienne app refuse write sur schema futur.
+ACC-130
+New app/old DB
+Migration supportée réussit après backup.
+ACC-131
+Human/raw separation
+Human assertion ne modifie matcher_result.
+ACC-132
+Human/GT separation
+Annotation projet ne devient pas benchmark label.
+ACC-133
+Benchmark split
+Calibration et test final séparés.
+ACC-134
+Benchmark manifest
+Run benchmark possède manifest complet.
+ACC-135
+Determinism declaration
+Tous processors déclarent D0-D3.
+ACC-136
+D0 repeat
+Processor D0 répété produit hash sortie identique.
+ACC-137
+D1 normalize
+Processor D1 produit représentation canonique identique.
+ACC-138
+D3 restriction
+Processor D3 ne produit pas stable inference non marquée.
+ACC-139
+Release evidence
+Stable release possède evidence bundle complet.
+ACC-140
+No orphan blob
+Reconcile détecte tout blob non référencé.
+ACC-141
+No dangling ref
+Reconcile détecte toute référence vers blob absent.
+ACC-142
+Atomic visibility
+Output incomplet n’est jamais visible CURRENT.
+ACC-143
+Provider distrust
+Exit 0 + invariant invalide = failure/partial.
+ACC-144
+Historical run
+Réanalyse ne change aucun row historique immuable.
+ACC-145
+No causal promotion
+External correlation ne devient causal claim automatiquement.
+ACC-146
+No uncalibrated probability
+Aucun pourcentage probabiliste hors calibration valide.
+ACC-147
+OOD abstention
+OOD peut forcer ABSTAIN selon policy.
+ACC-148
+Cleanup safety
+Purge ne touche aucun objet running/locked/referenced.
+ACC-149
+Update evidence
+Update stable vérifie provenance/signature/hash avant apply.
+ACC-150
+Full lifecycle
+Clean VM : install→demo→workspace→3 builds→analysis→lineage→report→backup→crash recovery→update→restore→uninstall/reinstall sans perte.
+121. Matrice Requirement → Test → Gate (extrait normatif)
+Requirement family
+Tests minimum
+Gate
+DATA/DB
+unit + migration + property + fault + recovery
+Stable
+IMPORT
+unit + hostile fixtures + property + fault
+Stable
+ENGINE
+contract + golden + false-success + timeout + process-tree
+Stable
+MATCH/LINEAGE
+benchmark + calibration + multi-version + property
+Stable
+JOBS
+state/property + kill/restart + resource faults
+Stable
+SECURITY
+archive/path/tamper/signature/secrets
+Stable
+UPDATE
+tamper + rollback + migration + offline
+Stable
+UX
+keyboard + error states + no hidden fallback + performance
+Stable
+REPORT/PACK
+schema + roundtrip + future-version reject
+Stable
+RELEASE
+clean VM + SBOM + licenses + signatures + evidence bundle
+Stable
+122. Décisions finales avant code
+Sujet
+Décision finale
+Core
+Python 3.11+, domain indépendant de Qt.
+UI
+PySide6 desktop Windows.
+DB
+SQLite + WAL quand filesystem validé.
+Artifacts
+Content-addressed SHA-256 immutable.
+Disassembly
+Ghidra headless obligatoire.
+Primary diff
+Ghidriff.
+Structural cross-check
+BinExport + BinDiff officiel.
+Programmable diff
+QBinDiff expérimental/budgeté.
+IDA diff
+Diaphora externe optionnel.
+Execution
+Jamais d’exécution des artefacts étudiés.
+Workers
+Process-isolated + Windows Job Objects.
+Updates
+Signed manifests, no silent engine update.
+Confidence
+Classes d’abord ; probabilité uniquement calibrée.
+Lineage
+Multi-version, versionné, split/merge.
+Cloud
+Aucun cloud obligatoire.
+Telemetry
+Off par défaut.
+Release
+ACC-001..150 + evidence bundle.
+123. Definition of Done finale
+ACET 1.0 est prêt à être qualifié de « clé en main » lorsque : (1) toutes les exigences MUST ont une traçabilité complète ; (2) ACC-001 à ACC-150 sont satisfaits ou, pour les critères explicitement manuels, disposent d’un protocole signé/versionné ; (3) les fault injections critiques sont vertes ; (4) les invariants globaux sont instrumentés ; (5) les benchmarks définissent le domaine de validité scientifique ; (6) les dépendances et licences sont fermées ; (7) le Release Evidence Bundle est complet ; et (8) le scénario Full Lifecycle ACC-150 réussit sur machines Windows propres. Tout problème futur non anticipé précisément doit alors être absorbé par une taxonomie, un état sûr, une stratégie de confinement/recovery et une voie de diagnostic déjà définis.
+124. Ce que la spécification ne peut honnêtement garantir
+Aucune spécification ne peut garantir l’absence mathématique de bug dans des systèmes tiers, l’OS, le matériel ou le code futur. La garantie recherchée ici est plus utile : absence de catégorie non traitée dans le périmètre défini, refus des états inconnus non classifiés, conservation des données et de la provenance, et comportement sûr lorsqu’une hypothèse devient invalide. Les éléments volontairement hors périmètre restent explicitement listés en §91 et ne doivent pas être réintroduits implicitement pendant le développement.

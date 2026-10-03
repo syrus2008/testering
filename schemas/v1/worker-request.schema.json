@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acet.local/schemas/v1/worker-request.schema.json",
+  "title": "Worker protocol v1 — request",
+  "description": "Spec §52. Core → worker. Paths are inside the worker's assigned workdir.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "job_id",
+    "processor",
+    "inputs",
+    "config",
+    "output_dir"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": 1
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "processor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "sha256",
+          "path"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "artifact",
+              "derived"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "config": {
+      "type": "object"
+    },
+    "output_dir": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

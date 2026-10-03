@@ -1,0 +1,75 @@
+"""CLI parity and exit codes (spec §53, ACC-042, ACC-043)."""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from acet.cli.main import EXIT_OK, EXIT_PARTIAL, EXIT_SYSTEM, EXIT_USER, main
+from tests.fixtures import build_a
+
+
+def run(capsys, *argv):
+    code = main(list(argv))
+    out = capsys.readouterr()
+    return code, out.out, out.err
+
+
+@pytest.mark.acceptance("ACC-042", "ACC-043")
+def test_cli_end_to_end_exit_codes(capsys, tmp_path):
+    code, out, _ = run(capsys, "workspace", "create", "demo", "--root", str(tmp_path / "w"), "--json")
+    assert code == EXIT_OK
+    wpath = json.loads(out)["path"]
+    w = ["--workspace", wpath]
+
+    code, out, _ = run(capsys, "product", "create", "Fictional Guard", *w, "--json")
+    assert code == EXIT_OK
+    pid = json.loads(out)["id"]
+
+    src = build_a(tmp_path / "a")
+    code, out, _ = run(capsys, "import", str(src), "--product", pid, "--release", "1.0", *w, "--json")
+    assert code == EXIT_OK
+    build_id = json.loads(out)["build_id"]
+
+    code, _, err = run(capsys, "import", str(src), "--product", pid, *w, "--json")
+    assert code == EXIT_USER
+    assert json.loads(err)["error"]["code"] == "ACET-IMP-004"
+
+    code, out, _ = run(capsys, "import", str(src), "--product", pid, "--on-duplicate", "add-observation", *w, "--json")
+    assert code == EXIT_OK and json.loads(out)["created_build"] is False
+
+    code, out, _ = run(capsys, "builds", "list", *w, "--json")
+    assert code == EXIT_OK and [b["observations"] for b in json.loads(out)] == [2]
+
+    code, out, _ = run(capsys, "builds", "verify", build_id, *w)
+    assert code == EXIT_OK
+
+    # Doctor: engines are absent in CI → DEGRADED → partial success (10), never a crash.
+    code, out, _ = run(capsys, "doctor", *w, "--json")
+    assert code == EXIT_PARTIAL
+    assert json.loads(out)["health"] == "DEGRADED"
+
+    code, out, _ = run(capsys, "reconcile", *w, "--json")
+    assert code == EXIT_OK and json.loads(out)["clean"] is True
+
+    code, out, _ = run(capsys, "backup", *w, "--json")
+    assert code == EXIT_OK
+
+    # Integrity failure is a system failure (40) with an actionable message, no stack trace.
+    for blob in (tmp_path / "w").rglob("artifacts/sha256/*/*/*"):
+        blob.chmod(0o644)
+        blob.write_bytes(b"x")
+        break
+    code, _, err = run(capsys, "builds", "verify", build_id, *w)
+    assert code == EXIT_SYSTEM
+    assert "ACET-STO-002" in err and "action:" in err and "Traceback" not in err
+
+
+def test_cli_user_errors(capsys, tmp_path):
+    code, _, err = run(capsys, "builds", "list", "--workspace", str(tmp_path / "nowhere"))
+    assert code == EXIT_USER and "ACET-WS-001" in err
+    code, _, _ = run(capsys, "no-such-command")
+    assert code == EXIT_USER
+    code, out, _ = run(capsys, "analyze", "--json", "x")
+    assert code == EXIT_USER and json.loads(out)["roadmap_phase"]

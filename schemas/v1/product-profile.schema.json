@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acet.local/schemas/v1/product-profile.schema.json",
+  "title": "Product Profile v2",
+  "description": "Spec §82. Declarative only: hints, never code (ACET-PROF-001).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "product_name"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "product_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_roles": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "KERNEL_DRIVER",
+          "SERVICE",
+          "USER_MODULE",
+          "EXECUTABLE",
+          "LAUNCHER",
+          "CONFIGURATION",
+          "DATA",
+          "OTHER"
+        ]
+      }
+    },
+    "optional_roles": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "KERNEL_DRIVER",
+          "SERVICE",
+          "USER_MODULE",
+          "EXECUTABLE",
+          "LAUNCHER",
+          "CONFIGURATION",
+          "DATA",
+          "OTHER"
+        ]
+      }
+    },
+    "filename_hints": {
+      "type": "array",
+      "maxItems": 256
+    },
+    "signature_hints": {
+      "type": "array",
+      "maxItems": 256
+    },
+    "version_extractors": {
+      "type": "array",
+      "maxItems": 256
+    },
+    "channel_hints": {
+      "type": "array",
+      "maxItems": 256
+    },
+    "completeness_rules": {
+      "type": "array",
+      "maxItems": 256
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1024
+    }
+  }
+}
