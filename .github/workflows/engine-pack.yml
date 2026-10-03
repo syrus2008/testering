@@ -159,7 +159,12 @@ jobs:
         shell: pwsh
         run: |
           $env:ACET_HOME = Join-Path $env:RUNNER_TEMP "acet-live-home"
-          if (Test-Path $env:ACET_HOME) { python -m acet engines status; python -m acet doctor --full | Tee-Object doctor-full.txt }
+          if (-not (Test-Path $env:ACET_HOME)) { exit 0 }
+          python -m acet engines status
+          python -m acet doctor --full | Tee-Object doctor-full.txt
+          # 10 = DEGRADED: optional providers (BinDiff/QBinDiff/Diaphora) absent, expected for this pack
+          if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 10) { exit $LASTEXITCODE }
+          exit 0
       - uses: actions/upload-artifact@v4
         if: always()
         with:

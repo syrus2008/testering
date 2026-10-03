@@ -98,7 +98,9 @@ CLI exit codes: `0` success · `10` partial success · `20` user error · `30` a
 - 21-dimension subsystem checklists (§94): [`docs/closure/subsystem-checklists.json`](docs/closure/subsystem-checklists.json)
 - Demo dataset (original code, ground truth from linker maps): [`datasets/demo/`](datasets/demo)
 - Capacity evidence (class M: 250 builds / 1M functions): [`docs/evidence/capacity-M.json`](docs/evidence/capacity-M.json)
-- Engine Pack live run (Linux, real Ghidra/Java/Ghidriff): [`docs/evidence/engine-pack-e2e-linux.md`](docs/evidence/engine-pack-e2e-linux.md)
+- Engine Pack live runs: Windows, no system Java/Ghidra/Ghidriff — Install Engine Pack, Install from file, doctor --full,
+  STANDARD ([`docs/evidence/engine-pack-e2e-windows.md`](docs/evidence/engine-pack-e2e-windows.md)); Linux
+  ([`docs/evidence/engine-pack-e2e-linux.md`](docs/evidence/engine-pack-e2e-linux.md))
 
 ## Checks
 

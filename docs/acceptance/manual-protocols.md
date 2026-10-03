@@ -56,5 +56,6 @@ Automated blocks: `tests/acceptance/test_closure.py::test_kill_app_at_any_point_
 8. Run `acet.exe doctor --full`. Expected: engine pack READY, java `(engine-pack)`, golden self-test VERIFIED (live).
 Record: installer hash, Engine Pack id/version/archive SHA-256, `engine-pack-install.log`, doctor output, wall times.
 Automated blocks: `tests/integration/test_engine_manager.py` (signed index, download, resume, corruption, crash
-recovery, rollback, private Java pinning), `tests/ui/test_engines_ui.py`, and the Linux live run recorded in
-`docs/evidence/engine-pack-e2e-linux.md`.
+recovery, rollback, private Java pinning), `tests/ui/test_engines_ui.py`, `tests/live/test_engine_pack_live.py`
+(run by `.github/workflows/engine-pack.yml` on a Windows runner without system Java/Ghidra/Ghidriff:
+`docs/evidence/engine-pack-e2e-windows.md`) and the Linux live run (`docs/evidence/engine-pack-e2e-linux.md`).
