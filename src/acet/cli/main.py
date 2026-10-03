@@ -468,6 +468,110 @@ def cmd_benchmark_calibrate(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_export(args: argparse.Namespace) -> int:
+    from acet.reporting.model import compare_report
+    from acet.reporting.render import write_report
+
+    with _open(args, read_only=True) as ws:
+        rep = compare_report(ws, args.run_id, include_sensitive=args.include_sensitive)
+        dest = Path(args.output) if args.output else ws.path / "reports" / f"{args.run_id}.{args.format}"
+    write_report(rep, args.format, dest)
+    _emit(args, {"report": str(dest)}, f"report written: {dest}")
+    return EXIT_OK
+
+
+def cmd_pack_create(args: argparse.Namespace) -> int:
+    from acet.reporting.acetpack import create_pack
+
+    with _open(args) as ws:
+        dest = create_pack(ws, Path(args.output), include_artifacts=args.include_artifacts)
+    _emit(args, {"pack": str(dest)}, f"pack written: {dest}")
+    return EXIT_OK
+
+
+def cmd_pack_import(args: argparse.Namespace) -> int:
+    from acet.reporting.acetpack import import_pack
+
+    with _open(args) as ws:
+        res = import_pack(ws, Path(args.pack))
+    _emit(args, res, json.dumps(res, indent=2))
+    return EXIT_OK
+
+
+def cmd_diagnostics(args: argparse.Namespace) -> int:
+    from acet.platform.diagnostics import create_diagnostic_package
+
+    ws_ref = args.workspace or os.environ.get("ACET_WORKSPACE")
+    if ws_ref:
+        with _open(args, read_only=True) as ws:
+            dest = create_diagnostic_package(ws, Path(args.output))
+    else:
+        dest = create_diagnostic_package(None, Path(args.output))
+    _emit(args, {"package": str(dest)}, f"diagnostic package: {dest} (no artifacts, paths sanitized)")
+    return EXIT_OK
+
+
+def cmd_restore(args: argparse.Namespace) -> int:
+    from acet.application.backup import restore_metadata
+
+    ws = _open(args)
+    restored = restore_metadata(ws, Path(args.backup))
+    restored.close()
+    _emit(args, {"restored": args.backup}, "metadata restored (integrity verified before swap)")
+    return EXIT_OK
+
+
+def cmd_cleanup(args: argparse.Namespace) -> int:
+    from acet.platform.retention import apply_cleanup, plan_cleanup
+
+    with _open(args, read_only=not args.apply) as ws:
+        plan = plan_cleanup(ws)
+        freed = apply_cleanup(ws, plan) if args.apply else 0
+    d = {**plan.to_dict(), "applied": args.apply, "freed_bytes": freed}
+    lines = [f"  {i.category:<10} {i.bytes:>12}  {i.path}  ({i.reason})" for i in plan.items]
+    lines.append(f"{'freed' if args.apply else 'dry run — would free'} {plan.total_bytes} bytes")
+    _emit(args, d, "\n".join(lines))
+    return EXIT_OK
+
+
+def cmd_purge(args: argparse.Namespace) -> int:
+    from acet.platform.retention import apply_purge, plan_purge
+
+    with _open(args, read_only=not args.apply) as ws:
+        plan = apply_purge(ws, args.build_id) if args.apply else plan_purge(ws, args.build_id)
+    _emit(args, {**plan, "applied": args.apply}, json.dumps({**plan, "applied": args.apply}, indent=2))
+    return EXIT_OK
+
+
+def cmd_annotate(args: argparse.Namespace) -> int:
+    from acet.application.annotations import add_annotation
+
+    with _open(args) as ws:
+        aid = add_annotation(ws, args.target_type, args.target_id, args.body)
+    _emit(args, {"id": aid}, f"annotation {aid}")
+    return EXIT_OK
+
+
+def cmd_search(args: argparse.Namespace) -> int:
+    from acet.application.search import search
+
+    with _open(args, read_only=True) as ws:
+        hits = search(ws, args.query)
+    _emit(args, hits, "\n".join(f"{h['kind']:<10} {h['id'][:36]:<38} {h['title']}" for h in hits) or "(no match)")
+    return EXIT_OK
+
+
+def cmd_settings(args: argparse.Namespace) -> int:
+    from acet.application.settings import effective_settings, set_setting
+
+    with _open(args, read_only=args.value is None) as ws:
+        if args.key and args.value is not None:
+            set_setting(ws, args.key, json.loads(args.value))
+        cur = effective_settings(ws)
+    _emit(args, cur, "\n".join(f"{k} = {json.dumps(v)}" for k, v in cur.items()))
+    return EXIT_OK
+
+
 def _not_yet(phase: str):  # type: ignore[no-untyped-def]
     def run(args: argparse.Namespace) -> int:
         _emit(args, {"error": "not implemented", "roadmap_phase": phase}, f"not implemented yet (roadmap {phase})")

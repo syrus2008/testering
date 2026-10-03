@@ -74,6 +74,7 @@ ARTIFACT = _sm(
         "CORRUPTED": ["AVAILABLE", "QUARANTINED"],
         "ORPHANED": ["QUARANTINED", "AVAILABLE"],
         "QUARANTINED": ["PURGED", "AVAILABLE"],
+        "METADATA_ONLY": ["AVAILABLE"],  # bytes supplied later (identical SHA-256)
     },
     terminal=["PURGED"],
 )

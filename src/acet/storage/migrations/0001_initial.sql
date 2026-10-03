@@ -68,7 +68,8 @@ CREATE TABLE artifact (
     store_relpath TEXT NOT NULL,
     imported_at TEXT NOT NULL,
     integrity_state TEXT NOT NULL CHECK (integrity_state IN
-        ('DISCOVERED','HASHING','COPYING','VERIFYING','AVAILABLE','CORRUPTED','ORPHANED','QUARANTINED','PURGED'))
+        ('DISCOVERED','HASHING','COPYING','VERIFYING','AVAILABLE','CORRUPTED','ORPHANED','QUARANTINED','PURGED',
+         'METADATA_ONLY'))  -- METADATA_ONLY: known from an .acetpack without bytes (ACET-EXP-001)
 );
 
 CREATE TABLE component_artifact (

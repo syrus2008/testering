@@ -163,6 +163,22 @@ CATALOG: dict[str, ErrorSpec] = {
             "Install a compatible Engine Pack version.",
         ),
         _e(
+            "ACET-PACK-002",
+            "Pack schema newer than this ACET",
+            F.COMPATIBILITY,
+            Out.SKIPPED_INCOMPATIBLE,
+            "The pack was refused; nothing was imported (ACET-FMT-002).",
+            "Open it with a newer ACET version.",
+        ),
+        _e(
+            "ACET-SEC-002",
+            "Archive exceeds safety limits",
+            F.SECURITY,
+            Out.SECURITY_REJECTION,
+            "Extraction was refused before writing anything.",
+            "Do not trust this archive.",
+        ),
+        _e(
             "ACET-SEC-001",
             "Unsafe archive path",
             F.SECURITY,

@@ -1,8 +1,8 @@
 {
   "spec_version": "3.0",
   "summary": {
-    "automated": 69,
-    "not_started": 73,
+    "automated": 86,
+    "not_started": 56,
     "partial": 8
   },
   "criteria": [
@@ -141,7 +141,8 @@
       "criterion": "L’UI n’affiche aucun score global fusionnant toutes les dimensions d’anomalie.",
       "status": "automated",
       "tests": [
-        "tests/integration/test_changes_benchmark.py::test_changes_are_separate_dimensions_with_unknowns"
+        "tests/integration/test_changes_benchmark.py::test_changes_are_separate_dimensions_with_unknowns",
+        "tests/integration/test_p11.py::test_report_validates_and_renders_offline"
       ]
     },
     {
@@ -177,29 +178,37 @@
       "id": "ACC-020",
       "subject": "Search",
       "criterion": "Ctrl+K retrouve build, artifact hash, lineage et annotation.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_global_search_finds_all_kinds_quickly"
+      ]
     },
     {
       "id": "ACC-021",
       "subject": "Report JSON",
       "criterion": "Le JSON exporté valide son schema.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_report_validates_and_renders_offline"
+      ]
     },
     {
       "id": "ACC-022",
       "subject": "ACET pack",
       "criterion": "Un pack sans artifacts se réimporte avec résultats et annotations.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_pack_without_artifacts_reimports_results_and_annotations"
+      ]
     },
     {
       "id": "ACC-023",
       "subject": "Pack safety",
       "criterion": "Un pack avec traversal ou checksum invalide est refusé.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_hostile_packs_are_refused_before_any_write"
+      ]
     },
     {
       "id": "ACC-024",
@@ -242,7 +251,8 @@
       "criterion": "Aucune probabilité n’est affichée avant calibration validée.",
       "status": "automated",
       "tests": [
-        "tests/integration/test_changes_benchmark.py::test_calibration_is_contextual_and_ood_shows_no_probability"
+        "tests/integration/test_changes_benchmark.py::test_calibration_is_contextual_and_ood_shows_no_probability",
+        "tests/integration/test_p11.py::test_report_validates_and_renders_offline"
       ]
     },
     {
@@ -272,8 +282,10 @@
       "id": "ACC-032",
       "subject": "Logs privacy",
       "criterion": "Le diagnostic par défaut ne contient ni artifact bytes ni chemin utilisateur complet.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_diagnostics_are_sanitized"
+      ]
     },
     {
       "id": "ACC-033",
@@ -308,7 +320,8 @@
       "criterion": "Une suppression de build est récupérable avant purge.",
       "status": "automated",
       "tests": [
-        "tests/integration/test_import.py::test_soft_delete_is_recoverable_and_audited"
+        "tests/integration/test_import.py::test_soft_delete_is_recoverable_and_audited",
+        "tests/integration/test_p11.py::test_purge_keeps_shared_artifacts"
       ]
     },
     {
@@ -391,6 +404,7 @@
       "criterion": "Un backup metadata peut restaurer DB/annotations/settings sans artifact duplication.",
       "status": "partial",
       "tests": [
+        "tests/integration/test_p11.py::test_backup_restore_metadata_without_artifact_duplication",
         "tests/integration/test_storage.py::test_hot_backup_during_concurrent_writes_is_consistent"
       ],
       "gap": "hot metadata backup proven; settings/annotations restore flow with P11"
@@ -399,8 +413,10 @@
       "id": "ACC-046",
       "subject": "Storage cleanup",
       "criterion": "Clean rebuildable cache ne supprime ni SOURCE ni FACT non reconstructible.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_cleanup_dry_run_then_apply_never_touches_sources"
+      ]
     },
     {
       "id": "ACC-047",
@@ -560,8 +576,10 @@
       "id": "ACC-066",
       "subject": "Archive bomb",
       "criterion": "Extraction bornée refuse une fixture bomb.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_hostile_packs_are_refused_before_any_write"
+      ]
     },
     {
       "id": "ACC-067",
@@ -644,8 +662,10 @@
       "id": "ACC-076",
       "subject": "PDB privacy",
       "criterion": "Diagnostic standard masque les chemins PDB sensibles.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_diagnostics_are_sanitized"
+      ]
     },
     {
       "id": "ACC-077",
@@ -699,22 +719,28 @@
       "id": "ACC-083",
       "subject": "Retention dry-run",
       "criterion": "Cleanup affiche objets et octets avant purge.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_cleanup_dry_run_then_apply_never_touches_sources"
+      ]
     },
     {
       "id": "ACC-084",
       "subject": "Shared artifact delete",
       "criterion": "Supprimer un build ne supprime pas un Artifact encore référencé.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_purge_keeps_shared_artifacts"
+      ]
     },
     {
       "id": "ACC-085",
       "subject": "Pack forward reject",
       "criterion": "Ancienne version refuse proprement un schema .acetpack inconnu.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_hostile_packs_are_refused_before_any_write"
+      ]
     },
     {
       "id": "ACC-086",
@@ -812,8 +838,10 @@
       "id": "ACC-098",
       "subject": "Mode normal safety",
       "criterion": "Mode Normal ne modifie pas les paramètres scientifiques avancés.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_mode_safety_and_secrets"
+      ]
     },
     {
       "id": "ACC-099",
@@ -941,8 +969,10 @@
       "id": "ACC-114",
       "subject": "Property pack roundtrip",
       "criterion": "Pack roundtrip conserve canonical hashes.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_pack_roundtrip_preserves_canonical_hashes"
+      ]
     },
     {
       "id": "ACC-115",
@@ -976,8 +1006,10 @@
       "id": "ACC-119",
       "subject": "Search P95",
       "criterion": "Recherche respecte SLO sur dataset de référence.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_global_search_finds_all_kinds_quickly"
+      ]
     },
     {
       "id": "ACC-120",
@@ -1018,8 +1050,10 @@
       "id": "ACC-125",
       "subject": "Secret storage",
       "criterion": "Fixture token optionnel absent des configs/logs en clair.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_mode_safety_and_secrets"
+      ]
     },
     {
       "id": "ACC-126",
@@ -1069,15 +1103,18 @@
       "criterion": "Human assertion ne modifie matcher_result.",
       "status": "automated",
       "tests": [
-        "tests/integration/test_analysis.py::test_consensus_explainable_and_raw_preserved"
+        "tests/integration/test_analysis.py::test_consensus_explainable_and_raw_preserved",
+        "tests/integration/test_p11.py::test_human_assertions_never_touch_raw_results"
       ]
     },
     {
       "id": "ACC-132",
       "subject": "Human/GT separation",
       "criterion": "Annotation projet ne devient pas benchmark label.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_human_assertions_never_touch_raw_results"
+      ]
     },
     {
       "id": "ACC-133",
@@ -1210,8 +1247,10 @@
       "id": "ACC-148",
       "subject": "Cleanup safety",
       "criterion": "Purge ne touche aucun objet running/locked/referenced.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_p11.py::test_purge_keeps_shared_artifacts"
+      ]
     },
     {
       "id": "ACC-149",

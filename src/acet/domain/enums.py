@@ -62,6 +62,7 @@ class IntegrityState(StrEnum):
     ORPHANED = "ORPHANED"
     QUARANTINED = "QUARANTINED"
     PURGED = "PURGED"
+    METADATA_ONLY = "METADATA_ONLY"  # identity/metadata imported without bytes (ACET-EXP-001)
 
 
 class ArtifactFormat(StrEnum):

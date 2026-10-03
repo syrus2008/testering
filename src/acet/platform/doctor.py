@@ -71,7 +71,9 @@ def reconcile(ws: Workspace, *, deep: bool = False) -> ReconcileReport:
     rep = ReconcileReport()
     db_rows = {
         r["sha256"]: r["integrity_state"]
-        for r in ws.db.conn.execute("SELECT sha256, integrity_state FROM artifact WHERE integrity_state != 'PURGED'")
+        for r in ws.db.conn.execute(
+            "SELECT sha256, integrity_state FROM artifact WHERE integrity_state NOT IN ('PURGED','METADATA_ONLY','QUARANTINED')"
+        )
     }
     on_disk: set[str] = set()
     for name, path in ws.store.iter_blobs():

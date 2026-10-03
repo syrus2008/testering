@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acet.local/schemas/v1/report.schema.json",
+  "title": "ACET report v1",
+  "description": "Canonical report model (spec \u00a742). Executive and Technical views derive from it. Every scientific cell carries a MeasurementState (ACET-CLOSE-004).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "generated_at",
+    "acet_version",
+    "scope",
+    "executive",
+    "technical",
+    "provenance",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "acet-report"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "acet_version": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "build",
+            "compare",
+            "product"
+          ]
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "executive": {
+      "type": "object",
+      "required": [
+        "headline",
+        "uncertainty",
+        "no_global_score"
+      ],
+      "properties": {
+        "headline": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "uncertainty": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "no_global_score": {
+          "const": true
+        }
+      }
+    },
+    "technical": {
+      "type": "object",
+      "required": [
+        "runs",
+        "components",
+        "functions",
+        "changes",
+        "lineage",
+        "missing_evidence"
+      ],
+      "properties": {
+        "runs": {
+          "type": "array"
+        },
+        "components": {
+          "type": "array"
+        },
+        "functions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "decision",
+              "strength_class",
+              "evidence_diversity",
+              "engine_count",
+              "inference_state"
+            ],
+            "properties": {
+              "decision": {
+                "enum": [
+                  "EXACT",
+                  "STRONG",
+                  "PROBABLE",
+                  "AMBIGUOUS",
+                  "CONFLICT",
+                  "UNRESOLVED",
+                  "ABSTAIN"
+                ]
+              },
+              "inference_state": {
+                "enum": [
+                  "CONFIRMED_BY_RULE",
+                  "STRONG",
+                  "PROBABLE",
+                  "AMBIGUOUS",
+                  "CONFLICTING",
+                  "UNRESOLVED",
+                  "ABSTAIN"
+                ]
+              },
+              "probability": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "dimension",
+              "measurement",
+              "severity_class",
+              "reliability_class"
+            ],
+            "properties": {
+              "measurement": {
+                "$ref": "#/$defs/cell"
+              }
+            }
+          }
+        },
+        "lineage": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "missing_evidence": {
+          "type": "array"
+        },
+        "external_events": {
+          "type": "array"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "profiles",
+        "engines",
+        "config_hashes",
+        "input_hashes"
+      ]
+    },
+    "limitations": {
+      "type": "array"
+    },
+    "sensitive_content_included": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "cell": {
+      "type": "object",
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "MEASURED",
+            "NOT_MEASURED",
+            "UNSUPPORTED",
+            "INCOMPATIBLE",
+            "PARTIAL",
+            "UNRELIABLE",
+            "OUT_OF_DISTRIBUTION"
+          ]
+        },
+        "value": {}
+      }
+    }
+  }
+}
