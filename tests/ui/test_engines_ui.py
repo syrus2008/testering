@@ -201,13 +201,15 @@ def test_component_status_and_reasons_are_never_truncated(qtbot, win):
     first_why = mgr.components.model.index(0, why_col)
     assert mgr.components.model.data(first_why, Qt.ItemDataRole.ToolTipRole) == mgr.components.model.data(first_why)
     # the wrapped explanation is fully visible: its row is as tall as the wrapped text needs
-    text = mgr.components.model.data(first_why)
 
-    def needed() -> int:
-        flags = int(Qt.TextFlag.TextWordWrap)
-        return fm.boundingRect(0, 0, header.sectionSize(why_col) - 8, 10_000, flags, text).height()
+    def fits() -> bool:  # every row as tall as Qt's own delegate says its wrapped text needs
+        return all(view.rowHeight(r) >= view.sizeHintForRow(r) for r in range(mgr.components.model.rowCount()))
 
+    before = view.sizeHintForRow(0)
     dlg.resize(dlg.width() - 250, dlg.height())  # narrower window: the explanation wraps on more lines
-    qtbot.waitUntil(lambda: view.rowHeight(0) >= needed(), timeout=3000)
+    qtbot.wait(200)
+    rows = [(view.rowHeight(r), view.sizeHintForRow(r)) for r in range(mgr.components.model.rowCount())]
+    assert view.sizeHintForRow(0) > before, (before, rows, header.sectionSize(why_col))  # it does wrap more
+    qtbot.waitUntil(fits, timeout=3000)
     profiles = mgr.profiles.view.horizontalHeader()
     assert profiles.sectionResizeMode(2) == QHeaderView.ResizeMode.Stretch
