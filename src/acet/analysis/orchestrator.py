@@ -679,15 +679,6 @@ class Orchestrator:
         stage = self.ws.path / "temp" / "runs" / prid
         out_dir = stage / "out"
         out_dir.mkdir(parents=True)
-        request = {
-            "protocol_version": 1,
-            "job_id": prid,
-            "processor": {"id": node.spec.id, "version": node.spec.version},
-            "inputs": [{k: v for k, v in i.items() if not k.startswith("_")} for i in inputs],
-            "config": cfg,
-            "output_dir": str(out_dir),
-        }
-        (stage / "request.json").write_text(json.dumps(request, indent=2), encoding="utf-8")
         timeout = float(cfg.get("hard_timeout_s", node.spec.default_timeout_s))
         limits = Limits(
             soft_timeout_s=float(cfg.get("soft_timeout_s", timeout * 0.9)),
@@ -695,6 +686,17 @@ class Orchestrator:
             heartbeat_timeout_s=float(cfg.get("heartbeat_timeout_s", 300)),
             memory_limit_bytes=cfg.get("max_memory_bytes"),
         )
+        request = {
+            "protocol_version": 1,
+            "job_id": prid,
+            "processor": {"id": node.spec.id, "version": node.spec.version},
+            "inputs": [{k: v for k, v in i.items() if not k.startswith("_")} for i in inputs],
+            "config": cfg,
+            "output_dir": str(out_dir),
+            # Effective watchdog limits, so engine-native timeouts stay inside them (ACET-GHD-005).
+            "limits": {"soft_timeout_s": limits.soft_timeout_s, "hard_timeout_s": limits.hard_timeout_s},
+        }
+        (stage / "request.json").write_text(json.dumps(request, indent=2), encoding="utf-8")
         cancel = threading.Event()
         watcher_stop = threading.Event()
         watcher = threading.Thread(target=self._watch_job, args=(job_id, cancel, watcher_stop), daemon=True)
@@ -705,12 +707,11 @@ class Orchestrator:
             "ACET_CORRELATION": f"ws={self.ws.id} run={run_id} job={job_id} pr={prid}",
             "ACET_NO_NETWORK": "0" if self._network_enabled() else "1",
         }  # ACET-OBS-001
-        for k in ("ACET_GHIDRA_DIR", "GHIDRA_INSTALL_DIR", "ACET_GHIDRA_REPLAY_DIR"):
-            if os.environ.get(k):
-                env[k] = os.environ[k]
+        # The worker uses exactly the Ghidra provider the environment reported: live or
+        # replay, never one silently standing in for the other.
         gh = self.env.providers.get("ghidra")
-        if gh and gh.location and not gh.extra.get("replay"):
-            env["ACET_GHIDRA_DIR"] = str(gh.location)
+        if gh and gh.available and gh.location:
+            env["ACET_GHIDRA_REPLAY_DIR" if gh.extra.get("replay") else "ACET_GHIDRA_DIR"] = str(gh.location)
         for pid_, info in self.env.providers.items():
             if info.available and info.location:
                 env[f"ACET_PROVIDER_{pid_.upper()}"] = str(info.location)

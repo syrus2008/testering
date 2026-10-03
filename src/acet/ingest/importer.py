@@ -175,9 +175,13 @@ def import_build(ws: Workspace, req: ImportRequest, *, fault: FaultHook = _noop)
     ws.store.preflight(needed)
     new_artifacts: list[str] = []
     reused: list[str] = []
+    repaired: set[str] = set()
     for sha, f in sorted(by_sha.items()):
         res = ws.store.put_file(f.path, source_sha256=sha)
         (new_artifacts if res.created else reused).append(sha)
+        if res.repaired:
+            repaired.add(sha)
+            warnings.append(f"stored blob {sha} was corrupted; quarantined and restored from the imported file")
         fault(f"copied:{sha}")
     fault("before_commit")
 
@@ -220,7 +224,9 @@ def import_build(ws: Workspace, req: ImportRequest, *, fault: FaultHook = _noop)
                 tx.execute(
                     "UPDATE artifact SET integrity_state=? WHERE sha256=?", (IntegrityState.AVAILABLE.value, sha)
                 )
-                repo.audit(tx, "artifact.repaired", "artifact", sha, {})
+                repo.audit(tx, "artifact.repaired", "artifact", sha, {"quarantined_corrupt_copy": sha in repaired})
+            elif sha in repaired:
+                repo.audit(tx, "artifact.repaired", "artifact", sha, {"quarantined_corrupt_copy": True})
 
         if existing is not None:
             build_id = str(existing["id"])

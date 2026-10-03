@@ -42,7 +42,8 @@ class PutResult:
     sha256: str
     size_bytes: int
     relpath: str
-    created: bool  # False when the bytes were already present (ACET-IMP-003)
+    created: bool  # False when verified-identical bytes were already present (ACET-IMP-003)
+    repaired: bool = False  # True when a corrupted stored blob was quarantined and rewritten
 
 
 class ContentStore:
@@ -79,7 +80,12 @@ class ContentStore:
 
     # -- write ------------------------------------------------------------
     def put_file(self, source: Path, *, source_sha256: str | None = None) -> PutResult:
-        """HASH → COPY → VERIFY → atomic rename. Never overwrites existing bytes."""
+        """HASH → COPY → VERIFY → atomic rename.
+
+        An existing blob is reused only after it has been re-hashed: presence of the
+        expected path is never taken as proof of integrity. A stored blob whose bytes
+        no longer match its address is moved to ``quarantine/corrupted`` (never deleted)
+        and replaced by the verified source bytes (``repaired=True``)."""
         try:
             src_sha, size = (source_sha256, source.stat().st_size) if source_sha256 else sha256_file(source)
         except OSError as exc:
@@ -89,8 +95,12 @@ class ContentStore:
         final = self.workspace_dir / rel
 
         with self._lock_for(src_sha):
+            repaired = False
             if final.is_file():
-                return PutResult(src_sha, size, rel, created=False)
+                if sha256_file(final)[0] == src_sha:
+                    return PutResult(src_sha, size, rel, created=False)
+                self.quarantine(final, "corrupted")
+                repaired = True
             self.preflight(size)
             tmp = self.temp / f"{uuid7()}{TMP_SUFFIX}"
             try:
@@ -121,7 +131,7 @@ class ContentStore:
             finally:
                 if tmp.exists():
                     _force_unlink(tmp)
-            return PutResult(src_sha, size, rel, created=True)
+            return PutResult(src_sha, size, rel, created=not repaired, repaired=repaired)
 
     # -- verify -----------------------------------------------------------
     def verify(self, sha: str) -> bool:
@@ -148,6 +158,8 @@ class ContentStore:
     def quarantine(self, path: Path, reason: str) -> Path:
         name = path.name if is_sha256(path.name) else f"{uuid7()}-{path.name}"
         dest = self.quarantine_dir / reason / name
+        if dest.exists():  # keep every quarantined copy as evidence
+            dest = dest.with_name(f"{uuid7()}-{name}")
         dest.parent.mkdir(parents=True, exist_ok=True)
         os.replace(path, dest)
         return dest

@@ -34,6 +34,24 @@ Ghidra 11.4.2 headless, Ghidriff 1.0.0 (with Ghidra's bundled pyghidra 2.2.1), B
 QBinDiff 1.2.3 (isolated interpreter). On the bundled demo dataset, STANDARD (Ghidra + Ghidriff + ACET matcher) gives
 precision 1.0, recall 0.89, false-new 0, lineage purity 1.0 — see [`benchmarks/`](benchmarks/).
 
+### Release readiness: not 1.0 / STABLE yet
+The STABLE release gate (`tools/release_evidence.py check --channel STABLE`) validates the *content* of every
+proof — Ed25519 signature of the release manifest by a trusted key, evidence pinned by that signature, test and
+migration reports derived from the real JUnit run, each automated acceptance criterion backed by passing tests,
+each manual criterion backed by an executed protocol result for this installer, triaged vulnerability scan of this
+SBOM, approved license audit, benchmark gates against committed baselines. It currently (correctly) refuses STABLE
+because these items are still open and need people, not code:
+
+- **License audit sign-off** — [`docs/license-audit.json`](docs/license-audit.json) is complete except the ACET EULA
+  (no text exists yet) and the legal approval (approver + date). `python tools/license_audit.py check` lists them.
+- **Manual acceptance on real Windows machines** — ACC-001, 025, 056, 100, 150 and the Windows 10/11 clean-VM
+  installs, recorded as described in [`release-inputs/README.md`](release-inputs/README.md).
+- **Signing material** — Authenticode certificate and Ed25519 release key as CI secrets, release public key added
+  to `src/acet/platform/trusted_keys.json`.
+- **Advisory database + triage** for the vulnerability scan of the release SBOM.
+- **Live engines in the release run** — the release runner must have the Engine Pack (`ACET_GHIDRA_DIR`, …):
+  the live-engine tests behind ACC-026/038 are skipped without it, and the gate refuses skipped evidence.
+
 ### What has *not* been verified here
 Windows-only paths were written to the spec but could not be executed in this Linux environment: the Job Object
 wrapper, DPAPI secrets, `SetThreadExecutionState`, the PyInstaller/Inno Setup build, code signing and clean-VM

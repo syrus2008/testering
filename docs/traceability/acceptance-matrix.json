@@ -920,7 +920,8 @@
       "criterion": "Release manifest relie commit/build/hashes/SBOM/signature.",
       "status": "automated",
       "tests": [
-        "tests/integration/test_p12.py::test_sbom_and_release_evidence_gate"
+        "tests/integration/test_p12.py::test_sbom_and_release_evidence_gate",
+        "tests/integration/test_release_gate.py::test_complete_signed_bundle_passes_stable"
       ]
     },
     {
@@ -1287,7 +1288,8 @@
       "criterion": "Stable release possède evidence bundle complet.",
       "status": "automated",
       "tests": [
-        "tests/integration/test_p12.py::test_sbom_and_release_evidence_gate"
+        "tests/integration/test_p12.py::test_sbom_and_release_evidence_gate",
+        "tests/integration/test_release_gate.py::test_complete_signed_bundle_passes_stable"
       ]
     },
     {

@@ -186,3 +186,35 @@ def test_asn1_reader_basics():
     assert asn1.oid(kids[0]) == "1.2.840.113549.1.7.2"
     with pytest.raises(asn1.Asn1Error):
         asn1.read_tlv(b"\x30\x84\xff\xff\xff\xff", 0)
+
+
+def test_ghidra_native_timeout_stays_inside_watchdog_limits():
+    from acet.engines.ghidra import native_timeout_s
+
+    # Derived from the effective soft timeout, not from a fixed default.
+    assert native_timeout_s({}, {"soft_timeout_s": 6480.0}) == 5832
+    assert native_timeout_s({}, {"soft_timeout_s": 540.0}) == 486
+    assert native_timeout_s({}, {"soft_timeout_s": 100.0}) == 70
+    # An explicit native timeout can only shorten, never exceed, the watchdog budget.
+    assert native_timeout_s({"native_timeout_s": 99999}, {"soft_timeout_s": 540.0}) == 486
+    assert native_timeout_s({"native_timeout_s": 120}, {"soft_timeout_s": 540.0}) == 120
+    assert native_timeout_s({}, {}) == 1440
+
+
+def test_configured_ghidra_without_java_is_not_replaced_by_replay(tmp_path, monkeypatch):
+    from acet.engines import environment
+
+    gdir = tmp_path / "ghidra"
+    (gdir / "support").mkdir(parents=True)
+    monkeypatch.setenv("ACET_GHIDRA_DIR", str(gdir))
+    monkeypatch.setenv("ACET_GHIDRA_REPLAY_DIR", str(tmp_path / "replay"))
+    monkeypatch.setattr(environment, "ghidra_dir", lambda o: gdir)
+    monkeypatch.setattr(environment.shutil, "which", lambda name: None)
+    monkeypatch.delenv("JAVA_HOME", raising=False)
+    info = environment.detect().providers["ghidra"]
+    assert not info.available and info.reason == "Java runtime not found"
+    assert not info.extra.get("replay")
+    # Without a configured Ghidra, the explicit replay provider is used and reported unverified.
+    monkeypatch.setattr(environment, "ghidra_dir", lambda o: None)
+    info = environment.detect().providers["ghidra"]
+    assert info.available and info.extra.get("replay") and info.verified is False

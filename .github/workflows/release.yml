@@ -13,33 +13,66 @@ permissions:
 jobs:
   windows-build:
     runs-on: windows-latest
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      # Authenticode certificate (installed on the runner / HSM) and Ed25519 release key.
+      # Neither ever enters the repository (spec §75).
+      SIGNING_CERT_THUMBPRINT: ${{ secrets.SIGNING_CERT_THUMBPRINT }}
+      ACET_RELEASE_SIGNING_KEY: ${{ secrets.ACET_RELEASE_SIGNING_KEY }}
+      ACET_RELEASE_KEY_ID: ${{ vars.ACET_RELEASE_KEY_ID }}
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
+      - name: STABLE preconditions (signing material and release-owner inputs)
+        if: ${{ inputs.channel == 'STABLE' }}
+        run: |
+          $v = python -c "import sys; sys.path.insert(0,'src'); import acet; print(acet.__version__)"
+          if (-not $env:SIGNING_CERT_THUMBPRINT) { throw "STABLE requires the Authenticode certificate secret" }
+          if (-not $env:ACET_RELEASE_SIGNING_KEY -or -not $env:ACET_RELEASE_KEY_ID) { throw "STABLE requires the Ed25519 release key secret and key id" }
+          if (-not (Test-Path "release-inputs/$v")) { throw "STABLE requires release-inputs/$v (clean-VM and manual protocol results, advisories, triage)" }
+          python tools/license_audit.py check --rendered
       - name: Install (locked dev deps)
         run: python -m pip install -e ".[dev,ui]" pyinstaller
-      - name: Mandatory tests (golden, migration, acceptance)
-        run: python -m pytest -q
+      - name: Mandatory tests (golden, migration, acceptance) with JUnit report
+        run: python -m pytest -q --junitxml=junit.xml
       - name: Build app (embedded runtime)
         run: pyinstaller packaging/acet.spec --noconfirm --distpath dist
+      - name: Collect third-party license texts (fails if one is missing)
+        run: python tools/collect_licenses.py dist/ACET/licenses
       - name: Build installer
         run: |
           choco install innosetup -y --no-progress
           $env:ACET_VERSION = (python -c "import acet; print(acet.__version__)")
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\acet.iss
-      - name: Sign (only when the signing certificate is configured)
+      - name: Authenticode sign
         if: ${{ env.SIGNING_CERT_THUMBPRINT != '' }}
-        env:
-          SIGNING_CERT_THUMBPRINT: ${{ secrets.SIGNING_CERT_THUMBPRINT }}
         run: ./packaging/sign.ps1 -Files dist\ACET\acet.exe,dist\ACET\acet-ui.exe,(Get-ChildItem packaging\Output\*.exe).FullName -CertThumbprint $env:SIGNING_CERT_THUMBPRINT
-      - name: SBOM + release evidence
-        run: |
-          python tools/sbom.py sbom.cdx.json
-          python tools/release_evidence.py build release-evidence --sbom sbom.cdx.json --artifacts (Get-ChildItem packaging\Output\*.exe).FullName
-      - name: Release gate (STABLE requires complete evidence)
+      - name: Verify Authenticode signatures (STABLE)
         if: ${{ inputs.channel == 'STABLE' }}
-        run: python tools/release_evidence.py check release-evidence --channel STABLE
+        run: |
+          foreach ($f in @("dist\ACET\acet.exe", "dist\ACET\acet-ui.exe") + (Get-ChildItem packaging\Output\*.exe).FullName) {
+            $s = Get-AuthenticodeSignature $f
+            if ($s.Status -ne "Valid") { throw "$f Authenticode status: $($s.Status)" }
+          }
+      - name: SBOM, vulnerability scan, release evidence
+        run: |
+          $v = python -c "import acet; print(acet.__version__)"
+          $inputs = "release-inputs/$v"
+          python tools/sbom.py sbom.cdx.json
+          $cli = @("build", "release-evidence", "--sbom", "sbom.cdx.json", "--junit", "junit.xml",
+                    "--artifacts") + (Get-ChildItem packaging\Output\*.exe).FullName
+          if (Test-Path "$inputs/advisories.json") {
+            $triage = @(); if (Test-Path "$inputs/triage.json") { $triage = @("--triage", "$inputs/triage.json") }
+            python tools/vuln_scan.py sbom.cdx.json "$inputs/advisories.json" security-scan-summary.json @triage
+            $cli += @("--security-scan", "security-scan-summary.json")
+          }
+          if (Test-Path $inputs) { $cli += @("--supplied", $inputs) }
+          if ($env:ACET_RELEASE_SIGNING_KEY) { $cli += @("--key-env", "ACET_RELEASE_SIGNING_KEY", "--key-id", $env:ACET_RELEASE_KEY_ID) }
+          python tools/release_evidence.py @args
+      - name: Release gate
+        run: python tools/release_evidence.py check release-evidence --channel $env:CHANNEL --artifacts (Get-ChildItem packaging\Output\*.exe).FullName
       - uses: actions/upload-artifact@v4
         with:
           name: acet-${{ inputs.channel }}

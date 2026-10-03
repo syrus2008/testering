@@ -185,6 +185,49 @@ def test_corrupted_artifact_detected_before_analysis(ws, product_id, tmp_path):
     assert reconcile(ws, deep=True).hash_mismatches == [res.new_artifacts[0]]
 
 
+def test_reimport_never_reuses_a_corrupted_blob(ws, product_id, tmp_path):
+    """Audit repro: corrupt a stored blob, re-import the original bytes → the blob must be
+    re-verified, the corrupt copy quarantined (not deleted) and the good bytes restored."""
+    src = build_a(tmp_path / "a")
+    res = import_build(ws, ImportRequest([src], product_id))
+    sha = res.new_artifacts[0]
+    victim = ws.store.path_for(sha)
+    os.chmod(victim, stat.S_IREAD | stat.S_IWRITE)
+    victim.write_bytes(b"evil")
+    with pytest.raises(AcetError):
+        verify_build_artifacts(ws, res.build_id)
+
+    again = import_build(ws, ImportRequest([src], product_id, on_duplicate=DuplicatePolicy.ADD_OBSERVATION))
+    assert ws.store.verify(sha)
+    assert victim.read_bytes() != b"evil"
+    assert any(sha in w and "corrupted" in w for w in again.warnings)
+    quarantined = list((ws.path / "quarantine" / "corrupted").iterdir())
+    assert [q.read_bytes() for q in quarantined] == [b"evil"]
+    state = ws.db.conn.execute("SELECT integrity_state FROM artifact WHERE sha256=?", (sha,)).fetchone()[0]
+    assert state == IntegrityState.AVAILABLE.value
+    assert (
+        ws.db.conn.execute(
+            "SELECT COUNT(*) FROM audit_event WHERE event_type='artifact.repaired' AND target_id=?", (sha,)
+        ).fetchone()[0]
+        == 1
+    )
+    assert len(verify_build_artifacts(ws, res.build_id)) == 4
+
+
+def test_store_put_file_verifies_existing_blob(ws, tmp_path):
+    f = tmp_path / "x.bin"
+    f.write_bytes(b"payload")
+    first = ws.store.put_file(f)
+    blob = ws.store.path_for(first.sha256)
+    os.chmod(blob, stat.S_IREAD | stat.S_IWRITE)
+    blob.write_bytes(b"evil")
+    second = ws.store.put_file(f)
+    assert (second.created, second.repaired) == (False, True)
+    assert blob.read_bytes() == b"payload" and ws.store.verify(first.sha256)
+    third = ws.store.put_file(f)
+    assert (third.created, third.repaired) == (False, False)
+
+
 @pytest.mark.acceptance("ACC-141", "ACC-037")
 def test_reconcile_detects_dangling_reference(ws, product_id, tmp_path):
     res = import_build(ws, ImportRequest([build_a(tmp_path / "a")], product_id))

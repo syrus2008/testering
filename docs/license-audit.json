@@ -1,0 +1,153 @@
+{
+  "audit_version": 2,
+  "scope": "ACET Windows installer (ACET core + embedded Python runtime + PySide6) and the ACET Engine Pack (win64).",
+  "approval": {
+    "status": "PENDING",
+    "approved_by": null,
+    "approved_at": null,
+    "note": "Legal sign-off is a human decision of the release owner. The release gate refuses STABLE until status is APPROVED with a named approver and date (ACET-LIC-001)."
+  },
+  "components": [
+    {
+      "component": "ACET",
+      "version": "see release manifest",
+      "spdx": "LicenseRef-ACET-Proprietary",
+      "distribution": "installer",
+      "redistribution": "yes",
+      "obligations": [
+        "Ship the ACET end-user license (EULA) and the THIRD-PARTY notices with the installer.",
+        "The EULA must allow reverse engineering of the LGPL parts for debugging modifications (LGPL-3.0 §4)."
+      ],
+      "how_satisfied": "Notices: tools/collect_licenses.py → {app}\\licenses. EULA: no text exists in the repository yet (pyproject declares 'Proprietary'); the release owner must supply packaging/EULA.txt.",
+      "status": "OPEN"
+    },
+    {
+      "component": "Python runtime",
+      "version": "3.11 (exact patch recorded in the SBOM of each release)",
+      "spdx": "PSF-2.0",
+      "distribution": "installer (embedded by PyInstaller, onedir)",
+      "redistribution": "yes",
+      "obligations": [
+        "Retain the PSF License Agreement and its copyright notice in the distribution.",
+        "Include a brief summary of changes if the runtime is modified (ACET does not modify it)."
+      ],
+      "how_satisfied": "tools/collect_licenses.py copies <python prefix>/LICENSE.txt to licenses/python/LICENSE.txt; the runtime is unmodified.",
+      "status": "CLOSED"
+    },
+    {
+      "component": "PySide6 (+ PySide6_Essentials, PySide6_Addons, shiboken6)",
+      "version": "6.11.2 (validated in CI; exact version recorded in the SBOM)",
+      "spdx": "LGPL-3.0-only",
+      "distribution": "installer (PyInstaller onedir: Qt and PySide6 libraries stay separate, replaceable DLL/PYD files)",
+      "redistribution": "conditional",
+      "obligations": [
+        "Ship the LGPL-3.0 and GPL-3.0 license texts and Qt's third-party notices.",
+        "Keep Qt/PySide6 dynamically linked and user-replaceable (no static linking, no onefile packaging).",
+        "Do not modify Qt/PySide6; if ever modified, publish the modified sources.",
+        "State where the corresponding Qt/PySide6 sources can be obtained.",
+        "The ACET EULA must not forbid reverse engineering needed to debug modifications of the LGPL parts."
+      ],
+      "how_satisfied": "packaging/acet.spec uses COLLECT (onedir); the wheels ship no license file, so tools/collect_licenses.py copies the vendored canonical LGPL-3.0/GPL-3.0 texts (packaging/licenses/) and writes licenses/THIRD-PARTY-NOTICES.txt with the source location (https://download.qt.io/official_releases/QtForPython/). The EULA clause is tracked on the ACET row.",
+      "status": "CLOSED"
+    },
+    {
+      "component": "Ghidra",
+      "version": "11.4.2",
+      "spdx": "Apache-2.0",
+      "distribution": "Engine Pack only",
+      "redistribution": "conditional",
+      "obligations": [
+        "Ship Ghidra's LICENSE and the licenses/ directory (third-party components, some GPL) unchanged.",
+        "Mark modified files: ACET replaces Debug/ProposedUtils protobuf-java 3.21.8 by 3.23.0 (recorded in the pack manifest)."
+      ],
+      "how_satisfied": "The Engine Pack copies the whole Ghidra tree including LICENSE and licenses/; the protobuf swap is listed in the pack manifest 'modifications'.",
+      "status": "CLOSED"
+    },
+    {
+      "component": "Ghidriff",
+      "version": "1.0.0",
+      "spdx": "GPL-3.0-only",
+      "distribution": "Engine Pack only, never in the installer",
+      "redistribution": "conditional",
+      "obligations": [
+        "Distribute unmodified, with the GPL-3.0 text and the corresponding source (or a written offer).",
+        "Keep the process boundary: ACET core does not import or link Ghidriff; it runs it as a separate program and reads its output files (aggregation)."
+      ],
+      "how_satisfied": "Decision: bundled in the Engine Pack as an unmodified wheel + its sdist (corresponding source) + COPYING; invoked only by acet.engines.ghidriff through the supervised worker process.",
+      "status": "CLOSED"
+    },
+    {
+      "component": "pyghidra",
+      "version": "2.2.1 (bundled with Ghidra 11.4.2)",
+      "spdx": "Apache-2.0",
+      "distribution": "Engine Pack only",
+      "redistribution": "yes",
+      "obligations": [
+        "Ship the license (included in the Ghidra tree)."
+      ],
+      "how_satisfied": "Shipped inside the Ghidra tree of the Engine Pack.",
+      "status": "CLOSED"
+    },
+    {
+      "component": "protobuf-java",
+      "version": "3.23.0",
+      "spdx": "BSD-3-Clause",
+      "distribution": "Engine Pack only",
+      "redistribution": "yes",
+      "obligations": [
+        "Retain the copyright notice and license text."
+      ],
+      "how_satisfied": "LICENSE copied next to the jar in the Engine Pack; replacement recorded in the pack manifest.",
+      "status": "CLOSED"
+    },
+    {
+      "component": "BinDiff / BinExport",
+      "version": "8 / 12",
+      "spdx": "Apache-2.0",
+      "distribution": "Engine Pack only",
+      "redistribution": "yes",
+      "obligations": [
+        "Ship LICENSE and NOTICE files."
+      ],
+      "how_satisfied": "Copied from the upstream release into the Engine Pack.",
+      "status": "CLOSED"
+    },
+    {
+      "component": "QBinDiff",
+      "version": "1.2.3",
+      "spdx": "Apache-2.0",
+      "distribution": "Engine Pack only (isolated venv, experimental)",
+      "redistribution": "yes",
+      "obligations": [
+        "Ship the licenses of QBinDiff and of every package of its venv."
+      ],
+      "how_satisfied": "tools/collect_licenses.py --venv collects the license files of every distribution of the QBinDiff venv; qbindiff 1.2.3 ships none, so the vendored Apache-2.0 text is used. The tool fails if any distribution has no license text.",
+      "status": "CLOSED"
+    },
+    {
+      "component": "Java runtime",
+      "version": "Eclipse Temurin 21 (LTS; Ghidra 11.4 requires JDK 21)",
+      "spdx": "GPL-2.0-only WITH Classpath-exception-2.0",
+      "distribution": "Engine Pack only",
+      "redistribution": "conditional",
+      "obligations": [
+        "Distribute unmodified with its LICENSE, ASSEMBLY_EXCEPTION and third-party notices (legal/ directory).",
+        "State where the corresponding source can be obtained (https://github.com/adoptium/jdk21u)."
+      ],
+      "how_satisfied": "Decision: Eclipse Temurin 21 JDK, copied unmodified including legal/; source location written to the pack THIRD-PARTY-NOTICES.",
+      "status": "CLOSED"
+    },
+    {
+      "component": "Diaphora",
+      "version": "n/a",
+      "spdx": "AGPL-3.0-or-later",
+      "distribution": "not distributed (external only, ADR-0009)",
+      "redistribution": "no",
+      "obligations": [
+        "None while not distributed; requires IDA, which ACET does not ship."
+      ],
+      "how_satisfied": "Not part of the installer or any Engine Pack.",
+      "status": "CLOSED"
+    }
+  ]
+}

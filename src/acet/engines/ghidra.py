@@ -54,7 +54,7 @@ def run_headless(
     project.mkdir(parents=True, exist_ok=True)
     analyzers = work / "analyzers.json"
     analyzers.write_text(json.dumps(ctx.config.get("analyzers", {})), encoding="utf-8")
-    native_timeout = int(ctx.config.get("native_timeout_s", max(60, int(ctx.config.get("soft_timeout_s", 1500)) - 60)))
+    native_timeout = native_timeout_s(ctx.config, ctx.request.get("limits") or {})
     argv = [
         str(headless_path(gdir)),
         str(project),
@@ -89,6 +89,20 @@ def run_headless(
     )
     shutil.rmtree(project, ignore_errors=True)  # ACET-GHD-006: never shared, never kept
     return code, errors
+
+
+def native_timeout_s(config: dict[str, Any], limits: dict[str, Any]) -> int:
+    """Ghidra's own per-file analysis timeout, kept strictly inside the supervisor's soft
+    timeout so Ghidra stops first and reports it (instead of being killed mid-export).
+
+    An explicit ``native_timeout_s`` is clamped to the same bound."""
+    soft = limits.get("soft_timeout_s") or config.get("soft_timeout_s")
+    # Leave time for the export post-scripts: 10 % of the budget, at least 30 s.
+    bound = None if soft is None else max(10, int(float(soft) - max(30.0, float(soft) * 0.1)))
+    explicit = config.get("native_timeout_s")
+    if explicit is not None:
+        return min(int(explicit), bound) if bound is not None else int(explicit)
+    return bound if bound is not None else 1440
 
 
 def replay(ctx: WorkerContext, replay_dir: Path) -> dict[str, Any]:

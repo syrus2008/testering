@@ -207,10 +207,8 @@ def test_sbom_and_release_evidence_gate(tmp_path, trust):
     (tmp_path / "sbom.json").write_text(json.dumps(sbom))
     art = tmp_path / "ACET-Setup.exe"
     art.write_bytes(b"installer")
-    key = tmp_path / "k.hex"
-    key.write_text(SECRET.hex())
     out = tmp_path / "evidence"
-    release_evidence.build(out, [art], tmp_path / "sbom.json", key, "test")
+    release_evidence.build(out, [art], tmp_path / "sbom.json", secret=SECRET, key_id="test")
     m = json.loads((out / "release-manifest.json").read_text())
     assert m["commit"] and m["artifacts"]["ACET-Setup.exe"] and m["sbom_sha256"]
     sig = json.loads((out / "signatures" / "release-manifest.sig.json").read_text())
@@ -218,7 +216,8 @@ def test_sbom_and_release_evidence_gate(tmp_path, trust):
 
     assert verify_envelope(sig, load_trust_store(), purpose="release") == m
     problems = release_evidence.check(out, "STABLE")
-    assert any("NOT_RUN" in p for p in problems)  # clean-VM results are never fabricated
+    # Clean-VM results are never fabricated: without them STABLE is refused.
+    assert "missing: clean-vm-install-results/windows10.json" in problems
     assert release_evidence.check(out, "BETA") == []
     (out / "acceptance-matrix.json").write_text("{}")
     assert any("checksum" in p for p in release_evidence.check(out, "BETA"))

@@ -1,0 +1,29 @@
+{
+  "dataset": "acet-demo@1",
+  "profile": "STANDARD@1",
+  "engines": "live: Ghidra 11.4.2 + ghidriff 1.0.0",
+  "summary": {
+    "coverage": 0.9688,
+    "f1": 0.9444,
+    "false_new": 0,
+    "false_new_rate": 0.0,
+    "fn": 4,
+    "fp": 0,
+    "lineage": {
+      "fragmentation": 0.1364,
+      "lineages": 25,
+      "multi_version_recovery": 0.8333,
+      "purity": 1.0,
+      "wrong_merge": 0,
+      "wrong_split": 3
+    },
+    "precision": 1.0,
+    "recall": 0.8947,
+    "tp": 34
+  },
+  "tolerances": {
+    "precision": 0.02,
+    "recall": 0.03,
+    "false_new_rate": 0.02
+  }
+}

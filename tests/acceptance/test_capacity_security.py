@@ -112,5 +112,9 @@ def test_sbom_vulnerability_scan_requires_triage(tmp_path):
     ]
     res = scan(sbom, adv, {})
     assert res["status"] == "FAILED" and res["untriaged"] == ["OSV-TEST-1"]
-    res = scan(sbom, adv, {"OSV-TEST-1": {"decision": "not exploitable in ACET context", "by": "release owner"}})
+    # A free-text "decision" without a recognised decision and a rationale is not a triage.
+    res = scan(sbom, adv, {"OSV-TEST-1": {"decision": "looks fine"}})
+    assert res["status"] == "FAILED"
+    triage = {"OSV-TEST-1": {"decision": "not-affected", "rationale": "examplelib is not reachable from ACET"}}
+    res = scan(sbom, adv, triage)
     assert res["status"] == "PASSED" and res["findings"][0]["triage"]

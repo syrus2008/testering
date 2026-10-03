@@ -114,6 +114,10 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
         providers["ghidra"] = ProviderInfo(
             "ghidra", True, _ghidra_version(gdir), str(gdir), (Capability.DISASSEMBLY, Capability.FUNCTION_EXTRACTION)
         )
+    elif gdir:
+        # A configured live Ghidra that cannot run is reported as such: the replay provider
+        # never silently substitutes for a live engine.
+        providers["ghidra"] = ProviderInfo("ghidra", False, reason="Java runtime not found")
     elif os.environ.get("ACET_GHIDRA_REPLAY_DIR"):
         providers["ghidra"] = ProviderInfo(
             "ghidra",
@@ -126,9 +130,7 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
             extra={"replay": True},
         )
     else:
-        providers["ghidra"] = ProviderInfo(
-            "ghidra", False, reason="Ghidra install not found" if not gdir else "Java runtime not found"
-        )
+        providers["ghidra"] = ProviderInfo("ghidra", False, reason="Ghidra install not found")
     live_ghidra = providers["ghidra"].available and not providers["ghidra"].extra.get("replay")
     gdf = importlib.util.find_spec("ghidriff") is not None and (
         importlib.util.find_spec("pyghidra") is not None or importlib.util.find_spec("pyhidra") is not None

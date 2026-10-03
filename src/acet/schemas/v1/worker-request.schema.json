@@ -72,6 +72,25 @@
     "output_dir": {
       "type": "string",
       "minLength": 1
+    },
+    "limits": {
+      "description": "Effective supervisor limits (optional, informative): engine-native timeouts must stay inside them.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "soft_timeout_s": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "hard_timeout_s": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
     }
   }
 }

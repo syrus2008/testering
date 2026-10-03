@@ -113,6 +113,23 @@ def test_pack_roundtrip_preserves_canonical_hashes(ws, analysed, tmp_path):
     assert digests(p1) == digests(p2)
 
 
+def test_pack_reimport_repairs_corrupted_derived_files(ws, analysed, tmp_path):
+    pack = create_pack(ws, tmp_path / "x.acetpack")
+    ws2 = create_workspace("rep", tmp_path / "w2")
+    try:
+        import_pack(ws2, pack)
+        rel = ws2.db.conn.execute("SELECT output_relpath FROM derived_result ORDER BY output_relpath").fetchone()[0]
+        victim = next(p for p in (ws2.path / rel).rglob("*") if p.is_file())
+        good = victim.read_bytes()
+        victim.write_bytes(b"evil")
+        res = import_pack(ws2, pack)
+        assert victim.read_bytes() == good
+        assert res["derived_repaired"] == 1
+        assert [q.read_bytes() for q in (ws2.path / "quarantine" / "corrupted-derived").iterdir()] == [b"evil"]
+    finally:
+        ws2.close()
+
+
 def _rewrite(src: Path, dest: Path, mutate) -> Path:
     with zipfile.ZipFile(src) as z:
         items = {n: z.read(n) for n in z.namelist()}

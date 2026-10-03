@@ -2,9 +2,12 @@
 
 These criteria need a clean Windows machine, a production signing certificate or an
 installer, which an automated Linux CI run cannot provide. Each protocol is versioned;
-the release owner records results as JSON in the Release Evidence Bundle
-(`clean-vm-install-results/*.json`, status `PASSED`/`FAILED`). `tools/release_evidence.py check`
-refuses a STABLE release while any of them is `NOT_RUN` or `FAILED`.
+the release owner records each execution as a JSON result in `release-inputs/<version>/`
+(`manual-acceptance/<ACC-ID>.json` and `clean-vm-install-results/windows{10,11}.json`; format in
+[`release-inputs/README.md`](../../release-inputs/README.md)). `tools/release_evidence.py check`
+refuses a STABLE release unless every manual criterion has a `PASSED` result for the current
+protocol version, executed on the installer of this release (SHA-256 in the signed manifest),
+with a named executor and every individual check passed.
 
 Automated building blocks already exercised by CI are listed for each protocol.
 

@@ -268,15 +268,24 @@ def _load(stage: Path, rel: str) -> list[dict[str, Any]]:
 
 def _commit(ws: Workspace, stage: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     stats: dict[str, int] = {}
+    derived_repaired = 0
     # Bytes first (outside the DB transaction), each re-hashed by the content store.
     for p in sorted((stage / "artifacts").glob("*")) if (stage / "artifacts").is_dir() else []:
         ws.store.put_file(p)
+    # Derived files: an existing local copy is reused only if byte-identical to the verified
+    # pack copy; a differing one is quarantined (never deleted) and replaced.
     for p in sorted((stage / "results" / "derived").rglob("*")) if (stage / "results" / "derived").is_dir() else []:
         if p.is_file():
             dest = ws.path / p.relative_to(stage / "results")
-            if not dest.exists():
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(p, dest)
+            if dest.is_file() and hashlib.sha256(dest.read_bytes()).digest() == hashlib.sha256(p.read_bytes()).digest():
+                continue
+            if dest.exists():
+                ws.store.quarantine(dest, "corrupted-derived")
+                derived_repaired += 1
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            tmp = dest.with_name(dest.name + ".import.tmp")
+            shutil.copyfile(p, tmp)
+            os.replace(tmp, dest)
     with ws.db.transaction() as tx:
         tx.execute("PRAGMA defer_foreign_keys=ON")
         for folder, tables in (
@@ -309,10 +318,12 @@ def _commit(ws: Workspace, stage: Path, manifest: dict[str, Any]) -> dict[str, A
                 "includes_artifacts": manifest["includes_artifacts"],
                 # ACET-ARC-002: the archive hash is kept as provenance; its members became their own objects
                 "archive_sha256": manifest.get("_archive_sha256"),
+                "derived_repaired": derived_repaired,
             },
         )
     return {
         "rows_inserted": stats,
+        "derived_repaired": derived_repaired,
         "includes_artifacts": manifest["includes_artifacts"],
         "archive_sha256": manifest.get("_archive_sha256"),
     }
