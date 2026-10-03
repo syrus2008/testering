@@ -25,13 +25,13 @@
       "component": "Python runtime",
       "version": "3.11 (exact patch recorded in the SBOM of each release)",
       "spdx": "PSF-2.0",
-      "distribution": "installer (embedded by PyInstaller, onedir)",
+      "distribution": "installer (embedded by PyInstaller, onedir) and Engine Pack (embeddable CPython that runs Ghidriff/pyghidra, ADR-0013)",
       "redistribution": "yes",
       "obligations": [
         "Retain the PSF License Agreement and its copyright notice in the distribution.",
         "Include a brief summary of changes if the runtime is modified (ACET does not modify it)."
       ],
-      "how_satisfied": "tools/collect_licenses.py copies <python prefix>/LICENSE.txt to licenses/python/LICENSE.txt; the runtime is unmodified.",
+      "how_satisfied": "tools/collect_licenses.py copies <python prefix>/LICENSE.txt to licenses/python/LICENSE.txt; the runtime is unmodified. The Engine Pack build copies the same LICENSE.txt next to its embedded interpreter (licenses/python/).",
       "status": "CLOSED"
     },
     {

@@ -1,8 +1,8 @@
 {
   "spec_version": "3.0",
   "summary": {
-    "automated": 145,
-    "manual_protocol": 5
+    "automated": 150,
+    "manual_protocol": 6
   },
   "criteria": [
     {
@@ -321,6 +321,7 @@
       "criterion": "Un workspace peut rester sur un Engine Pack ancien installé.",
       "status": "automated",
       "tests": [
+        "tests/integration/test_engine_manager.py::test_download_verify_install_activate",
         "tests/integration/test_p12.py::test_engine_pack_verify_tamper_and_coexistence"
       ]
     },
@@ -543,6 +544,7 @@
       "criterion": "Chaque Engine Pack valide hashes, compatibilité et licences.",
       "status": "automated",
       "tests": [
+        "tests/integration/test_engine_manager.py::test_download_verify_install_activate",
         "tests/integration/test_p12.py::test_engine_pack_verify_tamper_and_coexistence"
       ]
     },
@@ -831,6 +833,7 @@
       "criterion": "Échec validation post-update restaure version précédente quand rollback supporté.",
       "status": "automated",
       "tests": [
+        "tests/integration/test_engine_manager.py::test_failed_health_check_keeps_the_previous_pack",
         "tests/integration/test_p12.py::test_offline_update_verify_apply_and_rollback"
       ]
     },
@@ -1393,6 +1396,65 @@
         "protocol": "MP-005",
         "version": 1
       }
+    },
+    {
+      "id": "ACC-ENGINE-001",
+      "subject": "Standalone engines on a clean Windows",
+      "criterion": "On Windows 10/11 without Python, Java, Ghidra or Ghidriff: start ACET, FAST available, Engines button shows the missing pack, Install Engine Pack, consent, download, verification, installation, real doctor, READY, a STANDARD analysis really runs; no manual installation of Python/Java/Ghidra.",
+      "status": "manual_protocol",
+      "tests": [],
+      "manual_protocol": {
+        "protocol": "MP-006",
+        "version": 1
+      }
+    },
+    {
+      "id": "ACC-ENGINE-002",
+      "subject": "Offline installation",
+      "criterion": "Without network, Install Engine Pack explains the network is unavailable; Install from file with a valid package then works (same validations as a download).",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_engine_manager.py::test_offline_explains_then_install_from_file_works"
+      ]
+    },
+    {
+      "id": "ACC-ENGINE-003",
+      "subject": "Corrupted package",
+      "criterion": "A package with one modified byte fails with INTEGRITY_FAILURE and nothing is activated.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_engine_manager.py::test_modified_byte_is_an_integrity_failure"
+      ]
+    },
+    {
+      "id": "ACC-ENGINE-004",
+      "subject": "Crash during installation",
+      "criterion": "Killing ACET during extraction, then restarting: previous pack intact, staging detected and cleaned, nothing considered READY by mistake.",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_engine_manager.py::test_crash_during_extraction_is_recovered"
+      ]
+    },
+    {
+      "id": "ACC-ENGINE-005",
+      "subject": "Engines UI",
+      "criterion": "Engines button always reachable; status not conveyed by colour only; progress, cancel, error, retry; no UI freeze.",
+      "status": "automated",
+      "tests": [
+        "tests/ui/test_engines_ui.py::test_engines_button_and_first_run_guide",
+        "tests/ui/test_engines_ui.py::test_install_from_file_with_progress_and_ready_profiles"
+      ]
+    },
+    {
+      "id": "ACC-ENGINE-006",
+      "subject": "Profile gating",
+      "criterion": "With FAST only: FAST READY, STANDARD/DEEP UNAVAILABLE; after an Engine Pack, only health-checked engines make a profile READY (a folder on disk never does).",
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_engine_manager.py::test_profile_gating_follows_health_checked_engines",
+        "tests/ui/test_engines_ui.py::test_install_from_file_with_progress_and_ready_profiles",
+        "tests/ui/test_engines_ui.py::test_standard_without_engines_offers_install_or_fast"
+      ]
     }
   ]
 }

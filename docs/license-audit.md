@@ -11,7 +11,7 @@ Legal sign-off is a human decision of the release owner. The release gate refuse
 | Component | Version | SPDX | Distribution | Redistribution | Status |
 |---|---|---|---|---|---|
 | ACET | see release manifest | LicenseRef-ACET-Proprietary | installer | yes | OPEN |
-| Python runtime | 3.11 (exact patch recorded in the SBOM of each release) | PSF-2.0 | installer (embedded by PyInstaller, onedir) | yes | CLOSED |
+| Python runtime | 3.11 (exact patch recorded in the SBOM of each release) | PSF-2.0 | installer (embedded by PyInstaller, onedir) and Engine Pack (embeddable CPython that runs Ghidriff/pyghidra, ADR-0013) | yes | CLOSED |
 | PySide6 (+ PySide6_Essentials, PySide6_Addons, shiboken6) | 6.11.2 (validated in CI; exact version recorded in the SBOM) | LGPL-3.0-only | installer (PyInstaller onedir: Qt and PySide6 libraries stay separate, replaceable DLL/PYD files) | conditional | CLOSED |
 | Ghidra | 11.4.2 | Apache-2.0 | Engine Pack only | conditional | CLOSED |
 | Ghidriff | 1.0.0 | GPL-3.0-only | Engine Pack only, never in the installer | conditional | CLOSED |
@@ -36,7 +36,7 @@ Obligations:
 - Retain the PSF License Agreement and its copyright notice in the distribution.
 - Include a brief summary of changes if the runtime is modified (ACET does not modify it).
 
-How satisfied: tools/collect_licenses.py copies <python prefix>/LICENSE.txt to licenses/python/LICENSE.txt; the runtime is unmodified.
+How satisfied: tools/collect_licenses.py copies <python prefix>/LICENSE.txt to licenses/python/LICENSE.txt; the runtime is unmodified. The Engine Pack build copies the same LICENSE.txt next to its embedded interpreter (licenses/python/).
 
 ## PySide6 (+ PySide6_Essentials, PySide6_Addons, shiboken6)
 

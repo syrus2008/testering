@@ -14,6 +14,11 @@ results.** Never "repair" by deleting unknown data.
 | Interrupted job (ACET-JOB-002) | App/worker stopped during analysis | `acet jobs list` (recovers), then `acet jobs resume <id>`; finished nodes are not redone |
 | Heartbeat lost / HUNG (ACET-JOB-001) | Engine stopped making progress | Retry; raise the profile timeout if the binary is large; check Doctor known limitations |
 | Ghidra unavailable (ACET-GHD-001) | No Engine Pack / Java | Install or pin the official Engine Pack; FAST remains available (DEGRADED) |
+| `Engines: ✖ REPAIR REQUIRED` / ACET-EPM-009 | Files of the active pack modified or missing | `acet engines verify` lists them; `acet engines repair --file <same .acetengine>` restores only those files |
+| ACET-EPM-001/002/003 (network, TLS, proxy) | No route to the distribution | Use *Install from file…* with an `.acetengine` obtained elsewhere (same validations) |
+| ACET-EPM-010 health check failed | The new pack's engines do not pass `doctor --full` | Nothing changed: the previous pack stays active; send `logs/engine-pack-install.log` |
+| ACET stopped during an Engine Pack install | Crash / power loss | Automatic at next start (`acet engines recover`): staging and half-installed packs removed, previous pack kept |
+| ACET-EPM-011 NO_DISTRIBUTION | No signed index configured yet | Release owner: add the release key to `trusted_keys.json`, publish the index signed by it (`tools/build_engine_pack.py --index`), list its HTTPS URL in `distribution.json` |
 | Ghidra timeout (ACET-GHD-002) | Native or watchdog timeout; extraction partial | Run with a longer timeout profile; partial facts are kept |
 | `COMPLETED_PARTIAL` | An optional engine was missing/failed | Read *Missing evidence* in the run/report; install the provider and re-run (cache keeps the rest) |
 | Pack refused (ACET-PACK-001 / 002, ACET-SEC-001 / 002) | Tampered, unsafe or newer pack | Obtain an intact pack / newer ACET; nothing was written |

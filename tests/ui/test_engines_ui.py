@@ -32,6 +32,7 @@ def pack_env(monkeypatch):
     monkeypatch.setattr(signing, "_bundled_store", lambda: {"keys": [key]})
     monkeypatch.setattr(em, "doctor_health_check", lambda d, m: VERIFIED)  # engines here are structural fakes
     monkeypatch.setattr(em.shutil, "which", lambda name: None)  # a clean machine: no system Java
+    monkeypatch.delenv("ACET_NO_ENGINE_GUIDE", raising=False)  # the first-run guide is under test here
     for k in ("ACET_GHIDRA_DIR", "GHIDRA_INSTALL_DIR", "ACET_GHIDRA_REPLAY_DIR", "ACET_GHIDRIFF_PYTHON", "JAVA_HOME"):
         monkeypatch.delenv(k, raising=False)
 

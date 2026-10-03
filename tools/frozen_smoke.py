@@ -76,6 +76,9 @@ def main(argv: list[str] | None = None) -> int:
         run["status"] == "COMPLETED" and run["coverage"] == 1.0,
         f"FAST analysis through frozen workers ({run['status']})",
     )
+    _run(exe, ["engines", "recover", "--json"], env)
+    eng = json.loads(_run(exe, ["engines", "status", "--json"], env, ok=(0, 10)))
+    check(eng["profiles"]["FAST"]["state"] == "READY", "Engine Manager: FAST READY in the frozen build")
     doc = json.loads(_run(exe, ["doctor", "--full", "--json"], env, ok=(0, 10)))
     st = next(c for c in doc["checks"] if c["name"] == "golden self-test")["data"]["self_test"]
     checks = {c["name"]: c["ok"] for c in st["checks"]}

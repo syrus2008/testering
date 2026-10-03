@@ -3,5 +3,6 @@
   "ACC-025": {"protocol": "MP-002", "version": 1},
   "ACC-056": {"protocol": "MP-003", "version": 1},
   "ACC-100": {"protocol": "MP-004", "version": 1},
-  "ACC-150": {"protocol": "MP-005", "version": 1}
+  "ACC-150": {"protocol": "MP-005", "version": 1},
+  "ACC-ENGINE-001": {"protocol": "MP-006", "version": 1}
 }

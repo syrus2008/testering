@@ -444,7 +444,6 @@ def test_verify_and_repair_only_what_is_damaged(tmp_path):
     assert "REPAIRED" in em.log_path().read_text()
 
 
-@pytest.mark.acceptance("ACC-ENGINE-002")
 def test_ghidra_is_pinned_to_the_private_java(tmp_path):
     """Ghidra must start on the pack's runtime, not on a JDK from JAVA_HOME/PATH/~/.ghidra preferences."""
     archive = make_pack(tmp_path)
@@ -497,3 +496,16 @@ def test_profile_gating_follows_health_checked_engines(tmp_path, monkeypatch):
     assert st["profiles"]["FAST"]["state"] == "READY" and st["profiles"]["STANDARD"]["state"] == "DEGRADED"
     assert st["profiles"]["STANDARD"]["missing_optional"] == ["ghidriff"]
     assert all(c["why"] for c in st["components"])
+
+
+def test_ghidriff_version_found_in_venv_and_embedded_cpython_layouts(tmp_path):
+    from acet.engines.environment import _venv_dist_version
+
+    venv = tmp_path / "venv"
+    (venv / "bin").mkdir(parents=True)
+    (venv / "lib/python3.11/site-packages/ghidriff-1.0.0.dist-info").mkdir(parents=True)
+    embed = tmp_path / "pack/ghidriff"  # Windows embeddable CPython: python.exe at the root
+    (embed / "Lib/site-packages/ghidriff-1.0.0.dist-info").mkdir(parents=True)
+    assert _venv_dist_version(str(venv / "bin/python"), "ghidriff") == "1.0.0"
+    assert _venv_dist_version(str(embed / "python.exe"), "ghidriff") == "1.0.0"
+    assert _venv_dist_version(str(embed / "python.exe"), "pyghidra") is None

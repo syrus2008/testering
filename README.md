@@ -76,8 +76,14 @@ acet doctor --full                            # includes the golden self-test
 acet-ui                                       # desktop UI
 ```
 
-Engines are found through an installed, signed Engine Pack pinned in the workspace (`acet engine-pack install`,
-setting `engines.pinned_pack`) or, for development, through `ACET_GHIDRA_DIR`, `ACET_BINDIFF` and
+Engines come from a signed **Engine Pack** (Ghidra + private Java 21 runtime + Ghidriff interpreter), managed by
+the Engine Pack Manager ([ADR-0013](docs/adr/0013-engine-pack-manager.md)): the `Engines` button in the top bar,
+*Settings → Analysis Engines*, or `acet engines status|install [--file F]|verify|repair|rollback|recover`.
+Nothing is downloaded without consent, every package (downloaded or local) is signature- and hash-checked,
+installation is atomic, and a pack is READY only after the real `doctor --full` self-test ran on it. Remote
+installation needs a signed index published by the release owner (`src/acet/platform/distribution.json`, empty
+today); until then use *Install from file…*. A workspace can still pin a pack (`engines.pinned_pack`). For
+development: `ACET_GHIDRA_DIR`, `ACET_BINDIFF` and
 `ACET_QBINDIFF_PYTHON`. Without engines ACET runs FAST and reports **DEGRADED**. CI without engines uses the
 **golden replay** provider (`ACET_GHIDRA_REPLAY_DIR=datasets/demo/golden/ghidra`), which serves recorded real
 Ghidra exports and is always reported as unverified.
@@ -90,6 +96,7 @@ CLI exit codes: `0` success · `10` partial success · `20` user error · `30` a
 - 21-dimension subsystem checklists (§94): [`docs/closure/subsystem-checklists.json`](docs/closure/subsystem-checklists.json)
 - Demo dataset (original code, ground truth from linker maps): [`datasets/demo/`](datasets/demo)
 - Capacity evidence (class M: 250 builds / 1M functions): [`docs/evidence/capacity-M.json`](docs/evidence/capacity-M.json)
+- Engine Pack live run (Linux, real Ghidra/Java/Ghidriff): [`docs/evidence/engine-pack-e2e-linux.md`](docs/evidence/engine-pack-e2e-linux.md)
 
 ## Checks
 

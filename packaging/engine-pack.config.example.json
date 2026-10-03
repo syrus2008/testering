@@ -4,27 +4,42 @@
   "supported_acet": ">=0.1,<2.0",
   "sources": {
     "ghidra": "C:/build/ghidra_11.4.2_PUBLIC",
-    "jdk": "C:/build/jdk-21",
+    "runtime/java": "C:/build/jdk-21.0.5+11",
+    "ghidriff": "C:/build/python-3.11-embed-ghidriff",
     "bindiff": "C:/build/BinDiff",
-    "qbindiff-python": "C:/build/qbindiff-venv"
+    "licenses": "C:/build/engine-pack-licenses"
   },
+  "runtime": {"java": {"path": "runtime/java", "version": "21.0.5", "vendor": "Eclipse Temurin"}},
+  "components": [
+    {"id": "java", "name": "Eclipse Temurin JDK", "version": "21.0.5", "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+     "source_url": "https://github.com/adoptium/jdk21u"},
+    {"id": "ghidra", "name": "Ghidra", "version": "11.4.2", "license": "Apache-2.0",
+     "source_url": "https://github.com/NationalSecurityAgency/ghidra"},
+    {"id": "ghidriff", "name": "Ghidriff + pyghidra (embedded CPython 3.11)", "version": "1.0.0",
+     "license": "GPL-3.0-only (Ghidriff), Apache-2.0 (pyghidra), PSF-2.0 (CPython)",
+     "source_url": "https://github.com/clearbluejar/ghidriff"},
+    {"id": "bindiff", "name": "BinDiff / BinExport", "version": "8 / 12", "license": "Apache-2.0",
+     "source_url": "https://github.com/google/bindiff"}
+  ],
   "providers": [
     {"provider_id": "ghidra", "provider_version": "11.4.2", "protocol_version": 1,
      "capabilities": ["DISASSEMBLY", "FUNCTION_EXTRACTION"], "executable": "ghidra",
      "license_mode": "bundled", "health_check": "acet doctor --full", "supported_formats": ["PE32", "PE32+"],
      "supported_architectures": ["x86", "x64"], "determinism_class": "D1"},
+    {"provider_id": "ghidriff", "provider_version": "1.0.0", "protocol_version": 1, "capabilities": ["STRUCTURAL_DIFF"],
+     "executable": "ghidriff/python.exe", "license_mode": "bundled", "health_check": "acet doctor --full",
+     "supported_formats": ["PE32", "PE32+"], "supported_architectures": ["x86", "x64"], "determinism_class": "D1"},
     {"provider_id": "bindiff", "provider_version": "8", "protocol_version": 1, "capabilities": ["STRUCTURAL_DIFF"],
      "executable": "bindiff/bin/bindiff.exe", "license_mode": "bundled", "health_check": "bindiff --version",
-     "supported_formats": ["PE32", "PE32+"], "supported_architectures": ["x86", "x64"], "determinism_class": "D1"},
-    {"provider_id": "qbindiff", "provider_version": "1.2.3", "protocol_version": 1,
-     "capabilities": ["PROGRAMMABLE_DIFF"], "executable": "qbindiff-python/Scripts/python.exe",
-     "license_mode": "bundled", "health_check": "import qbindiff", "supported_formats": ["PE32", "PE32+"],
-     "supported_architectures": ["x86", "x64"], "determinism_class": "D2", "experimental": true}
+     "supported_formats": ["PE32", "PE32+"], "supported_architectures": ["x86", "x64"], "determinism_class": "D1"}
   ],
   "licenses": [
+    {"component": "java", "spdx": "GPL-2.0-only WITH Classpath-exception-2.0", "redistribution": "conditional",
+     "bundling": "bundled", "version_audited": "21", "notice": "Copied unmodified with legal/; source location in licenses/"},
     {"component": "ghidra", "spdx": "Apache-2.0", "redistribution": "conditional", "bundling": "bundled",
      "version_audited": "11.4.2", "notice": "Include Ghidra LICENSE and third-party licenses directory"},
-    {"component": "bindiff", "spdx": "Apache-2.0", "redistribution": "yes", "bundling": "bundled", "version_audited": "8"},
-    {"component": "qbindiff", "spdx": "Apache-2.0", "redistribution": "yes", "bundling": "bundled", "version_audited": "1.2.3"}
+    {"component": "ghidriff", "spdx": "GPL-3.0-only", "redistribution": "conditional", "bundling": "bundled",
+     "version_audited": "1.0.0", "notice": "Unmodified wheel + sdist (corresponding source) + COPYING; separate process"},
+    {"component": "bindiff", "spdx": "Apache-2.0", "redistribution": "yes", "bundling": "bundled", "version_audited": "8"}
   ]
 }

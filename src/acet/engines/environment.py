@@ -108,11 +108,13 @@ def _binexport_extension(gdir: Path | None) -> Path | None:
 def _venv_dist_version(python: str, dist_name: str) -> str | None:
     """Version of ``dist_name`` installed in the virtual environment of ``python``, read from
     its dist-info directory (no code from that environment is executed)."""
-    venv = Path(python).absolute().parent.parent  # do not resolve: venv python is a symlink
+    exe_dir = Path(python).absolute().parent  # do not resolve: venv python is a symlink
     norm = dist_name.replace("-", "_").lower()
-    for d in sorted(venv.glob("lib/python*/site-packages/*.dist-info")) + sorted(
-        venv.glob("Lib/site-packages/*.dist-info")
-    ):
+    # venv (bin/python, Scripts/python.exe) or embeddable CPython of an Engine Pack (python.exe at the root).
+    found = sorted(exe_dir.parent.glob("lib/python*/site-packages/*.dist-info"))
+    for root in (exe_dir.parent, exe_dir):
+        found += sorted(root.glob("Lib/site-packages/*.dist-info"))
+    for d in found:
         name, _, ver = d.name[: -len(".dist-info")].rpartition("-")
         if name.replace("-", "_").lower() == norm:
             return ver

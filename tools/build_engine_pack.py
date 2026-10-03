@@ -37,6 +37,8 @@ def build(config: dict[str, Any], out: Path, secret: bytes, key_id: str) -> Path
     from acet.domain.jsonschema import validate_named
     from acet.platform.signing import sign_payload
 
+    # Fail on a bad config before copying hundreds of MB.
+    validate_named({**_manifest(config), "checksums": {}, "installed_size": 0}, "engine-pack")
     out.mkdir(parents=True, exist_ok=True)
     for dest, src in config.get("sources", {}).items():
         target = out / dest
@@ -47,22 +49,29 @@ def build(config: dict[str, Any], out: Path, secret: bytes, key_id: str) -> Path
             shutil.copy2(src, target)
     files = [p for p in sorted(out.rglob("*")) if p.is_file() and p.name != MANIFEST]
     checksums = {p.relative_to(out).as_posix(): _sha(p) for p in files}
-    manifest: dict[str, Any] = {
+    manifest = {
+        **_manifest(config),
+        "checksums": checksums,
+        "installed_size": sum(p.stat().st_size for p in files),
+    }
+    validate_named(manifest, "engine-pack")
+    (out / MANIFEST).write_text(json.dumps(sign_payload(manifest, secret, key_id), indent=2), encoding="utf-8")
+    return out
+
+
+def _manifest(config: dict[str, Any]) -> dict[str, Any]:
+    m: dict[str, Any] = {
         "id": config["id"],
         "version": config["version"],
         "protocol_version": 1,
         "providers": config["providers"],
         "licenses": config["licenses"],
-        "checksums": checksums,
         "supported_acet": config["supported_acet"],
-        "installed_size": sum(p.stat().st_size for p in files),
     }
     for k in ("runtime", "components"):
         if k in config:
-            manifest[k] = config[k]
-    validate_named(manifest, "engine-pack")
-    (out / MANIFEST).write_text(json.dumps(sign_payload(manifest, secret, key_id), indent=2), encoding="utf-8")
-    return out
+            m[k] = config[k]
+    return m
 
 
 def make_archive(pack_dir: Path, archive: Path) -> Path:

@@ -22,6 +22,8 @@ OUT = ROOT / "docs" / "traceability" / "acceptance-matrix.json"
 # Criteria whose tests cover only part of the wording (none at the moment).
 PARTIAL: dict[str, str] = {}
 MANUAL = ROOT / "docs" / "traceability" / "manual-protocols.json"
+# Criteria added after the specification (Engine Pack Manager pass, ADR-0013), appended after ACC-150.
+EXTRA = ROOT / "docs" / "traceability" / "engine-criteria.json"
 LINKS = ROOT / "docs" / "traceability" / "requirement-links.json"
 REQ_OUT = ROOT / "docs" / "traceability" / "requirement-matrix.json"
 
@@ -35,6 +37,11 @@ def parse_spec() -> list[dict[str, str]]:
     ids = [c["id"] for c in out]
     assert ids == [f"ACC-{n:03d}" for n in range(1, 151)], "spec ACC list incomplete"
     return out
+
+
+def extra_criteria() -> list[dict[str, str]]:
+    data = json.loads(EXTRA.read_text(encoding="utf-8")) if EXTRA.is_file() else {"criteria": []}
+    return [{"id": c["id"], "subject": c["subject"], "criterion": c["criterion"]} for c in data["criteria"]]
 
 
 def scan_tests() -> dict[str, list[str]]:
@@ -56,11 +63,12 @@ def scan_tests() -> dict[str, list[str]]:
 def build() -> dict[str, object]:
     tests = scan_tests()
     manual = json.loads(MANUAL.read_text(encoding="utf-8")) if MANUAL.is_file() else {}
-    unknown = sorted(set(tests) - {c["id"] for c in parse_spec()})
+    criteria = parse_spec() + extra_criteria()
+    unknown = sorted(set(tests) - {c["id"] for c in criteria})
     if unknown:
         raise SystemExit(f"tests reference unknown acceptance ids: {unknown}")
     rows = []
-    for c in parse_spec():
+    for c in criteria:
         t = sorted(set(tests.get(c["id"], [])))
         status = "not_started" if not t else ("partial" if c["id"] in PARTIAL else "automated")
         if not t and c["id"] in manual:

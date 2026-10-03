@@ -1,0 +1,17 @@
+{
+  "comment": "Acceptance criteria added by the Engine Pack Manager correction pass (ADR-0013), outside the 150 of the specification.",
+  "criteria": [
+    {"id": "ACC-ENGINE-001", "subject": "Standalone engines on a clean Windows",
+     "criterion": "On Windows 10/11 without Python, Java, Ghidra or Ghidriff: start ACET, FAST available, Engines button shows the missing pack, Install Engine Pack, consent, download, verification, installation, real doctor, READY, a STANDARD analysis really runs; no manual installation of Python/Java/Ghidra."},
+    {"id": "ACC-ENGINE-002", "subject": "Offline installation",
+     "criterion": "Without network, Install Engine Pack explains the network is unavailable; Install from file with a valid package then works (same validations as a download)."},
+    {"id": "ACC-ENGINE-003", "subject": "Corrupted package",
+     "criterion": "A package with one modified byte fails with INTEGRITY_FAILURE and nothing is activated."},
+    {"id": "ACC-ENGINE-004", "subject": "Crash during installation",
+     "criterion": "Killing ACET during extraction, then restarting: previous pack intact, staging detected and cleaned, nothing considered READY by mistake."},
+    {"id": "ACC-ENGINE-005", "subject": "Engines UI",
+     "criterion": "Engines button always reachable; status not conveyed by colour only; progress, cancel, error, retry; no UI freeze."},
+    {"id": "ACC-ENGINE-006", "subject": "Profile gating",
+     "criterion": "With FAST only: FAST READY, STANDARD/DEEP UNAVAILABLE; after an Engine Pack, only health-checked engines make a profile READY (a folder on disk never does)."}
+  ]
+}

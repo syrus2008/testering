@@ -43,3 +43,18 @@ MP-004 plus: third build (v3) → lineage → kill the application during a STAN
 update → restore → uninstall → reinstall → open the workspace: all historical runs, lineages and annotations present.
 Automated blocks: `tests/acceptance/test_closure.py::test_kill_app_at_any_point_is_recoverable`,
 `tests/integration/test_analysis.py::test_lineage_split_merge_and_incremental_extension`.
+
+## MP-006 v1 — Standalone engines on a clean Windows (ACC-ENGINE-001)
+1. Fresh Windows 10 or 11 x64 VM with **no** Python, Java, Ghidra or Ghidriff (check `where python java`), snapshot taken.
+2. Install `ACET-Setup-<version>.exe` (embedded Python runtime: PyInstaller build), start ACET.
+3. Expected: ACET starts, FAST is available, the "Engine Pack" guide opens and the top bar shows `Engines: ⚠ NOT INSTALLED`.
+4. Click `Engines` → `Install Engine Pack`. Expected: the consent dialog lists version, download size, installed
+   size, components and licences of the **official signed** pack.
+5. Confirm. Expected: progress through download, SHA-256, signature, extraction, health check; the UI stays responsive.
+6. Expected: `Engines: ✔ READY`; Engine Manager shows Java/Ghidra/Ghidriff READY and STANDARD READY.
+7. Import `datasets/demo/builds/v1` and `v2`, run a STANDARD compare. Expected: COMPLETED with live engines.
+8. Run `acet.exe doctor --full`. Expected: engine pack READY, java `(engine-pack)`, golden self-test VERIFIED (live).
+Record: installer hash, Engine Pack id/version/archive SHA-256, `engine-pack-install.log`, doctor output, wall times.
+Automated blocks: `tests/integration/test_engine_manager.py` (signed index, download, resume, corruption, crash
+recovery, rollback, private Java pinning), `tests/ui/test_engines_ui.py`, and the Linux live run recorded in
+`docs/evidence/engine-pack-e2e-linux.md`.

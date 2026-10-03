@@ -667,6 +667,9 @@ def install_archive(
             raise fail(
                 "HEALTH_CHECK_FAILED", f"self-test verdict {health.get('verdict')} ({health.get('engine_mode')})"
             )
+        changed = pack_integrity_problems(final, manifest)  # running the engines must not alter the pack
+        if changed:
+            raise fail("HEALTH_CHECK_FAILED", "the engines modified their own installation: " + ", ".join(changed[:5]))
         record = {
             "pack": f"{manifest['id']}@{manifest['version']}",
             "verified_at": utc_now_iso(),
@@ -779,6 +782,7 @@ def verify_active(*, health: bool = False, health_check: HealthCheck | None = No
         record = {**record, "verdict": h.get("verdict"), "health": h, "verified_at": utc_now_iso()}
         if h.get("verdict") == "FAILED":
             problems.append(f"health check verdict FAILED ({h.get('engine_mode')})")
+        problems += [f"modified by the health check: {b}" for b in pack_integrity_problems(d, manifest)[:20]]
     elif not problems:
         record = {**record, "files_verified_at": utc_now_iso()}
     state = "VERIFIED" if not problems else "REPAIR_REQUIRED"

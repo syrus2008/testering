@@ -37,6 +37,7 @@ from acet.jobs.locks import single_flight
 from acet.jobs.power import keep_awake
 from acet.jobs.resources import ResourcePolicy, disk_preflight
 from acet.jobs.supervisor import Limits, run_supervised
+from acet.platform.paths import acet_home
 from acet.storage import repositories as repo
 from acet.storage.content_store import sha256_file
 from acet.storage.db import Database
@@ -706,6 +707,8 @@ class Orchestrator:
             "PYTHONPATH": os.pathsep.join(filter(None, [str(SRC_ROOT), os.environ.get("PYTHONPATH")])),
             "ACET_CORRELATION": f"ws={self.ws.id} run={run_id} job={job_id} pr={prid}",
             "ACET_NO_NETWORK": "0" if self._network_enabled() else "1",
+            # Interpreters of an Engine Pack stay read-only: their bytecode cache lives outside the pack.
+            "PYTHONPYCACHEPREFIX": str(acet_home() / "cache" / "pycache"),
         }  # ACET-OBS-001
         # The worker uses exactly the Ghidra provider the environment reported: live or
         # replay, never one silently standing in for the other.
