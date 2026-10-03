@@ -113,6 +113,10 @@ def logical_ids(gt: dict[str, Any], comp: str) -> dict[tuple[str, int], int]:
         for m in t["merges"]:
             for x in m["lefts"]:
                 union((a, x), (b, m["right"]))
+        for n in t.get("new", []):
+            res = n.get("resurrects")
+            if res:  # a function that disappeared and came back is the same logical function
+                union((res["version"], res["address"]), (b, n["right"]))
     roots: dict[tuple[str, int], int] = {}
     return {k: roots.setdefault(find(k), len(roots)) for k in list(parent)}
 
@@ -140,9 +144,40 @@ def lineage_metrics(
         lineages_of[(comp, lid)].add(r["lineage_id"])
     impure = [k for k, v in members.items() if len(v) > 1]
     fragmented = [k for k, v in lineages_of.items() if len(v) > 1]
+
+    # Lineage graph: links recorded by ACET (split, merge, resurrection candidate). A logical
+    # function spread over several lineage ids that ACET itself connected is an explicit,
+    # inspectable hypothesis; one spread over unconnected lineages is lost history.
+    graph: dict[str, set[str]] = defaultdict(set)
+    false_candidates = 0
+    for r in ws.db.conn.execute(
+        "SELECT parent_lineage_id, child_lineage_id, relation FROM lineage_link WHERE analysis_run_id=?",
+        (lineage_run,),
+    ):
+        graph[r["parent_lineage_id"]].add(r["child_lineage_id"])
+        graph[r["child_lineage_id"]].add(r["parent_lineage_id"])
+        # A resurrection hypothesis between two different logical functions is a false lead even
+        # though nothing was merged (a wrong *confirmed* resurrection shows up as wrong_merge).
+        if r["relation"] == "RESURRECTED_CANDIDATE" and not (
+            members.get(r["parent_lineage_id"], set()) & members.get(r["child_lineage_id"], set())
+        ):
+            false_candidates += 1
+
+    def connected(ls: set[str]) -> bool:
+        start = next(iter(ls))
+        seen, stack = {start}, [start]
+        while stack:
+            for nb in graph[stack.pop()]:
+                if nb not in seen:
+                    seen.add(nb)
+                    stack.append(nb)
+        return ls <= seen
+
+    unlinked = [k for k in fragmented if not connected(lineages_of[k])]
     versions = gt["versions"]
     full_chain = 0
     recovered = 0
+    recovered_linked = 0
     for comp in gt["components"]:
         by_logical: dict[int, set[str]] = defaultdict(set)
         for (v, _a), lid in ids[comp].items():
@@ -150,8 +185,21 @@ def lineage_metrics(
         for lid, vs in by_logical.items():
             if len(vs) == len(versions):
                 full_chain += 1
-                if len(lineages_of.get((comp, lid), set())) == 1:
+                ls = lineages_of.get((comp, lid), set())
+                if len(ls) == 1:
                     recovered += 1
+                if ls and connected(ls):
+                    recovered_linked += 1
+    # Resurrections in the ground truth: same lineage (confirmed), linked candidate, or lost.
+    res_outcome = {"confirmed": 0, "candidate_linked": 0, "missed": 0}
+    for t in gt["transitions"]:
+        for n in t.get("new", []):
+            if not n.get("resurrects"):
+                continue
+            lid = ids[t["component"]].get((t["to"], n["right"]))
+            ls = lineages_of.get((t["component"], lid), set()) if lid is not None else set()
+            key = "confirmed" if len(ls) == 1 else "candidate_linked" if ls and connected(ls) else "missed"
+            res_outcome[key] += 1
     return {
         "lineages": len(members),
         "purity": round(1 - len(impure) / len(members), 4) if members else None,
@@ -159,4 +207,12 @@ def lineage_metrics(
         "fragmentation": round(len(fragmented) / len(lineages_of), 4) if lineages_of else None,
         "wrong_split": len(fragmented),
         "multi_version_recovery": round(recovered / full_chain, 4) if full_chain else None,
+        # Strict metrics above count every extra lineage id. The breakdown below separates
+        # fragmentation ACET explained with a recorded link from unexplained loss.
+        "wrong_split_linked": len(fragmented) - len(unlinked),
+        "wrong_split_unlinked": len(unlinked),
+        "fragmentation_unlinked": round(len(unlinked) / len(lineages_of), 4) if lineages_of else None,
+        "multi_version_recovery_linked": round(recovered_linked / full_chain, 4) if full_chain else None,
+        "resurrections": res_outcome,
+        "false_resurrection_candidates": false_candidates,
     }

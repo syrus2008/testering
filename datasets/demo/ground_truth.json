@@ -353,7 +353,11 @@
         {
           "right": 6442455936,
           "name": "report_event",
-          "resurrected": true
+          "resurrected": true,
+          "resurrects": {
+            "version": "v1",
+            "address": 6442455888
+          }
         },
         {
           "right": 6442456112,

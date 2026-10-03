@@ -1,0 +1,122 @@
+{
+  "dataset": "acet-resurrection@1",
+  "profile": "STANDARD@1",
+  "engines": "replay: recorded Ghidra exports, no ghidriff",
+  "lineage_rules": "lineage@2 (resurrect@2)",
+  "scenarios": {
+    "identical": {
+      "relations": {
+        "CONTINUATION": 6,
+        "DISAPPEARED": 1,
+        "MODIFIED": 2,
+        "RESURRECTED_CONFIRMED": 1,
+        "UNRESOLVED": 6
+      },
+      "lineage": {
+        "lineages": 5,
+        "purity": 1.0,
+        "wrong_merge": 0,
+        "fragmentation": 0.0,
+        "wrong_split": 0,
+        "multi_version_recovery": 1.0,
+        "wrong_split_linked": 0,
+        "wrong_split_unlinked": 0,
+        "fragmentation_unlinked": 0.0,
+        "multi_version_recovery_linked": 1.0,
+        "resurrections": {
+          "confirmed": 1,
+          "candidate_linked": 0,
+          "missed": 0
+        },
+        "false_resurrection_candidates": 0
+      }
+    },
+    "recompiled": {
+      "relations": {
+        "CONTINUATION": 6,
+        "DISAPPEARED": 1,
+        "MODIFIED": 2,
+        "RESURRECTED_CONFIRMED": 1,
+        "UNRESOLVED": 6
+      },
+      "lineage": {
+        "lineages": 5,
+        "purity": 1.0,
+        "wrong_merge": 0,
+        "fragmentation": 0.0,
+        "wrong_split": 0,
+        "multi_version_recovery": 1.0,
+        "wrong_split_linked": 0,
+        "wrong_split_unlinked": 0,
+        "fragmentation_unlinked": 0.0,
+        "multi_version_recovery_linked": 1.0,
+        "resurrections": {
+          "confirmed": 1,
+          "candidate_linked": 0,
+          "missed": 0
+        },
+        "false_resurrection_candidates": 0
+      }
+    },
+    "recompiled_heavy": {
+      "relations": {
+        "CONTINUATION": 6,
+        "DISAPPEARED": 1,
+        "MODIFIED": 2,
+        "RESURRECTED_CANDIDATE": 1,
+        "UNRESOLVED": 6
+      },
+      "lineage": {
+        "lineages": 6,
+        "purity": 1.0,
+        "wrong_merge": 0,
+        "fragmentation": 0.2,
+        "wrong_split": 1,
+        "multi_version_recovery": 1.0,
+        "wrong_split_linked": 1,
+        "wrong_split_unlinked": 0,
+        "fragmentation_unlinked": 0.0,
+        "multi_version_recovery_linked": 1.0,
+        "resurrections": {
+          "confirmed": 0,
+          "candidate_linked": 1,
+          "missed": 0
+        },
+        "false_resurrection_candidates": 0
+      }
+    },
+    "lookalike": {
+      "relations": {
+        "CONTINUATION": 7,
+        "DISAPPEARED": 1,
+        "MODIFIED": 1,
+        "UNRESOLVED": 8
+      },
+      "lineage": {
+        "lineages": 7,
+        "purity": 1.0,
+        "wrong_merge": 0,
+        "fragmentation": 0.0,
+        "wrong_split": 0,
+        "multi_version_recovery": 1.0,
+        "wrong_split_linked": 0,
+        "wrong_split_unlinked": 0,
+        "fragmentation_unlinked": 0.0,
+        "multi_version_recovery_linked": 1.0,
+        "resurrections": {
+          "confirmed": 0,
+          "candidate_linked": 0,
+          "missed": 0
+        },
+        "false_resurrection_candidates": 0
+      }
+    }
+  },
+  "tolerances": {
+    "lineage.purity": 0.0,
+    "lineage.wrong_merge": 0,
+    "lineage.false_resurrection_candidates": 0,
+    "lineage.wrong_split_unlinked": 0,
+    "lineage.multi_version_recovery": 0.0
+  }
+}

@@ -16,7 +16,14 @@ DEFAULT_TOLERANCES = {
     "lineage.purity": 0.05,
     "lineage.multi_version_recovery": 0.05,
 }
-LOWER_IS_BETTER = {"false_new_rate", "lineage.fragmentation"}
+LOWER_IS_BETTER = {
+    "false_new_rate",
+    "lineage.fragmentation",
+    "lineage.fragmentation_unlinked",
+    "lineage.wrong_merge",
+    "lineage.wrong_split_unlinked",
+    "lineage.false_resurrection_candidates",
+}
 
 
 def _get(d: dict[str, Any], dotted: str) -> Any:

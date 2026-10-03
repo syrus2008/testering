@@ -1,0 +1,6 @@
+{
+  "name": "acet-resurrection",
+  "version": "1",
+  "license": "Original code written for ACET (same license as ACET); redistributable",
+  "description": "Disappearance and return of a function: identical, recompiled (moderate / heavy) and a lookalike that must never be merged. x64 PE built with clang/lld-link (see build.py)."
+}

@@ -80,8 +80,17 @@ def ground_truth() -> dict[str, object]:
                 m["right"] for m in merges}
             mapped_left = {p["left"] for p in pairs} | {s["left"] for s in splits} | {
                 x for m in merges for x in m["lefts"]}
-            new = [{"right": addr, "name": n, "resurrected": n in RESURRECTED.get((a, b), [])}
-                   for n, addr in sorted(fb.items()) if addr not in mapped_right]
+            new = []
+            for n, addr in sorted(fb.items()):
+                if addr in mapped_right:
+                    continue
+                entry: dict[str, object] = {"right": addr, "name": n, "resurrected": n in RESURRECTED.get((a, b), [])}
+                if entry["resurrected"]:
+                    # The same logical function, last present in an earlier version (lineage continuity).
+                    earlier = [v for v in versions[: versions.index(a)] if n in functions[comp][v]]
+                    if earlier:
+                        entry["resurrects"] = {"version": earlier[-1], "address": functions[comp][earlier[-1]][n]}
+                new.append(entry)
             gone = [{"left": addr, "name": n} for n, addr in sorted(fa.items()) if addr not in mapped_left]
             transitions.append({"component": comp, "from": a, "to": b, "pairs": pairs, "splits": splits,
                                 "merges": merges, "new": new, "disappeared": gone})

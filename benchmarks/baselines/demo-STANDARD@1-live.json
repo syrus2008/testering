@@ -3,23 +3,33 @@
   "profile": "STANDARD@1",
   "engines": "live: Ghidra 11.4.2 + ghidriff 1.0.0",
   "summary": {
-    "coverage": 0.9688,
-    "f1": 0.9444,
-    "false_new": 0,
-    "false_new_rate": 0.0,
-    "fn": 4,
-    "fp": 0,
-    "lineage": {
-      "fragmentation": 0.1364,
-      "lineages": 25,
-      "multi_version_recovery": 0.8333,
-      "purity": 1.0,
-      "wrong_merge": 0,
-      "wrong_split": 3
-    },
     "precision": 1.0,
     "recall": 0.8947,
-    "tp": 34
+    "f1": 0.9444,
+    "tp": 34,
+    "fp": 0,
+    "fn": 4,
+    "false_new": 0,
+    "coverage": 0.9688,
+    "false_new_rate": 0.0,
+    "lineage": {
+      "lineages": 25,
+      "purity": 1.0,
+      "wrong_merge": 0,
+      "fragmentation": 0.1905,
+      "wrong_split": 4,
+      "multi_version_recovery": 0.8333,
+      "wrong_split_linked": 2,
+      "wrong_split_unlinked": 2,
+      "fragmentation_unlinked": 0.0952,
+      "multi_version_recovery_linked": 0.9444,
+      "resurrections": {
+        "confirmed": 0,
+        "candidate_linked": 0,
+        "missed": 1
+      },
+      "false_resurrection_candidates": 0
+    }
   },
   "tolerances": {
     "precision": 0.02,

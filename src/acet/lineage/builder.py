@@ -13,8 +13,11 @@ Relations:
   candidate is that same left function (lineage_link SPLIT_PARENT)
 * MERGE_PARENT — several left functions claim the same right function
 * DISAPPEARED — the lineage has no instance in this build (marker on last instance)
-* RESURRECTED_CANDIDATE — an unmatched right function equals (normalized hash) the last
-  instance of a lineage that disappeared earlier
+* RESURRECTED_CONFIRMED — an unmatched right function continues a lineage that disappeared
+  earlier: independent evidence families converge (``resurrect@2``, see ``lineage.resurrection``);
+  the function is assigned to the *historical* lineage
+* RESURRECTED_CANDIDATE — the same hypothesis without enough converging evidence: a new lineage
+  linked to the historical one (nothing is merged)
 * UNRESOLVED — unmatched right function: a new lineage with unresolved origin (never "new")
 """
 
@@ -30,13 +33,13 @@ from acet.domain.canonical import canonical_hash, stable_json
 from acet.domain.error_codes import AcetError
 from acet.domain.ids import uuid7
 from acet.domain.timeutil import utc_now_iso
+from acet.lineage import resurrection
 from acet.storage import repositories as repo
 
-RULES = "lineage@1"
+RULES = "lineage@2"  # @2: graded resurrection (resurrect@2)
 JOIN_DECISIONS = ("EXACT", "STRONG", "PROBABLE")
 SPLIT_MIN = 0.40  # calibrable
 MERGE_MIN = 0.60  # calibrable
-RESURRECT_MIN = 0.75  # calibrable
 
 
 @dataclass
@@ -131,6 +134,56 @@ def _component_role(ws: Workspace, build_id: str, sha: str) -> str:
     return str(row["role"]) if row else "OTHER"
 
 
+def _fn_ids_at(tx: Any, sha: str, addresses: list[int]) -> list[str]:
+    if not addresses:
+        return []
+    marks = ",".join("?" * len(addresses))
+    return [
+        r["id"]
+        for r in tx.execute(
+            f"SELECT id FROM function_instance WHERE artifact_sha256=? AND address IN ({marks})", (sha, *addresses)
+        ).fetchall()
+    ]
+
+
+def _caller_lineages_in_run(tx: Any, run_id: str, fid: str, feat: dict[str, Any]) -> frozenset[str]:
+    """Lineages (in this lineage run) of the functions that called ``fid`` in its own build."""
+    row = tx.execute("SELECT artifact_sha256 FROM function_instance WHERE id=?", (fid,)).fetchone()
+    ids = _fn_ids_at(tx, row["artifact_sha256"], [int(a) for a in feat["callgraph"]["callers"]]) if row else []
+    if not ids:
+        return frozenset()
+    marks = ",".join("?" * len(ids))
+    return frozenset(
+        r["lineage_id"]
+        for r in tx.execute(
+            f"SELECT lineage_id FROM lineage_assignment WHERE analysis_run_id=? AND relation!='DISAPPEARED'"
+            f" AND function_instance_id IN ({marks})",
+            (run_id, *ids),
+        ).fetchall()
+    )
+
+
+def _first_observed(tx: Any, build_id: str) -> str | None:
+    row = tx.execute("SELECT min(observed_at) AS t FROM observation WHERE build_id=?", (build_id,)).fetchone()
+    return row["t"] if row else None
+
+
+def _rollback_event(tx: Any, product_id: str, gone_build: str | None, back_build: str) -> str | None:
+    """A recorded ROLLBACK (official or research source) between disappearance and return."""
+    if gone_build is None:
+        return None
+    lo, hi = _first_observed(tx, gone_build), _first_observed(tx, back_build)
+    if not lo or not hi:
+        return None
+    row = tx.execute(
+        "SELECT id FROM external_event WHERE product_id=? AND upper(event_type)='ROLLBACK'"
+        " AND source_class IN ('OFFICIAL','RESEARCH') AND occurred_at > ? AND occurred_at <= ?"
+        " ORDER BY occurred_at LIMIT 1",
+        (product_id, lo, hi),
+    ).fetchone()
+    return None if row is None else str(row["id"])
+
+
 def build_lineage(
     ws: Workspace, product_id: str, builds: list[str] | None = None, *, incremental: bool = True
 ) -> LineageSummary:
@@ -181,7 +234,8 @@ def build_lineage(
 
     # state: function_instance_id -> lineage_id for the latest processed build
     current: dict[str, str] = {}
-    disappeared: dict[str, tuple[str, str | None]] = {}  # lineage -> (last fn id, normalized hash)
+    # lineage -> (last fn id, normalized hash, build where it was first missing)
+    disappeared: dict[str, tuple[str, str | None, str | None]] = {}
     relations: dict[str, int] = {}
     carried = 0
     lineages: set[str] = set()
@@ -217,7 +271,11 @@ def build_lineage(
                         h = tx.execute(
                             "SELECT normalized_hash FROM function_instance WHERE id=?", (r["function_instance_id"],)
                         ).fetchone()
-                        disappeared[r["lineage_id"]] = (r["function_instance_id"], h["normalized_hash"] if h else None)
+                        disappeared[r["lineage_id"]] = (
+                            r["function_instance_id"],
+                            h["normalized_hash"] if h else None,
+                            r["build_id"],
+                        )
                     else:
                         current[r["function_instance_id"]] = r["lineage_id"]
             for r in tx.execute("SELECT * FROM lineage_link WHERE analysis_run_id=?", (prev["id"],)).fetchall():
@@ -236,13 +294,15 @@ def build_lineage(
                 )
             # lineages that disappeared earlier stay eligible for resurrection
             for r in tx.execute(
-                "SELECT la.lineage_id, la.function_instance_id, fi.normalized_hash FROM lineage_assignment la"
-                " JOIN function_instance fi ON fi.id=la.function_instance_id"
+                "SELECT la.lineage_id, la.function_instance_id, la.build_id, fi.normalized_hash FROM lineage_assignment"
+                " la JOIN function_instance fi ON fi.id=la.function_instance_id"
                 " WHERE la.analysis_run_id=? AND la.relation='DISAPPEARED'",
                 (prev["id"],),
             ).fetchall():
                 if r["lineage_id"] not in current.values():
-                    disappeared.setdefault(r["lineage_id"], (r["function_instance_id"], r["normalized_hash"]))
+                    disappeared.setdefault(
+                        r["lineage_id"], (r["function_instance_id"], r["normalized_hash"], r["build_id"])
+                    )
 
         def new_lineage(role: str, label: str | None) -> str:
             lid = uuid7()
@@ -356,9 +416,11 @@ def build_lineage(
             # right functions without a parent: split child, resurrection, or unresolved origin
             lfeat = _features_by_fn(ws, tx, [r["left_function_id"] for r in rows if r["left_function_id"]])
             rfeat = _features_by_fn(ws, tx, [r["right_function_id"] for r in rows if r["right_function_id"]])
+            rsha_of = {r["right_function_id"]: r["right_artifact_sha256"] for r in rows if r["right_function_id"]}
             left_addr = {lfeat[f]["entry"]: f for f in lfeat}
             right_addr = {rfeat[f]["entry"]: f for f in rfeat}
             parent_of_right = {rf: lf for lf, rf in _continuations(rows, nxt)}
+            free: list[tuple[str, str, dict[str, Any]]] = []  # (right fn, role, features)
             for r in rows:
                 rf = r["right_function_id"]
                 if rf is None or rf in nxt or rf not in rfeat:
@@ -368,7 +430,6 @@ def build_lineage(
                 role = _component_role(ws, right_b, r["right_artifact_sha256"])
                 ev = json.loads(r["evidence_json"])
                 me = rfeat[rf]
-                lid = new_lineage(role, None)
                 split_parent = None
                 # split@1: called by the MODIFIED continuation R1 of a left function L that is a candidate
                 for cand_addr, score in ev.get("candidates") or []:
@@ -382,20 +443,8 @@ def build_lineage(
                             break
                     if split_parent:
                         break
-                resurrect = None
-                if split_parent is None:
-                    from acet.matching.featurematch import family_scores, raw_score
-
-                    best = None
-                    for old_lid, (old_fid, _h) in sorted(disappeared.items()):
-                        old = _features_by_fn(ws, tx, [old_fid]).get(old_fid)
-                        if old is None:
-                            continue
-                        sc = raw_score(family_scores(old, me, {}))
-                        if sc >= RESURRECT_MIN and (best is None or sc > best[1]):
-                            best = (old_lid, sc)
-                    resurrect = best
                 if split_parent is not None:
+                    lid = new_lineage(role, None)
                     link(
                         split_parent[0],
                         lid,
@@ -404,14 +453,42 @@ def build_lineage(
                         {"rule": "split@1", "candidate_score": split_parent[1], "called_by": split_parent[2]},
                     )
                     assign(lid, rf, "SPLIT_PARENT", right_b, role, None, {"parent": split_parent[0]})
-                elif resurrect is not None:
-                    link(
-                        resurrect[0],
-                        lid,
-                        "RESURRECTED_CANDIDATE",
-                        right_b,
-                        {"rule": "resurrect@1", "similarity": resurrect[1]},
+                    nxt[rf] = lid
+                else:
+                    free.append((rf, role, me))
+            # resurrect@2: grade every (returning function, disappeared lineage) pairing, then keep
+            # at most one claim per side (lineage.resurrection.resolve).
+            pairs: dict[tuple[str, str], resurrection.Assessment] = {}
+            for rf, _role, me in free:
+                new_callers = frozenset(
+                    nxt[f]
+                    for f in _fn_ids_at(tx, rsha_of[rf], [int(a) for a in me["callgraph"]["callers"]])
+                    if f in nxt
+                )
+                for old_lid, (old_fid, _h, gone_b) in sorted(disappeared.items()):
+                    old = _features_by_fn(ws, tx, [old_fid]).get(old_fid)
+                    if old is None:
+                        continue
+                    ctx = resurrection.Context(
+                        old_caller_lineages=_caller_lineages_in_run(tx, run_id, old_fid, old),
+                        new_caller_lineages=new_callers,
+                        rollback_event=_rollback_event(tx, product_id, gone_b, right_b),
                     )
+                    pairs[(rf, old_lid)] = resurrection.assess(old, me, ctx)
+            back = {nf: (ol, a) for (nf, ol), a in resurrection.resolve(pairs).items()}
+            rejected = {nf: a for (nf, _ol), a in pairs.items() if a.status == "REJECTED" and a.contradicts}
+            for rf, role, _me in free:
+                claim = back.get(rf)
+                if claim is not None and claim[1].status == "CONFIRMED":
+                    old_lid, a = claim
+                    assign(old_lid, rf, "RESURRECTED_CONFIRMED", right_b, role, None, a.evidence())
+                    disappeared.pop(old_lid, None)
+                    nxt[rf] = old_lid
+                    continue
+                lid = new_lineage(role, None)
+                if claim is not None:
+                    old_lid, a = claim
+                    link(old_lid, lid, "RESURRECTED_CANDIDATE", right_b, a.evidence())
                     assign(
                         lid,
                         rf,
@@ -419,13 +496,14 @@ def build_lineage(
                         right_b,
                         role,
                         None,
-                        {"previous_lineage": resurrect[0], "similarity": resurrect[1]},
+                        {"previous_lineage": old_lid, **a.evidence()},
                     )
-                    disappeared.pop(resurrect[0], None)
+                    disappeared.pop(old_lid, None)
                 else:
-                    assign(
-                        lid, rf, "UNRESOLVED", right_b, role, None, {"note": "origin unresolved; not classified new"}
-                    )
+                    note: dict[str, Any] = {"note": "origin unresolved; not classified new"}
+                    if rf in rejected:  # keep the refused hypothesis inspectable
+                        note["rejected_resurrection"] = rejected[rf].evidence()
+                    assign(lid, rf, "UNRESOLVED", right_b, role, None, note)
                 nxt[rf] = lid
             # merge@1: an unresolved left L2 whose candidate R is the MODIFIED continuation of a sibling L1
             for r in rows:
@@ -474,7 +552,7 @@ def build_lineage(
                     if any(c["left_function_id"] == fid for c in rows):
                         assign(lid, fid, "DISAPPEARED", right_b, role, None, {"last_seen_build": left_b})
                         h = tx.execute("SELECT normalized_hash FROM function_instance WHERE id=?", (fid,)).fetchone()
-                        disappeared[lid] = (fid, h["normalized_hash"] if h else None)
+                        disappeared[lid] = (fid, h["normalized_hash"] if h else None, right_b)
             current = nxt
         tx.execute(
             "UPDATE analysis_run SET finished_at=?, input_hashes_json=?, missing_evidence_json=? WHERE id=?",

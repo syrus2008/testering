@@ -1,0 +1,27 @@
+ rescore
+
+ Timestamp is 00000000 (Repro mode)
+
+ Preferred load address is 0000000180000000
+
+ Start         Length     Name                   Class
+ 0001:00000000 00000346H .text                   CODE
+ 0003:00000000 00000000H .data                   DATA
+ 0003:00000000 00000220H .bss                    DATA
+
+  Address         Publics by Value              Rva+Base               Lib:Object
+
+ 0001:00000000       fold                       0000000180001000     core.o
+ 0001:00000020       sum_bytes                  0000000180001020     core.o
+ 0001:00000050       Run                        0000000180001050     core.o
+ 0001:00000080       StatsTick                  0000000180001080     core.o
+ 0001:000000b0       _DllMainCRTStartup         00000001800010b0     core.o
+ 0001:000000c0       audit_record               00000001800010c0     audit.o
+ 0003:00000000       g_stats                    0000000180003000     core.o
+ 0003:00000020       g_audit                    0000000180003020     core.o
+ 0003:00000120       g_trace                    0000000180003120     core.o
+
+ entry point at         0001:000000b0
+
+ Static symbols
+

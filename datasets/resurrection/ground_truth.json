@@ -1,0 +1,342 @@
+{
+  "dataset": "acet-resurrection",
+  "schema_version": 1,
+  "license": "ACET project (original code)",
+  "component": "rescore.dll",
+  "functions": {
+    "v1": {
+      "fold": 6442455040,
+      "sum_bytes": 6442455072,
+      "Run": 6442455120,
+      "audit_record": 6442455184
+    },
+    "v2": {
+      "fold": 6442455040,
+      "sum_bytes": 6442455072,
+      "Run": 6442455120
+    },
+    "v3_identical": {
+      "fold": 6442455040,
+      "sum_bytes": 6442455072,
+      "Run": 6442455120,
+      "StatsTick": 6442455168,
+      "audit_record": 6442455232
+    },
+    "v3_recompiled": {
+      "fold": 6442455040,
+      "sum_bytes": 6442455072,
+      "Run": 6442455120,
+      "StatsTick": 6442455168,
+      "audit_record": 6442455232
+    },
+    "v3_recompiled_heavy": {
+      "fold": 6442455040,
+      "sum_bytes": 6442455072,
+      "Run": 6442455120,
+      "StatsTick": 6442455168,
+      "audit_record": 6442455232
+    },
+    "v3_lookalike": {
+      "fold": 6442455040,
+      "sum_bytes": 6442455072,
+      "Run": 6442455120,
+      "StatsTick": 6442455152,
+      "Flush": 6442455200,
+      "trace_record": 6442455232
+    }
+  },
+  "scenarios": {
+    "identical": {
+      "versions": [
+        "v1",
+        "v2",
+        "v3_identical"
+      ],
+      "transitions": [
+        {
+          "from": "v1",
+          "to": "v2",
+          "pairs": [
+            {
+              "left": 6442455120,
+              "right": 6442455120,
+              "name": "Run"
+            },
+            {
+              "left": 6442455040,
+              "right": 6442455040,
+              "name": "fold"
+            },
+            {
+              "left": 6442455072,
+              "right": 6442455072,
+              "name": "sum_bytes"
+            }
+          ],
+          "disappeared": [
+            {
+              "left": 6442455184,
+              "name": "audit_record"
+            }
+          ],
+          "new": []
+        },
+        {
+          "from": "v2",
+          "to": "v3_identical",
+          "pairs": [
+            {
+              "left": 6442455120,
+              "right": 6442455120,
+              "name": "Run"
+            },
+            {
+              "left": 6442455040,
+              "right": 6442455040,
+              "name": "fold"
+            },
+            {
+              "left": 6442455072,
+              "right": 6442455072,
+              "name": "sum_bytes"
+            }
+          ],
+          "disappeared": [],
+          "new": [
+            {
+              "right": 6442455168,
+              "name": "StatsTick"
+            },
+            {
+              "right": 6442455232,
+              "name": "audit_record",
+              "resurrects": {
+                "version": "v1",
+                "address": 6442455184
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "recompiled": {
+      "versions": [
+        "v1",
+        "v2",
+        "v3_recompiled"
+      ],
+      "transitions": [
+        {
+          "from": "v1",
+          "to": "v2",
+          "pairs": [
+            {
+              "left": 6442455120,
+              "right": 6442455120,
+              "name": "Run"
+            },
+            {
+              "left": 6442455040,
+              "right": 6442455040,
+              "name": "fold"
+            },
+            {
+              "left": 6442455072,
+              "right": 6442455072,
+              "name": "sum_bytes"
+            }
+          ],
+          "disappeared": [
+            {
+              "left": 6442455184,
+              "name": "audit_record"
+            }
+          ],
+          "new": []
+        },
+        {
+          "from": "v2",
+          "to": "v3_recompiled",
+          "pairs": [
+            {
+              "left": 6442455120,
+              "right": 6442455120,
+              "name": "Run"
+            },
+            {
+              "left": 6442455040,
+              "right": 6442455040,
+              "name": "fold"
+            },
+            {
+              "left": 6442455072,
+              "right": 6442455072,
+              "name": "sum_bytes"
+            }
+          ],
+          "disappeared": [],
+          "new": [
+            {
+              "right": 6442455168,
+              "name": "StatsTick"
+            },
+            {
+              "right": 6442455232,
+              "name": "audit_record",
+              "resurrects": {
+                "version": "v1",
+                "address": 6442455184
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "recompiled_heavy": {
+      "versions": [
+        "v1",
+        "v2",
+        "v3_recompiled_heavy"
+      ],
+      "transitions": [
+        {
+          "from": "v1",
+          "to": "v2",
+          "pairs": [
+            {
+              "left": 6442455120,
+              "right": 6442455120,
+              "name": "Run"
+            },
+            {
+              "left": 6442455040,
+              "right": 6442455040,
+              "name": "fold"
+            },
+            {
+              "left": 6442455072,
+              "right": 6442455072,
+              "name": "sum_bytes"
+            }
+          ],
+          "disappeared": [
+            {
+              "left": 6442455184,
+              "name": "audit_record"
+            }
+          ],
+          "new": []
+        },
+        {
+          "from": "v2",
+          "to": "v3_recompiled_heavy",
+          "pairs": [
+            {
+              "left": 6442455120,
+              "right": 6442455120,
+              "name": "Run"
+            },
+            {
+              "left": 6442455040,
+              "right": 6442455040,
+              "name": "fold"
+            },
+            {
+              "left": 6442455072,
+              "right": 6442455072,
+              "name": "sum_bytes"
+            }
+          ],
+          "disappeared": [],
+          "new": [
+            {
+              "right": 6442455168,
+              "name": "StatsTick"
+            },
+            {
+              "right": 6442455232,
+              "name": "audit_record",
+              "resurrects": {
+                "version": "v1",
+                "address": 6442455184
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "lookalike": {
+      "versions": [
+        "v1",
+        "v2",
+        "v3_lookalike"
+      ],
+      "transitions": [
+        {
+          "from": "v1",
+          "to": "v2",
+          "pairs": [
+            {
+              "left": 6442455120,
+              "right": 6442455120,
+              "name": "Run"
+            },
+            {
+              "left": 6442455040,
+              "right": 6442455040,
+              "name": "fold"
+            },
+            {
+              "left": 6442455072,
+              "right": 6442455072,
+              "name": "sum_bytes"
+            }
+          ],
+          "disappeared": [
+            {
+              "left": 6442455184,
+              "name": "audit_record"
+            }
+          ],
+          "new": []
+        },
+        {
+          "from": "v2",
+          "to": "v3_lookalike",
+          "pairs": [
+            {
+              "left": 6442455120,
+              "right": 6442455120,
+              "name": "Run"
+            },
+            {
+              "left": 6442455040,
+              "right": 6442455040,
+              "name": "fold"
+            },
+            {
+              "left": 6442455072,
+              "right": 6442455072,
+              "name": "sum_bytes"
+            }
+          ],
+          "disappeared": [],
+          "new": [
+            {
+              "right": 6442455200,
+              "name": "Flush"
+            },
+            {
+              "right": 6442455152,
+              "name": "StatsTick"
+            },
+            {
+              "right": 6442455232,
+              "name": "trace_record"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

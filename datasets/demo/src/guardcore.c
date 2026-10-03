@@ -1,6 +1,6 @@
 /* ACET demo dataset — "Fictional Guard" core module.
  * Original code written for ACET's golden tests (license: same as ACET). Freestanding, no CRT.
- * VERSION selects the variant: 1, 2 or 3. Changes between versions are documented in ../GROUND_TRUTH.md.
+ * VERSION selects the variant: 1, 2 or 3. Changes between versions are recorded in ../build.py and ../ground_truth.json.
  */
 #define NOINLINE __attribute__((noinline))
 #define EXPORT __declspec(dllexport)
@@ -151,7 +151,9 @@ NOINLINE u32 policy_decide(u32 score) {
 }
 
 #if VERSION != 2
-/* report_event disappears in v2 and comes back (identical) in v3 (RESURRECTED) */
+/* report_event disappears in v2 and comes back in v3 (RESURRECTED). Same source, but NOT the same
+ * machine code: in v1 nothing reads g_ring, so the compiler drops the stores (5 instructions); in v3
+ * telemetry_flush reads it (27 instructions). Binary evidence of continuity is weak by design. */
 NOINLINE void report_event(u32 code, u32 detail) {
     u8 rec[8];
     rec[0] = (u8)code; rec[1] = (u8)(code >> 8); rec[2] = (u8)detail; rec[3] = (u8)(detail >> 8);

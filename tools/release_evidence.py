@@ -191,11 +191,14 @@ def build(
         shutil.copyfile(b, out / "golden-results" / b.name)
         res = _read_json(b)
         base = (baseline_dir or ROOT / "benchmarks" / "baselines") / b.name
-        bench[b.stem] = {
-            "engines": res.get("engines"),
-            "summary": res["summary"],
-            "gates": check_gates(res["summary"], _read_json(base)) if base.is_file() else None,
-        }
+        base_doc = _read_json(base) if base.is_file() else None
+        for name, summary in benchmark_summaries(b.stem, res).items():
+            bl = _baseline_for(base_doc, b.stem, name)
+            bench[name] = {
+                "engines": res.get("engines"),
+                "summary": summary,
+                "gates": check_gates(summary, bl) if bl is not None else None,
+            }
     _write_json(out / "benchmark-summary.json", bench)
 
     if sbom is not None:
@@ -488,6 +491,24 @@ def _check_licenses(g: _Gate) -> None:
         g.evidence("license-audit.md does not match license-audit.json")
 
 
+def benchmark_summaries(stem: str, doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Benchmark Lab results carry one ``summary``; scenario corpora one lineage summary per scenario
+    (named ``<file stem>/<scenario>``)."""
+    out: dict[str, dict[str, Any]] = {}
+    if isinstance(doc.get("summary"), dict):
+        out[stem] = doc["summary"]
+    for scen, v in (doc.get("scenarios") or {}).items():
+        out[f"{stem}/{scen}"] = {"lineage": v["lineage"]}
+    return out
+
+
+def _baseline_for(base_doc: dict[str, Any] | None, stem: str, name: str) -> dict[str, Any] | None:
+    if base_doc is None:
+        return None
+    summary = benchmark_summaries(stem, base_doc).get(name)
+    return None if summary is None else {"summary": summary, "tolerances": base_doc.get("tolerances", {})}
+
+
 def _check_benchmarks(g: _Gate, baseline_dir: Path) -> None:
     from acet.benchmark.gates import check_gates
 
@@ -501,14 +522,16 @@ def _check_benchmarks(g: _Gate, baseline_dir: Path) -> None:
     if not live:
         g.evidence("benchmark-summary: no benchmark with live engines (replay is never release evidence)")
     for name, v in b.items():
-        base = baseline_dir / f"{name}.json"
-        golden = g.json(f"golden-results/{name}.json")
-        if golden is None or golden.get("summary") != v.get("summary"):
-            g.evidence(f"benchmark-summary: {name} does not match golden-results/{name}.json")
-        if not base.is_file():
+        stem = name.split("/", 1)[0]
+        base = baseline_dir / f"{stem}.json"
+        golden = g.json(f"golden-results/{stem}.json")
+        if golden is None or benchmark_summaries(stem, golden).get(name) != v.get("summary"):
+            g.evidence(f"benchmark-summary: {name} does not match golden-results/{stem}.json")
+        bl = _baseline_for(_read_json(base), stem, name) if base.is_file() else None
+        if bl is None:
             g.evidence(f"benchmark-summary: {name} has no committed baseline")
             continue
-        failed = [x["gate"] for x in check_gates(v.get("summary") or {}, _read_json(base)) if not x["ok"]]
+        failed = [x["gate"] for x in check_gates(v.get("summary") or {}, bl) if not x["ok"]]
         if failed:
             g.evidence(f"benchmark {name}: regression gates failed: {failed}")
 

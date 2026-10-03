@@ -16,9 +16,19 @@
       "lineages": 26,
       "purity": 1.0,
       "wrong_merge": 0,
-      "fragmentation": 0.1818,
-      "wrong_split": 4,
-      "multi_version_recovery": 0.7778
+      "fragmentation": 0.2381,
+      "wrong_split": 5,
+      "multi_version_recovery": 0.7778,
+      "wrong_split_linked": 2,
+      "wrong_split_unlinked": 3,
+      "fragmentation_unlinked": 0.1429,
+      "multi_version_recovery_linked": 0.8889,
+      "resurrections": {
+        "confirmed": 0,
+        "candidate_linked": 0,
+        "missed": 1
+      },
+      "false_resurrection_candidates": 0
     }
   },
   "tolerances": {

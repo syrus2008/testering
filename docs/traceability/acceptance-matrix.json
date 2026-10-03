@@ -180,7 +180,8 @@
       "criterion": "Le modèle accepte au moins un split et un merge dans les fixtures.",
       "status": "automated",
       "tests": [
-        "tests/integration/test_analysis.py::test_lineage_split_merge_and_incremental_extension"
+        "tests/integration/test_analysis.py::test_lineage_split_merge_and_incremental_extension",
+        "tests/integration/test_resurrection_corpus.py::test_identical_return_reuses_the_historical_lineage"
       ]
     },
     {
