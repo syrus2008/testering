@@ -1,8 +1,8 @@
 {
   "spec_version": "3.0",
   "summary": {
-    "automated": 54,
-    "not_started": 88,
+    "automated": 69,
+    "not_started": 73,
     "partial": 8
   },
   "criteria": [
@@ -139,8 +139,10 @@
       "id": "ACC-016",
       "subject": "No magic score",
       "criterion": "L’UI n’affiche aucun score global fusionnant toutes les dimensions d’anomalie.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_changes_are_separate_dimensions_with_unknowns"
+      ]
     },
     {
       "id": "ACC-017",
@@ -148,6 +150,7 @@
       "criterion": "Une métrique non mesurée apparaît UNKNOWN et non 0.",
       "status": "partial",
       "tests": [
+        "tests/integration/test_changes_benchmark.py::test_changes_are_separate_dimensions_with_unknowns",
         "tests/unit/test_domain.py::test_unobserved_expected_component_is_unknown_not_absent"
       ],
       "gap": "domain completeness only; report/UI rendering arrives with P9/P11/P13"
@@ -228,15 +231,19 @@
       "id": "ACC-027",
       "subject": "Benchmark blind",
       "criterion": "Les labels ground truth ne sont pas fournis au détecteur pendant le run.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_benchmark_blind_split_and_manifest"
+      ]
     },
     {
       "id": "ACC-028",
       "subject": "Calibration honesty",
       "criterion": "Aucune probabilité n’est affichée avant calibration validée.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_calibration_is_contextual_and_ood_shows_no_probability"
+      ]
     },
     {
       "id": "ACC-029",
@@ -337,8 +344,10 @@
       "id": "ACC-040",
       "subject": "External events",
       "criterion": "Une corrélation temporelle n’est jamais libellée causalité automatiquement.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_external_events_are_correlations_only"
+      ]
     },
     {
       "id": "ACC-041",
@@ -425,8 +434,10 @@
       "id": "ACC-050",
       "subject": "Release gate",
       "criterion": "Aucune release stable n’est produite si les tests mandatory/golden/migration échouent.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_benchmark_metrics_and_regression_gates"
+      ]
     },
     {
       "id": "ACC-051",
@@ -565,29 +576,37 @@
       "id": "ACC-068",
       "subject": "OOD",
       "criterion": "Un contexte hors calibration est affiché OUT_OF_DISTRIBUTION.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_calibration_is_contextual_and_ood_shows_no_probability"
+      ]
     },
     {
       "id": "ACC-069",
       "subject": "No fake probability",
       "criterion": "OOD ou calibration absente interdit l’affichage d’un pourcentage probabiliste.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_calibration_is_contextual_and_ood_shows_no_probability"
+      ]
     },
     {
       "id": "ACC-070",
       "subject": "Stratified calibration",
       "criterion": "Deux contextes de calibration peuvent produire des mappings différents sans écraser les raw scores.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_calibration_is_contextual_and_ood_shows_no_probability"
+      ]
     },
     {
       "id": "ACC-071",
       "subject": "Extraction quality",
       "criterion": "Une extraction partielle réduit reliability et reste visible.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_changes_are_separate_dimensions_with_unknowns"
+      ]
     },
     {
       "id": "ACC-072",
@@ -775,8 +794,10 @@
       "id": "ACC-096",
       "subject": "Source class",
       "criterion": "External Event sans classe/source ne peut être élevé en evidence forte.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_external_events_are_correlations_only"
+      ]
     },
     {
       "id": "ACC-097",
@@ -1062,15 +1083,19 @@
       "id": "ACC-133",
       "subject": "Benchmark split",
       "criterion": "Calibration et test final séparés.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_benchmark_blind_split_and_manifest"
+      ]
     },
     {
       "id": "ACC-134",
       "subject": "Benchmark manifest",
       "criterion": "Run benchmark possède manifest complet.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_benchmark_blind_split_and_manifest"
+      ]
     },
     {
       "id": "ACC-135",
@@ -1158,22 +1183,28 @@
       "id": "ACC-145",
       "subject": "No causal promotion",
       "criterion": "External correlation ne devient causal claim automatiquement.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_external_events_are_correlations_only"
+      ]
     },
     {
       "id": "ACC-146",
       "subject": "No uncalibrated probability",
       "criterion": "Aucun pourcentage probabiliste hors calibration valide.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_calibration_is_contextual_and_ood_shows_no_probability"
+      ]
     },
     {
       "id": "ACC-147",
       "subject": "OOD abstention",
       "criterion": "OOD peut forcer ABSTAIN selon policy.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_changes_benchmark.py::test_calibration_is_contextual_and_ood_shows_no_probability"
+      ]
     },
     {
       "id": "ACC-148",

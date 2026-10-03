@@ -389,6 +389,85 @@ def cmd_jobs_pause(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_changes(args: argparse.Namespace) -> int:
+    from acet.changes.detector import detect_changes, list_changes
+
+    with _open(args) as ws:
+        exists = ws.db.conn.execute(
+            "SELECT 1 FROM detected_change WHERE analysis_run_id=? LIMIT 1", (args.run_id,)
+        ).fetchone()
+        if not exists:
+            detect_changes(ws, args.run_id)
+        items = list_changes(ws, args.run_id)
+    lines = [
+        f"{c['component_role']:<14} {c['dimension']:<22} state={c['measurement_state']:<14} "
+        f"severity={c['severity_class']:<8} reliability={c['reliability_class']}"
+        for c in items
+    ]
+    lines.append("(dimensions are reported separately; ACET computes no global score)")
+    _emit(args, items, "\n".join(lines))
+    return EXIT_OK
+
+
+def cmd_events_add(args: argparse.Namespace) -> int:
+    from acet.changes.events import add_event
+
+    with _open(args) as ws:
+        eid = add_event(
+            ws,
+            _product_id(ws, args.product),
+            event_type=args.type,
+            summary=args.summary,
+            source_class=args.source_class,
+            occurred_at=args.occurred_at,
+            source_ref=args.source_ref,
+            corroboration=args.corroboration,
+        )
+    _emit(args, {"id": eid}, f"external event {eid} recorded")
+    return EXIT_OK
+
+
+def cmd_timeline(args: argparse.Namespace) -> int:
+    from acet.changes.timeline import product_timeline
+
+    with _open(args, read_only=True) as ws:
+        items = product_timeline(ws, _product_id(ws, args.product))
+    _emit(
+        args,
+        items,
+        "\n".join(
+            f"{i['at'] or '?':<22} {i['kind']:<15} "
+            + (i.get("release") or i.get("event_type") or i.get("status") or "")
+            for i in items
+        ),
+    )
+    return EXIT_OK
+
+
+def cmd_benchmark_run(args: argparse.Namespace) -> int:
+    from acet.benchmark.gates import check_gates
+    from acet.benchmark.runner import run_benchmark
+
+    with _open(args) as ws:
+        res = run_benchmark(ws, Path(args.dataset), args.profile, split=args.split)
+    code = EXIT_OK
+    if args.baseline:
+        gates = check_gates(res["summary"], json.loads(Path(args.baseline).read_text(encoding="utf-8")))
+        res["gates"] = gates
+        code = EXIT_OK if all(g["ok"] for g in gates) else EXIT_ANALYSIS
+    _emit(args, res, json.dumps({"summary": res["summary"], "gates": res.get("gates")}, indent=2))
+    return code
+
+
+def cmd_benchmark_calibrate(args: argparse.Namespace) -> int:
+    from acet.benchmark.calibration import calibrate
+
+    with _open(args) as ws:
+        ids = calibrate(ws, args.benchmark_run_id, args.engine)
+    _emit(args, {"calibration_profiles": ids}, f"{len(ids)} calibration profile(s) (validated only if n>=30)")
+    return EXIT_OK
+
+
 def _not_yet(phase: str):  # type: ignore[no-untyped-def]
     def run(args: argparse.Namespace) -> int:
         _emit(args, {"error": "not implemented", "roadmap_phase": phase}, f"not implemented yet (roadmap {phase})")

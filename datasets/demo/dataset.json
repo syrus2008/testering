@@ -1,0 +1,6 @@
+{
+  "name": "acet-demo",
+  "version": "1",
+  "license": "Original code written for ACET (same license as ACET); redistributable",
+  "description": "Fictional Guard: 2 components x 3 versions, x64 PE built with clang/lld-link (see build.py)."
+}
