@@ -202,7 +202,12 @@ def test_component_status_and_reasons_are_never_truncated(qtbot, win):
     assert mgr.components.model.data(first_why, Qt.ItemDataRole.ToolTipRole) == mgr.components.model.data(first_why)
     # the wrapped explanation is fully visible: its row is as tall as the wrapped text needs
     text = mgr.components.model.data(first_why)
-    rect = fm.boundingRect(0, 0, header.sectionSize(why_col) - 8, 10_000, int(Qt.TextFlag.TextWordWrap), text)
-    assert view.rowHeight(0) >= rect.height()
+
+    def needed() -> int:
+        flags = int(Qt.TextFlag.TextWordWrap)
+        return fm.boundingRect(0, 0, header.sectionSize(why_col) - 8, 10_000, flags, text).height()
+
+    dlg.resize(dlg.width() - 250, dlg.height())  # narrower window: the explanation wraps on more lines
+    qtbot.waitUntil(lambda: view.rowHeight(0) >= needed(), timeout=3000)
     profiles = mgr.profiles.view.horizontalHeader()
     assert profiles.sectionResizeMode(2) == QHeaderView.ResizeMode.Stretch

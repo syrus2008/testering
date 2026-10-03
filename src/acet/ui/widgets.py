@@ -6,7 +6,7 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -77,7 +77,11 @@ class Table(QWidget):
             mode = QHeaderView.ResizeMode.Stretch if key == stretch else QHeaderView.ResizeMode.ResizeToContents
             header.setSectionResizeMode(i, mode)
         self.view.setWordWrap(True)
-        self.view.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        # Rows are sized explicitly: the wrapped column's width settles after the window is shown or resized,
+        # and a ResizeToContents vertical header does not follow a stretched column's new width.
+        # sectionResized fires mid-layout (the new width is not applied yet): re-fit on the next event loop turn.
+        header.sectionResized.connect(lambda *_: QTimer.singleShot(0, self.view.resizeRowsToContents))
+        self.model.modelReset.connect(lambda: QTimer.singleShot(0, self.view.resizeRowsToContents))
 
     def selected(self) -> dict[str, Any] | None:
         idx = self.view.currentIndex()
