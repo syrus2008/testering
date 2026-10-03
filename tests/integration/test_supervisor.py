@@ -25,13 +25,23 @@ def _script(tmp_path: Path, body: str) -> list[str]:
 @pytest.mark.acceptance("ACC-052")
 def test_process_tree_is_killed_on_hard_timeout(tmp_path):
     pids = tmp_path / "pids.txt"
+    # Each level is a script file (no nested quoting: Windows paths contain backslashes).
+    grandchild = tmp_path / "grandchild.py"
+    grandchild.write_text(
+        f"import os, time\nopen({str(pids)!r}, 'a').write(str(os.getpid()) + '\\n')\ntime.sleep(120)\n",
+        encoding="utf-8",
+    )
+    child = tmp_path / "child.py"
+    child.write_text(
+        f"import os, subprocess, sys, time\nopen({str(pids)!r}, 'a').write(str(os.getpid()) + '\\n')\n"
+        f"subprocess.Popen([sys.executable, {str(grandchild)!r}])\ntime.sleep(120)\n",
+        encoding="utf-8",
+    )
     argv = _script(
         tmp_path,
         f"""
         import subprocess, sys, time
-        code = "import os,time,subprocess,sys;open(r'{pids}','a').write(str(os.getpid())+'\\\\n');" \\
-               "subprocess.Popen([sys.executable,'-c','import os,time;open(r\\\\'{pids}\\\\',\\\\'a\\\\').write(str(os.getpid())+\\\\'\\\\\\\\n\\\\');time.sleep(120)']);time.sleep(120)"
-        subprocess.Popen([sys.executable, "-c", code])
+        subprocess.Popen([sys.executable, {str(child)!r}])
         time.sleep(120)
     """,
     )

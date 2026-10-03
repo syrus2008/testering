@@ -76,7 +76,12 @@ def test_no_imported_artifact_is_ever_executed(ws, product_id, monkeypatch):
     for sha in shas:
         p = ws.store.path_for(sha)
         assert not any(str(p) == x or sha in x for a in spawned for x in a[:1])
-        assert not os.access(p, os.X_OK) or (os.geteuid() == 0 and not (p.stat().st_mode & 0o111))
+        if sys.platform == "win32":
+            # Windows has no execute bit: a blob is not runnable because it has no extension
+            # (no file association) and nothing ever launches it (checked above).
+            assert p.suffix == ""
+        else:
+            assert not os.access(p, os.X_OK) or (os.geteuid() == 0 and not (p.stat().st_mode & 0o111))
 
 
 @pytest.mark.acceptance("ACC-003", "ACC-078", "ACC-077")
@@ -270,9 +275,13 @@ def test_bindiff_known_limitation_becomes_skip(tmp_path, monkeypatch):
     from acet.engines import bindiff
     from acet.engines.worker import ProcessorSkip, WorkerContext
 
-    fake = tmp_path / "bindiff"
-    fake.write_text("#!/bin/sh\necho 'BinDiff 8'\necho 'sqlite: database or disk is full'\nexit 1\n")
-    fake.chmod(0o755)
+    if sys.platform == "win32":
+        fake = tmp_path / "bindiff.cmd"
+        fake.write_text("@echo BinDiff 8\r\n@echo sqlite: database or disk is full\r\n@exit /b 1\r\n")
+    else:
+        fake = tmp_path / "bindiff"
+        fake.write_text("#!/bin/sh\necho 'BinDiff 8'\necho 'sqlite: database or disk is full'\nexit 1\n")
+        fake.chmod(0o755)
     monkeypatch.setenv("ACET_PROVIDER_BINDIFF", str(fake))
     sides = []
     for side in ("l", "r"):
@@ -667,7 +676,9 @@ def test_pinned_engine_pack_reproduction(ws, product_id, tmp_path, monkeypatch):
         == "pack@1.0.0"
     )
     env = engine_environment_for_run(ws, s.run_id)
-    assert env.engine_pack_id == "pack@1.0.0" and env.providers["bindiff"].location.endswith("bin/bindiff")
+    assert env.engine_pack_id == "pack@1.0.0" and Path(env.providers["bindiff"].location).as_posix().endswith(
+        "bin/bindiff"
+    )
     import shutil
 
     shutil.rmtree(engine_packs.packs_root() / "pack-1.0.0")

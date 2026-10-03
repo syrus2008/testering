@@ -137,7 +137,19 @@ def test_ten_thousand_function_table_stays_interactive(qtbot):
     t.proxy.sort(2, Qt.SortOrder.DescendingOrder)
     t.proxy.set_column_equals(1, "EXACT")
     elapsed = time.perf_counter() - t0
-    assert t.proxy.rowCount() > 0 and elapsed < 1.0
+    assert elapsed < 1.0, elapsed
+    expected = sorted(
+        (r for r in rows if "fun_00000ff" in r["name"].lower() and r["decision"] == "EXACT"),
+        key=lambda r: r["score"],
+        reverse=True,
+    )
+    shown = [t.proxy.index(i, 0).data() for i in range(t.proxy.rowCount())]
+    assert shown == [r["name"] for r in expected] and shown
+    t.filter.setText("")
+    t.proxy.set_column_equals(None, None)
+    assert t.proxy.rowCount() == 10_000
+    t.proxy.sort(0, Qt.SortOrder.AscendingOrder)
+    assert t.proxy.index(0, 0).data() == "FUN_00000000"
 
 
 @pytest.mark.acceptance("ACC-029", "ACC-118")

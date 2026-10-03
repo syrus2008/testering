@@ -48,7 +48,7 @@ class Table(QWidget):
         self.filter = QLineEdit(self)
         self.filter.setPlaceholderText("Filter…")
         self.filter.setAccessibleName(f"{name} filter")
-        self.filter.textChanged.connect(self.proxy.setFilterFixedString)
+        self.filter.textChanged.connect(self.proxy.set_text)
         self.view = QTableView(self)
         self.view.setModel(self.proxy)
         self.view.setSortingEnabled(True)

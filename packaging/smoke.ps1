@@ -38,8 +38,10 @@ function Test-Analysis([string]$Exe, [string]$Label) {
 
 # Isolated ACET home; no Python reachable from PATH.
 $env:ACET_HOME = Join-Path $env:RUNNER_TEMP "acet-smoke-home"
-$env:PATH = (($env:PATH -split ";") | Where-Object { $_ -and ($_ -notmatch "(?i)python|hostedtoolcache") }) -join ";"
-Assert-True ($null -eq (Get-Command python -ErrorAction SilentlyContinue)) "no python on PATH"
+# (WindowsApps holds the Microsoft Store "python.exe" alias stub.)
+$env:PATH = (($env:PATH -split ";") | Where-Object { $_ -and ($_ -notmatch "(?i)python|hostedtoolcache|WindowsApps") }) -join ";"
+$py = Get-Command python, python3 -CommandType Application -ErrorAction SilentlyContinue
+Assert-True ($null -eq $py) "no python on PATH ($(($py | ForEach-Object Source) -join ', '))"
 
 # 1. Frozen build
 $frozen = Join-Path $Dist "acet.exe"
