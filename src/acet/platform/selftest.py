@@ -1,8 +1,15 @@
 """Golden functional self-test (spec §29, §38; ACC-002/026/100).
 
 Runs in a throw-away workspace on the bundled demo dataset and checks the expected,
-deterministic results: FAST facts always; STANDARD consensus when Ghidra (live or golden
-replay) is available.
+deterministic results: FAST facts always; with a live Ghidra, the STANDARD run must reproduce
+the recorded golden extraction (D1: same functions, same normalized instructions) and the
+golden consensus.
+
+Verdict: ``VERIFIED`` only when every check ran against live engines and passed;
+``PARTIAL`` when nothing failed but the engine checks were skipped or served by the golden
+replay provider (which only proves ACET's own pipeline, not the installed engines);
+``FAILED`` otherwise. ``ok`` means "no check failed" and is kept for callers that only
+need that.
 """
 
 from __future__ import annotations
@@ -38,7 +45,13 @@ def run_self_test(*, standard: bool = True) -> dict[str, Any]:
     demo = demo_dataset()
     checks: list[dict[str, Any]] = []
     if demo is None:
-        return {"ok": False, "checks": [{"name": "demo dataset", "ok": False, "detail": "not found"}]}
+        return {
+            "ok": False,
+            "verdict": "FAILED",
+            "engine_mode": "none",
+            "checks": [{"name": "demo dataset", "ok": False, "detail": "not found"}],
+        }
+    engine_mode = "none"
     tmp = Path(tempfile.mkdtemp(prefix="acet-selftest-"))
     try:
         ws = create_workspace("self-test", tmp)
@@ -58,6 +71,8 @@ def run_self_test(*, standard: bool = True) -> dict[str, Any]:
                 {"name": "FAST facts", "ok": s.status == "COMPLETED" and {"GuardInit", "GuardScan"} <= exports}
             )
             env = detect()
+            if env.available("ghidra"):
+                engine_mode = "replay" if env.providers["ghidra"].extra.get("replay") else "live"
             if standard and env.available("ghidra"):
                 b2 = import_build(ws, ImportRequest([demo / "builds" / "v2"], pid)).build_id
                 c = compare_builds(ws, b1, b2, "STANDARD@1", env=env)
@@ -79,6 +94,16 @@ def run_self_test(*, standard: bool = True) -> dict[str, Any]:
                         "detail": f"{c.status}; engine={env.providers['ghidra'].version}",
                     }
                 )
+                if engine_mode == "live":
+                    checks.append(_golden_extraction_check(ws, demo))
+                else:
+                    checks.append(
+                        {
+                            "name": "golden Ghidra extraction",
+                            "ok": None,
+                            "detail": "golden replay provider: installed engines not exercised",
+                        }
+                    )
             else:
                 checks.append(
                     {"name": "STANDARD golden consensus", "ok": None, "detail": "Ghidra unavailable: skipped"}
@@ -87,8 +112,36 @@ def run_self_test(*, standard: bool = True) -> dict[str, Any]:
             ws.close()
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+    failed = any(c["ok"] is False for c in checks)
+    verified = not failed and engine_mode == "live" and all(c["ok"] is True for c in checks)
     return {
-        "ok": all(c["ok"] is not False for c in checks),
+        "ok": not failed,
+        "verdict": "FAILED" if failed else ("VERIFIED" if verified else "PARTIAL"),
+        "engine_mode": engine_mode,
         "checks": checks,
         "wall_s": round(time.monotonic() - t0, 1),
+    }
+
+
+def _golden_extraction_check(ws: Any, demo: Path) -> dict[str, Any]:
+    """Live Ghidra output must equal the recorded golden export (D1 fields)."""
+    compared, mismatched = 0, []
+    for rel, sha in ws.db.conn.execute(
+        "SELECT dr.output_relpath, di.input_ref FROM derived_result dr JOIN derived_input di"
+        " ON di.derived_result_id = dr.id WHERE dr.processor_id = 'ghidra.extract' AND dr.state = 'CURRENT'"
+    ):
+        golden_path = demo / "golden" / "ghidra" / f"{sha}.json"
+        if not golden_path.is_file():
+            continue
+        live = json.loads((ws.path / rel / "result.json").read_text(encoding="utf-8"))
+        golden = json.loads(golden_path.read_text(encoding="utf-8"))
+        compared += 1
+        if [(f["entry"], f["insns"]) for f in live["functions"]] != [
+            (f["entry"], f["insns"]) for f in golden["functions"]
+        ]:
+            mismatched.append(sha[:12])
+    return {
+        "name": "golden Ghidra extraction",
+        "ok": compared > 0 and not mismatched,
+        "detail": f"{compared} artifact(s) compared" + (f"; mismatch: {mismatched}" if mismatched else ""),
     }

@@ -95,10 +95,10 @@ class ErrorDialog(QDialog):
             ("Impact on your data", err.spec.impact),
             ("Recommended action", err.spec.action),
         ):
-            row = QLabel(f"<b>{label}:</b> {text}")
-            row.setWordWrap(True)
-            row.setTextFormat(Qt.TextFormat.RichText)
-            lay.addWidget(row)
+            line = QLabel(f"<b>{label}:</b> {text}")
+            line.setWordWrap(True)
+            line.setTextFormat(Qt.TextFormat.RichText)
+            lay.addWidget(line)
         if err.data:
             lay.addWidget(QLabel(json.dumps(err.data, ensure_ascii=False)[:500]))
         self.dev = QPlainTextEdit(details)

@@ -32,7 +32,7 @@ def available_memory_bytes() -> int | None:
 
         st = MEMORYSTATUSEX()
         st.dwLength = ctypes.sizeof(st)
-        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st)):  # type: ignore[attr-defined]
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st)):  # type: ignore[attr-defined,unused-ignore]
             return int(st.ullAvailPhys)
         return None
     try:

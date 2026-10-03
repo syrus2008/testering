@@ -280,3 +280,61 @@ def test_concurrent_identical_analyses_share_cache(ws, product_id):
     assert len(results) == 3
     n = ws.db.conn.execute("SELECT count(*) FROM derived_result").fetchone()[0]
     assert n == 6  # one computation per cache key across concurrent runs (ACET-CON-001)
+
+
+def test_worker_command_in_a_frozen_build(monkeypatch, tmp_path):
+    """PyInstaller: sys.executable is acet.exe / acet-ui.exe, which has no ``-m``."""
+    import sys
+
+    from acet.engines.worker import WORKER_ARG, worker_command
+
+    req = tmp_path / "request.json"
+    assert worker_command(req)[1:3] == ["-m", "acet.engines.worker"]
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "ACET" / "acet-ui.exe"))
+    cmd = worker_command(req)
+    assert Path(cmd[0]).parent == tmp_path / "ACET" and Path(cmd[0]).stem == "acet"
+    assert cmd[1:] == [WORKER_ARG, str(req)]
+
+
+def test_analysis_through_the_frozen_worker_entry_point(ws, product_id, monkeypatch):
+    """Runs every FAST worker through `acet __worker__` (the entry used by the installed app)."""
+    import sys
+
+    from acet.engines.worker import WORKER_ARG
+
+    calls: list[str] = []
+
+    def frozen_like(req: Path) -> list[str]:
+        calls.append(str(req))
+        return [sys.executable, "-m", "acet", WORKER_ARG, str(req)]
+
+    monkeypatch.setattr(orch, "worker_command", frozen_like)
+    (b1,) = _builds(ws, product_id, (1,))
+    s = analyze_build(ws, b1, "FAST@1")
+    assert s.status == "COMPLETED" and s.coverage == 1.0
+    assert len(calls) >= 4
+
+
+def test_ghidriff_runs_in_the_engine_pack_interpreter(monkeypatch, tmp_path):
+    import sys
+
+    from acet.engines import environment
+
+    venv = tmp_path / "ghidriff-venv"
+    site = venv / "Lib" / "site-packages"
+    for dist in ("ghidriff-1.0.0", "pyghidra-2.2.1"):
+        (site / f"{dist}.dist-info").mkdir(parents=True)
+    py = venv / "Scripts" / "python.exe"
+    py.parent.mkdir(parents=True)
+    py.write_bytes(b"")
+    monkeypatch.setattr(environment, "ghidra_dir", lambda o: None)
+    monkeypatch.setenv("ACET_GHIDRIFF_PYTHON", str(py))
+    info = environment.detect().providers["ghidriff"]
+    assert info.version == "1.0.0" and info.location == str(py)
+    assert not info.available  # still needs a live Ghidra
+    # A frozen build without an Engine Pack interpreter never claims ghidriff.
+    monkeypatch.delenv("ACET_GHIDRIFF_PYTHON")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    info = environment.detect().providers["ghidriff"]
+    assert info.version is None and info.location is None and not info.available

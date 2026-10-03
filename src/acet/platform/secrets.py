@@ -23,8 +23,8 @@ class _Blob(ctypes.Structure):
 
 
 def _dpapi(data: bytes, protect: bool) -> bytes:
-    crypt32 = ctypes.WinDLL("crypt32")  # type: ignore[attr-defined]
-    kernel32 = ctypes.WinDLL("kernel32")  # type: ignore[attr-defined]
+    crypt32 = ctypes.WinDLL("crypt32")  # type: ignore[attr-defined,unused-ignore]
+    kernel32 = ctypes.WinDLL("kernel32")  # type: ignore[attr-defined,unused-ignore]
     buf = ctypes.create_string_buffer(data, len(data))
     inp = _Blob(len(data), ctypes.cast(buf, ctypes.POINTER(ctypes.c_char)))
     out = _Blob()

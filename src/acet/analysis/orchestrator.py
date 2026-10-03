@@ -12,7 +12,6 @@ import json
 import logging
 import os
 import shutil
-import sys
 import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -31,6 +30,7 @@ from acet.domain.ids import uuid7
 from acet.domain.state_machines import ANALYSIS_RUN
 from acet.domain.timeutil import utc_now_iso
 from acet.engines.environment import EngineEnvironment, detect
+from acet.engines.worker import worker_command
 from acet.jobs import store as jobs
 from acet.jobs.completion import CompletionState, LogRule, validate_completion
 from acet.jobs.locks import single_flight
@@ -715,9 +715,11 @@ class Orchestrator:
         for pid_, info in self.env.providers.items():
             if info.available and info.location:
                 env[f"ACET_PROVIDER_{pid_.upper()}"] = str(info.location)
+                if info.version:
+                    env[f"ACET_PROVIDER_{pid_.upper()}_VERSION"] = str(info.version)
         try:
             proc = run_supervised(
-                [sys.executable, "-m", "acet.engines.worker", str(stage / "request.json")],
+                worker_command(stage / "request.json"),
                 workdir=stage,
                 log_dir=log_dir,
                 limits=limits,
@@ -845,7 +847,7 @@ class Orchestrator:
         req2 = {**request, "output_dir": str(rep_out)}
         (rep / "request.json").write_text(json.dumps(req2), encoding="utf-8")
         run_supervised(
-            [sys.executable, "-m", "acet.engines.worker", str(rep / "request.json")],
+            worker_command(rep / "request.json"),
             workdir=rep,
             log_dir=rep / "logs",
             limits=limits,

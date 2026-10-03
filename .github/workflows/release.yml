@@ -38,9 +38,14 @@ jobs:
       - name: Mandatory tests (golden, migration, acceptance) with JUnit report
         run: python -m pytest -q --junitxml=junit.xml
       - name: Build app (embedded runtime)
-        run: pyinstaller packaging/acet.spec --noconfirm --distpath dist
+        run: pyinstaller packaging/acet.spec --noconfirm --distpath dist --workpath build
       - name: Collect third-party license texts (fails if one is missing)
         run: python tools/collect_licenses.py dist/ACET/licenses
+      - name: Frozen build smoke test (STABLE requires a live-engine VERIFIED self-test)
+        run: |
+          if ($env:CHANNEL -eq "STABLE") { python tools/frozen_smoke.py dist/ACET --expect-verified }
+          else { python tools/frozen_smoke.py dist/ACET }
+          if ($LASTEXITCODE -ne 0) { throw "frozen smoke test failed" }
       - name: Build installer
         run: |
           choco install innosetup -y --no-progress
@@ -49,6 +54,8 @@ jobs:
       - name: Authenticode sign
         if: ${{ env.SIGNING_CERT_THUMBPRINT != '' }}
         run: ./packaging/sign.ps1 -Files dist\ACET\acet.exe,dist\ACET\acet-ui.exe,(Get-ChildItem packaging\Output\*.exe).FullName -CertThumbprint $env:SIGNING_CERT_THUMBPRINT
+      - name: Installer smoke test (install, run, uninstall)
+        run: ./packaging/smoke.ps1 -Dist dist\ACET -Installer (Get-ChildItem packaging\Output\*.exe).FullName -Demo datasets\demo
       - name: Verify Authenticode signatures (STABLE)
         if: ${{ inputs.channel == 'STABLE' }}
         run: |
@@ -70,7 +77,7 @@ jobs:
           }
           if (Test-Path $inputs) { $cli += @("--supplied", $inputs) }
           if ($env:ACET_RELEASE_SIGNING_KEY) { $cli += @("--key-env", "ACET_RELEASE_SIGNING_KEY", "--key-id", $env:ACET_RELEASE_KEY_ID) }
-          python tools/release_evidence.py @args
+          python tools/release_evidence.py @cli
       - name: Release gate
         run: python tools/release_evidence.py check release-evidence --channel $env:CHANNEL --artifacts (Get-ChildItem packaging\Output\*.exe).FullName
       - uses: actions/upload-artifact@v4

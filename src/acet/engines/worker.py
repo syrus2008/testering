@@ -132,6 +132,21 @@ def _forbid_network() -> None:
     socket.getaddrinfo = refuse  # type: ignore[assignment]
 
 
+WORKER_ARG = "__worker__"
+
+
+def worker_command(request_path: Path) -> list[str]:
+    """Command line that starts a worker process for ``request_path``.
+
+    From a source/venv install: ``python -m acet.engines.worker``. From a frozen build
+    (PyInstaller), ``sys.executable`` is acet.exe or acet-ui.exe, which has no ``-m``: the
+    worker is the console executable ``acet`` with a reserved first argument."""
+    if getattr(sys, "frozen", False):
+        exe = Path(sys.executable).with_name("acet.exe" if sys.platform == "win32" else "acet")
+        return [str(exe), WORKER_ARG, str(request_path)]
+    return [sys.executable, "-m", "acet.engines.worker", str(request_path)]
+
+
 def main(argv: list[str]) -> int:
     from acet.analysis.registry import resolve_entry
     from acet.domain.jsonschema import validate_named

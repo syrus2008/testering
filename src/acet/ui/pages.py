@@ -566,8 +566,8 @@ class LineageGraph(QGraphicsView):
         self.setScene(QGraphicsScene(self))
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setAccessibleName("Lineage graph")
-        QShortcut(QKeySequence("+"), self, activated=lambda: self.scale(1.2, 1.2))
-        QShortcut(QKeySequence("-"), self, activated=lambda: self.scale(1 / 1.2, 1 / 1.2))
+        QShortcut(QKeySequence("+"), self, lambda: self.scale(1.2, 1.2))
+        QShortcut(QKeySequence("-"), self, lambda: self.scale(1 / 1.2, 1 / 1.2))
 
     def show_history(self, rows: list[dict[str, Any]]) -> None:
         sc = self.scene()

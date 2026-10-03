@@ -3,7 +3,7 @@
     python tools/release_evidence.py build <out_dir> --artifacts dist/*.exe --sbom sbom.cdx.json \\
         --junit junit.xml [--security-scan scan.json] [--supplied release-inputs/<version>] \\
         [--key-file secret.hex | --key-env ACET_RELEASE_SIGNING_KEY] --key-id <id>
-    python tools/release_evidence.py check <out_dir> --channel STABLE [--artifacts dist/*.exe] [--trust keys.json]
+    python tools/release_evidence.py check <out_dir> --channel STABLE [--artifacts dist/*.exe]
 
 The gate validates *content*, never mere presence:
 
@@ -279,7 +279,7 @@ def _check_checksums(g: _Gate) -> None:
             g.integrity(f"checksum mismatch: {rel}")
 
 
-def _check_signature(g: _Gate, manifest: dict[str, Any] | None, trust_file: Path | None, required: bool) -> bool:
+def _check_signature(g: _Gate, manifest: dict[str, Any] | None, required: bool) -> bool:
     from acet.domain.error_codes import AcetError
     from acet.platform.signing import load_trust_store, verify_envelope
 
@@ -292,7 +292,9 @@ def _check_signature(g: _Gate, manifest: dict[str, Any] | None, trust_file: Path
         g.integrity("signature present but release-manifest.json is missing or invalid")
         return False
     try:
-        payload = verify_envelope(env, load_trust_store(trust_file), purpose="release")
+        # Release keys come only from the trust store of the checked-out, reviewed source
+        # tree: no local file or command-line option can add one (ADR-0011).
+        payload = verify_envelope(env, load_trust_store(local=False), purpose="release")
     except AcetError as exc:
         g.integrity(f"release manifest signature invalid: {exc.detail}")
         return False
@@ -542,7 +544,6 @@ def check(
     channel: str = "STABLE",
     *,
     artifacts: list[Path] | None = None,
-    trust_file: Path | None = None,
     baseline_dir: Path | None = None,
 ) -> list[str]:
     if channel not in CHANNELS:
@@ -554,7 +555,7 @@ def check(
     if not isinstance(manifest, dict):
         g.integrity(f"missing or invalid: {MANIFEST}")
         manifest = None
-    signed = _check_signature(g, manifest, trust_file, required=stable)
+    signed = _check_signature(g, manifest, required=stable)
     if manifest is not None:
         _check_manifest(g, manifest, artifacts or [])
     if stable:
@@ -629,7 +630,6 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("out_dir", type=Path)
     c.add_argument("--channel", choices=CHANNELS, default="STABLE")
     c.add_argument("--artifacts", nargs="+", default=[], metavar="FILE", help="verify these files against the manifest")
-    c.add_argument("--trust", type=Path, help="additional trusted_keys.json")
     args = ap.parse_args(argv)
 
     if args.cmd == "build":
@@ -656,7 +656,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"evidence bundle written to {args.out_dir}" + ("" if secret else " (UNSIGNED)"))
         return 0
-    probs = check(args.out_dir, args.channel, artifacts=_expand(args.artifacts), trust_file=args.trust)
+    probs = check(args.out_dir, args.channel, artifacts=_expand(args.artifacts))
     print("\n".join(probs) or f"release evidence complete for {args.channel}")
     return 1 if probs else 0
 

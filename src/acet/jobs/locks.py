@@ -24,7 +24,7 @@ def pid_alive(pid: int) -> bool:
     if sys.platform == "win32":
         import ctypes
 
-        kernel32 = ctypes.WinDLL("kernel32")  # type: ignore[attr-defined]
+        kernel32 = ctypes.WinDLL("kernel32")  # type: ignore[attr-defined,unused-ignore]
         h = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
         if not h:
             return False

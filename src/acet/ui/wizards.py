@@ -48,7 +48,9 @@ class ImportWizard(QWizard):
             lambda: self.path.setText(";".join(QFileDialog.getOpenFileNames(self, "Files")[0]) or self.path.text())
         )
         lay = QVBoxLayout(src)
-        lay.addWidget(QLabel("&Path (use ; to separate several files):", buddy=self.path))
+        path_label = QLabel("&Path (use ; to separate several files):")
+        path_label.setBuddy(self.path)
+        lay.addWidget(path_label)
         lay.addWidget(self.path)
         row = QHBoxLayout()
         row.addWidget(b1)
@@ -108,7 +110,8 @@ class ImportWizard(QWizard):
         # Action
         act = QWizardPage()
         act.setTitle("Action")
-        self.actions = QButtonGroup(self)
+        # Not ``self.actions``: that would shadow QWidget.actions().
+        self.action_group = QButtonGroup(self)
         al = QVBoxLayout(act)
         for i, (label, prof) in enumerate(
             (
@@ -120,7 +123,7 @@ class ImportWizard(QWizard):
         ):
             rb = QRadioButton(label)
             rb.setProperty("profile", prof)
-            self.actions.addButton(rb, i)
+            self.action_group.addButton(rb, i)
             al.addWidget(rb)
             if i == 1:
                 rb.setChecked(True)
@@ -189,7 +192,8 @@ class ImportWizard(QWizard):
             source_label=self.source_label.text() or None,
             on_duplicate=DuplicatePolicy.ADD_OBSERVATION if self.policy_add.isChecked() else DuplicatePolicy.CANCEL,
         )
-        profile = self.actions.checkedButton().property("profile")
+        checked = self.action_group.checkedButton()
+        profile = checked.property("profile") if checked is not None else None  # nothing checked: import only
         self.summary.setPlainText("Importing…")
 
         def done(res: Any) -> None:

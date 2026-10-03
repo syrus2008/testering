@@ -20,7 +20,7 @@ def _set(flags: int) -> None:
     if sys.platform == "win32":
         import ctypes
 
-        ctypes.windll.kernel32.SetThreadExecutionState(flags)  # type: ignore[attr-defined]
+        ctypes.windll.kernel32.SetThreadExecutionState(flags)  # type: ignore[attr-defined,unused-ignore]
 
 
 def prevention_active() -> bool:

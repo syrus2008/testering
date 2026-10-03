@@ -113,11 +113,9 @@ def diff(ctx: WorkerContext) -> dict[str, Any]:
     shutil.copyfile(right, rcopy)
     env = dict(os.environ)
     env["GHIDRA_INSTALL_DIR"] = os.environ.get("ACET_GHIDRA_DIR", env.get("GHIDRA_INSTALL_DIR", ""))
-    from importlib.metadata import version
-
-    ctx.engine_version = f"ghidriff-{version('ghidriff')}"
+    ctx.engine_version = f"ghidriff-{os.environ.get('ACET_PROVIDER_GHIDRIFF_VERSION') or 'unknown'}"
     argv = [
-        sys.executable,
+        os.environ.get("ACET_PROVIDER_GHIDRIFF") or sys.executable,
         "-m",
         "ghidriff",
         str(lcopy),

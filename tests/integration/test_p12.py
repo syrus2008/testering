@@ -24,24 +24,19 @@ SECRET = bytes.fromhex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac03
 
 
 @pytest.fixture
-def trust(tmp_path, monkeypatch):
-    t = tmp_path / "acet-home" / "config" / "trusted_keys.json"
-    t.parent.mkdir(parents=True, exist_ok=True)
-    t.write_text(
-        json.dumps(
-            {
-                "keys": [
-                    {
-                        "key_id": "test",
-                        "alg": "ed25519",
-                        "public_key": ed25519.public_key(SECRET).hex(),
-                        "purposes": ["engine-pack", "update", "release"],
-                    }
-                ]
-            }
-        )
-    )
-    return t
+def trust(monkeypatch):
+    """Update and release keys can only come from the bundled store (ADR-0011)."""
+    from acet.platform import signing
+
+    key = {
+        "key_id": "test",
+        "alg": "ed25519",
+        "public_key": ed25519.public_key(SECRET).hex(),
+        "purposes": ["engine-pack", "update", "release"],
+    }
+    store = {"keys": [key]}
+    monkeypatch.setattr(signing, "_bundled_store", lambda: store)
+    return store
 
 
 def test_ed25519_rfc8032_vectors():

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -94,3 +95,31 @@ def test_every_command_is_registered():
 
     walk(parser)
     assert handlers <= reachable, sorted(handlers - reachable)
+
+
+def _doctor_full_subprocess(tmp_path, extra_env):
+    import os
+    import subprocess
+    import sys
+
+    env = {
+        k: v for k, v in os.environ.items() if not k.startswith(("ACET_GHIDRA", "GHIDRA_")) and k != "ACET_WORKSPACE"
+    }
+    env.update(extra_env, ACET_HOME=str(tmp_path / "home"))
+    res = subprocess.run(
+        [sys.executable, "-m", "acet", "doctor", "--full", "--json"], capture_output=True, text=True, env=env
+    )
+    out = json.loads(res.stdout)
+    return res.returncode, next(c for c in out["checks"] if c["name"] == "golden self-test")
+
+
+def test_doctor_full_without_live_engines_is_never_reported_verified(tmp_path):
+    """A skipped or replayed engine check must not make the self-test look complete (ACC-026)."""
+    code, st = _doctor_full_subprocess(tmp_path, {})
+    assert st["status"] == "WARN" and st["data"]["self_test"]["verdict"] == "PARTIAL"
+    assert st["data"]["self_test"]["engine_mode"] == "none" and code == 10
+    replay = Path(__file__).resolve().parents[2] / "datasets" / "demo" / "golden" / "ghidra"
+    code, st = _doctor_full_subprocess(tmp_path, {"ACET_GHIDRA_REPLAY_DIR": str(replay)})
+    assert st["status"] == "WARN" and st["data"]["self_test"]["engine_mode"] == "replay" and code == 10
+    checks = {c["name"]: c["ok"] for c in st["data"]["self_test"]["checks"]}
+    assert checks["STANDARD golden consensus"] is True and checks["golden Ghidra extraction"] is None

@@ -41,7 +41,7 @@ def tree_cpu_seconds(root_pid: int) -> float | None:
         import ctypes
         from ctypes import wintypes
 
-        k32 = ctypes.WinDLL("kernel32")  # type: ignore[attr-defined]
+        k32 = ctypes.WinDLL("kernel32")  # type: ignore[attr-defined,unused-ignore]
         h = k32.OpenProcess(0x1000, False, root_pid)
         if not h:
             return None
@@ -50,8 +50,11 @@ def tree_cpu_seconds(root_pid: int) -> float | None:
         k32.CloseHandle(h)
         if not ok:
             return None
-        to_s = lambda ft: ((ft.dwHighDateTime << 32) | ft.dwLowDateTime) / 1e7  # noqa: E731
-        return float(to_s(k) + to_s(u))
+
+        def to_s(ft: wintypes.FILETIME) -> float:
+            return ((ft.dwHighDateTime << 32) | ft.dwLowDateTime) / 1e7
+
+        return to_s(k) + to_s(u)
     return None
 
 

@@ -247,7 +247,7 @@
       "criterion": "Doctor --full exécute un golden self-test fonctionnel.",
       "status": "automated",
       "tests": [
-        "tests/integration/test_live_engines.py::test_live_standard_matches_golden_extraction"
+        "tests/integration/test_live_engines.py::test_doctor_full_runs_a_live_golden_self_test"
       ]
     },
     {

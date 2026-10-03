@@ -6,7 +6,7 @@ import ctypes
 import subprocess
 from ctypes import wintypes
 
-kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)  # type: ignore[attr-defined]
+kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)  # type: ignore[attr-defined,unused-ignore]
 
 JobObjectExtendedLimitInformation = 9
 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000
@@ -60,7 +60,7 @@ class JobObject:
     def __init__(self, memory_limit_bytes: int | None = None) -> None:
         self.handle = kernel32.CreateJobObjectW(None, None)
         if not self.handle:
-            raise ctypes.WinError(ctypes.get_last_error())  # type: ignore[attr-defined]
+            raise ctypes.WinError(ctypes.get_last_error())  # type: ignore[attr-defined,unused-ignore]
         info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
         info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
         if memory_limit_bytes:
@@ -69,19 +69,19 @@ class JobObject:
         if not kernel32.SetInformationJobObject(
             self.handle, JobObjectExtendedLimitInformation, ctypes.byref(info), ctypes.sizeof(info)
         ):
-            raise ctypes.WinError(ctypes.get_last_error())  # type: ignore[attr-defined]
+            raise ctypes.WinError(ctypes.get_last_error())  # type: ignore[attr-defined,unused-ignore]
 
     def assign(self, proc: subprocess.Popen[bytes]) -> None:
         h = kernel32.OpenProcess(PROCESS_ALL_ACCESS, False, proc.pid)
         try:
             if not kernel32.AssignProcessToJobObject(self.handle, h):
-                raise ctypes.WinError(ctypes.get_last_error())  # type: ignore[attr-defined]
+                raise ctypes.WinError(ctypes.get_last_error())  # type: ignore[attr-defined,unused-ignore]
         finally:
             kernel32.CloseHandle(h)
 
     def resume(self, proc: subprocess.Popen[bytes]) -> None:
         """Resume a process created with CREATE_SUSPENDED (assigned before it can spawn children)."""
-        ntdll = ctypes.WinDLL("ntdll")  # type: ignore[attr-defined]
+        ntdll = ctypes.WinDLL("ntdll")  # type: ignore[attr-defined,unused-ignore]
         h = kernel32.OpenProcess(PROCESS_ALL_ACCESS, False, proc.pid)
         try:
             ntdll.NtResumeProcess(h)

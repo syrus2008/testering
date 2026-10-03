@@ -230,11 +230,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         from acet.platform.selftest import run_self_test
 
         st = run_self_test()
+        status = {"VERIFIED": CheckStatus.OK, "PARTIAL": CheckStatus.WARN}.get(st["verdict"], CheckStatus.FAIL)
         checks.append(
             Check(
                 "golden self-test",
-                CheckStatus.OK if st["ok"] else CheckStatus.FAIL,
-                "; ".join(f"{c['name']}={'skipped' if c['ok'] is None else c['ok']}" for c in st["checks"]),
+                status,
+                f"{st['verdict']} (engines: {st['engine_mode']}); "
+                + "; ".join(f"{c['name']}={'skipped' if c['ok'] is None else c['ok']}" for c in st["checks"]),
                 {"self_test": st},
             )
         )

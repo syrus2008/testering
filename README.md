@@ -47,7 +47,8 @@ because these items are still open and need people, not code:
 - **Manual acceptance on real Windows machines** — ACC-001, 025, 056, 100, 150 and the Windows 10/11 clean-VM
   installs, recorded as described in [`release-inputs/README.md`](release-inputs/README.md).
 - **Signing material** — Authenticode certificate and Ed25519 release key as CI secrets, release public key added
-  to `src/acet/platform/trusted_keys.json`.
+  to `src/acet/platform/trusted_keys.json` (the only place a release or update key can come from:
+  [ADR-0011](docs/adr/0011-trust-store-policy.md)).
 - **Advisory database + triage** for the vulnerability scan of the release SBOM.
 - **Live engines in the release run** — the release runner must have the Engine Pack (`ACET_GHIDRA_DIR`, …):
   the live-engine tests behind ACC-026/038 are skipped without it, and the gate refuses skipped evidence.
@@ -94,8 +95,9 @@ CLI exit codes: `0` success · `10` partial success · `20` user error · `30` a
 
 ```bash
 ruff check src tests tools && ruff format --check src tests tools
-mypy                                           # strict
+mypy && mypy --platform win32                 # strict; the Windows-only branches are type-checked too
 QT_QPA_PLATFORM=offscreen python -m pytest -q  # unit, property, integration, acceptance, UI
 python tools/gen_traceability.py --check
+pyinstaller packaging/acet.spec --noconfirm --distpath dist && python tools/frozen_smoke.py dist/ACET
 ACET_GHIDRA_DIR=... ACET_BINDIFF=... ACET_QBINDIFF_PYTHON=... python -m pytest tests/integration/test_live_engines.py
 ```

@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
 
 import acet
 from acet.domain.error_codes import AcetError
-from acet.ui.pages import PAGES, Page
+from acet.ui.pages import PAGES, BuildsPage, Page
 from acet.ui.tasks import TaskRunner
 from acet.ui.widgets import ErrorDialog
 
@@ -139,6 +139,8 @@ class Context:
     def open_build(self, build_id: str | None) -> None:
         self.goto("Builds")
         page = self.pages["Builds"]
+        if not isinstance(page, BuildsPage):
+            return
         self.run(lambda ws: None, done=lambda _x: page.select_build(build_id))
 
     def open_import_wizard(self) -> None:
@@ -189,7 +191,7 @@ class MainWindow(QMainWindow):
             item.setToolTip(f"Alt+{i + 1}" if i < 9 else cls.title)
             self.nav.addItem(item)
             if i < 9:
-                QShortcut(QKeySequence(f"Alt+{i + 1}"), self, activated=lambda i=i: self.nav.setCurrentRow(i))
+                QShortcut(QKeySequence(f"Alt+{i + 1}"), self, lambda i=i: self.nav.setCurrentRow(i))
         self.nav.currentRowChanged.connect(self._switch)
         self.health = QLabel("Health: …")
         self.health.setAccessibleName("System health")
@@ -198,7 +200,7 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.health)
         self.statusBar().addPermanentWidget(self.jobs)
         self.runner.busy_changed.connect(lambda n: self.jobs.setText(f"Background tasks: {n}"))
-        QShortcut(QKeySequence("Ctrl+K"), self, activated=self.open_search)
+        QShortcut(QKeySequence("Ctrl+K"), self, self.open_search)
         self._menus()
         self.nav.setCurrentRow(0)
         if self.ws_path is not None:
@@ -239,7 +241,8 @@ class MainWindow(QMainWindow):
 
     def goto(self, title: str) -> None:
         for i in range(self.stack.count()):
-            if self.stack.widget(i).title == title:
+            w = self.stack.widget(i)
+            if isinstance(w, Page) and w.title == title:
                 self.nav.setCurrentRow(i)
                 return
 

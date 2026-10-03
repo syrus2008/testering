@@ -29,12 +29,14 @@ MIGRATION_TESTS = [
 
 
 @pytest.fixture
-def trust(tmp_path: Path) -> Path:
-    t = tmp_path / "acet-home" / "config" / "trusted_keys.json"
-    t.parent.mkdir(parents=True, exist_ok=True)
+def trust(monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
+    """Release keys are only trusted from the bundled store of the reviewed source tree."""
+    from acet.platform import signing
+
     key = {"key_id": "rel", "alg": "ed25519", "public_key": ed25519.public_key(SECRET).hex(), "purposes": ["release"]}
-    t.write_text(json.dumps({"keys": [key]}))
-    return t
+    store = {"keys": [key]}
+    monkeypatch.setattr(signing, "_bundled_store", lambda: store)
+    return store
 
 
 def _junit(path: Path, outcomes: dict[str, str]) -> Path:

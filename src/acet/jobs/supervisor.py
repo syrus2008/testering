@@ -193,7 +193,7 @@ def _posix_preexec(memory_limit: int | None) -> Callable[[], None] | None:
     def apply() -> None:
         import resource
 
-        resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
+        resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))  # type: ignore[attr-defined,unused-ignore]
 
     return apply
 
@@ -216,6 +216,7 @@ def run_supervised(
     out_path, err_path = log_dir / "stdout.log", log_dir / "stderr.log"
     start = time.monotonic()
     job = None
+    rusage_before: int | None = None
     if sys.platform == "win32":
         from acet.jobs.winjob import CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, CREATE_SUSPENDED, JobObject
 
@@ -229,8 +230,15 @@ def run_supervised(
             stderr=subprocess.PIPE,
             creationflags=CREATE_SUSPENDED | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW,
         )
-        job.assign(proc)
-        job.resume(proc)
+        try:
+            job.assign(proc)
+            job.resume(proc)
+        except OSError:
+            # Never leave a suspended, uncontained child behind.
+            proc.kill()
+            proc.wait()
+            job.close()
+            raise
     else:
         rusage_before = _children_maxrss()
         proc = subprocess.Popen(
@@ -272,7 +280,7 @@ def run_supervised(
             graceful_stop_file.touch()
         try:
             if sys.platform == "win32":
-                proc.send_signal(signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
+                proc.send_signal(signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined,unused-ignore]
             else:
                 os.killpg(proc.pid, signal.SIGTERM)
         except (OSError, ProcessLookupError):
@@ -369,7 +377,7 @@ def _children_maxrss() -> int | None:
     try:
         import resource
 
-        kb = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        kb = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss  # type: ignore[attr-defined,unused-ignore]
         return int(kb if sys.platform == "darwin" else kb * 1024)
     except (ImportError, OSError):
         return None

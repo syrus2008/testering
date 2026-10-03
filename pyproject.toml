@@ -14,7 +14,8 @@ dependencies = []
 
 [project.optional-dependencies]
 ui = ["PySide6>=6.6"]
-dev = ["pytest>=8", "hypothesis>=6.100", "ruff>=0.6", "mypy>=1.10", "pytest-qt>=4.4", "PySide6>=6.6"]
+# Lint/type tools pinned exactly: CI and local runs must judge the same code the same way.
+dev = ["pytest>=8", "hypothesis>=6.100", "ruff==0.16.10", "mypy==2.4.0", "pytest-qt>=4.4", "PySide6>=6.6"]
 
 [project.scripts]
 acet = "acet.cli.main:main"

@@ -105,6 +105,20 @@ def _binexport_extension(gdir: Path | None) -> Path | None:
     return None
 
 
+def _venv_dist_version(python: str, dist_name: str) -> str | None:
+    """Version of ``dist_name`` installed in the virtual environment of ``python``, read from
+    its dist-info directory (no code from that environment is executed)."""
+    venv = Path(python).absolute().parent.parent  # do not resolve: venv python is a symlink
+    norm = dist_name.replace("-", "_").lower()
+    for d in sorted(venv.glob("lib/python*/site-packages/*.dist-info")) + sorted(
+        venv.glob("Lib/site-packages/*.dist-info")
+    ):
+        name, _, ver = d.name[: -len(".dist-info")].rpartition("-")
+        if name.replace("-", "_").lower() == norm:
+            return ver
+    return None
+
+
 def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = None) -> EngineEnvironment:
     o = overrides or {}
     providers: dict[str, ProviderInfo] = {}
@@ -132,16 +146,27 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
     else:
         providers["ghidra"] = ProviderInfo("ghidra", False, reason="Ghidra install not found")
     live_ghidra = providers["ghidra"].available and not providers["ghidra"].extra.get("replay")
-    gdf = importlib.util.find_spec("ghidriff") is not None and (
-        importlib.util.find_spec("pyghidra") is not None or importlib.util.find_spec("pyhidra") is not None
-    )
+    # Ghidriff runs in its own interpreter (the Engine Pack's, ACET_GHIDRIFF_PYTHON). Only a
+    # development checkout may fall back to the current interpreter: a frozen ACET build
+    # does not contain ghidriff.
+    gpy = o.get("ghidriff") or os.environ.get("ACET_GHIDRIFF_PYTHON")
+    if gpy:
+        gver = _venv_dist_version(gpy, "ghidriff") if Path(gpy).is_file() else None
+        gdf = gver is not None and _venv_dist_version(gpy, "pyghidra") is not None
+    elif not getattr(sys, "frozen", False):
+        gpy, gver = sys.executable, _module_version("ghidriff")
+        gdf = importlib.util.find_spec("ghidriff") is not None and (
+            importlib.util.find_spec("pyghidra") is not None or importlib.util.find_spec("pyhidra") is not None
+        )
+    else:
+        gver, gdf = None, False
     providers["ghidriff"] = ProviderInfo(
         "ghidriff",
         gdf and live_ghidra,
-        _module_version("ghidriff"),
-        None,
+        gver,
+        gpy if gdf else None,
         (Capability.STRUCTURAL_DIFF,),
-        reason=None if gdf and live_ghidra else "ghidriff/pyghidra or a live Ghidra unavailable",
+        reason=None if gdf and live_ghidra else "ghidriff/pyghidra interpreter or a live Ghidra unavailable",
     )
     be = _binexport_extension(gdir)
     be_ver = (
@@ -165,13 +190,7 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
         reason=None if bd else "bindiff executable not found",
     )
     qpy = o.get("qbindiff") or os.environ.get("ACET_QBINDIFF_PYTHON")
-    qver = None
-    if qpy and Path(qpy).is_file():
-        venv = Path(qpy).absolute().parent.parent  # do not resolve: venv python is a symlink
-        dist = sorted(venv.glob("lib/python*/site-packages/qbindiff-*.dist-info")) + sorted(
-            venv.glob("Lib/site-packages/qbindiff-*.dist-info")
-        )
-        qver = dist[0].name[len("qbindiff-") : -len(".dist-info")] if dist else None
+    qver = _venv_dist_version(qpy, "qbindiff") if qpy and Path(qpy).is_file() else None
     qb = qver is not None
     providers["qbindiff"] = ProviderInfo(
         "qbindiff",
