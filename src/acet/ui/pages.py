@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from acet.ui.widgets import Table, badge
+from acet.ui.widgets import PartialBanner, Table, badge
 
 
 class Page(QWidget):
@@ -365,6 +365,8 @@ class ComparePage(Page):
         lay.addLayout(row)
         self.state = QLabel("")
         lay.addWidget(self.state)
+        self.banner = PartialBanner()
+        lay.addWidget(self.banner)
         split = QSplitter(Qt.Orientation.Horizontal)
         self.functions = Table(
             [
@@ -441,7 +443,9 @@ class ComparePage(Page):
         run = self.runs.currentData()
         if not run:
             return
-        from acet.application.views import functions_for_run
+        from acet.application.views import functions_for_run, run_completeness
+
+        self.bg(run_completeness, run, done=self.banner.show_completeness)
 
         def show(rows: list[dict[str, Any]]) -> None:
             self.functions.set_rows(rows)
@@ -580,9 +584,11 @@ class LineageGraph(QGraphicsView):
         for r in rows:
             x = builds.index(r["build_id"]) * 220
             y = 20
-            node = sc.addRect(x, y, 180, 46, brush=QBrush(QColor("#e8eef7")))
-            node.setToolTip(f"{r['relation']} {r['name'] or hex(r['address'])}")
-            t = sc.addText(f"{r['relation']}\n{r['name'] or hex(r['address'])}")
+            hyp = r.get("inference_state") == "HYPOTHESIS"
+            node = sc.addRect(x, y, 180, 46, brush=QBrush(QColor("#fde7cf" if hyp else "#e8eef7")))
+            label = f"{r['relation']}{' (hypothesis)' if hyp else ''}"
+            node.setToolTip(f"{r.get('status_text') or r['relation']} — {r['name'] or hex(r['address'])}")
+            t = sc.addText(f"{label}\n{r['name'] or hex(r['address'])}")
             t.setPos(x + 4, y + 2)
             t.setFont(QFont("", 8))
             if prev is not None and r["relation"] != "DISAPPEARED":
@@ -618,17 +624,29 @@ class LineagePage(Page):
         self.table.view.selectionModel().currentRowChanged.connect(lambda *_: self.history())
         self.hist = Table(
             [
-                ("build_id", "Build"),
+                ("build", "Build"),
                 ("relation", "Relation"),
+                ("inference_state", "Inference"),
+                ("status_text", "Statement"),
                 ("name", "Name"),
                 ("address", "Address"),
-                ("status", "Status"),
             ],
             "Lineage history",
         )
+        self.hist.view.selectionModel().currentRowChanged.connect(lambda *_: self.inspect())
+        # Evidence Inspector: relation, inference level, rule, supporting / contradicting families,
+        # reasons, explanation and provenance of the selected lineage event (ADR-0012).
+        self.inspector = QPlainTextEdit()
+        self.inspector.setReadOnly(True)
+        self.inspector.setAccessibleName("Lineage evidence inspector")
+        self.inspector.setPlaceholderText("Select a history row to inspect its evidence")
+        lower = QSplitter(Qt.Orientation.Horizontal)
+        lower.addWidget(self.hist)
+        lower.addWidget(self.inspector)
+        lower.setSizes([650, 450])
         self.graph = LineageGraph()
         split.addWidget(self.table)
-        split.addWidget(self.hist)
+        split.addWidget(lower)
         split.addWidget(self.graph)
         lay.addWidget(split, 1)
 
@@ -670,13 +688,21 @@ class LineagePage(Page):
     def history(self) -> None:
         sel = self.table.selected()
         if sel:
-            from acet.lineage.builder import lineage_history
+            from acet.application.views import lineage_events
 
             def show(rows: list[dict[str, Any]]) -> None:
                 self.hist.set_rows(rows)
                 self.graph.show_history(rows)
+                self.inspector.clear()
 
-            self.bg(lineage_history, sel["id"], done=show)
+            self.bg(lineage_events, sel["id"], done=show)
+
+    def inspect(self) -> None:
+        sel = self.hist.selected()
+        if sel:
+            from acet.reporting.vocabulary import inspector_text
+
+            self.inspector.setPlainText(inspector_text(sel))
 
 
 # ----------------------------------------------------------------- changes
@@ -699,6 +725,8 @@ class ChangesPage(Page):
                 "reliability. ACET computes no global score; UNKNOWN is never 0."
             )
         )
+        self.banner = PartialBanner()
+        lay.addWidget(self.banner)
         self.table = Table(
             [
                 ("component", "Component"),
@@ -736,8 +764,9 @@ class ChangesPage(Page):
     def load(self) -> None:
         run = self.run.currentData()
         if run:
-            from acet.application.views import changes
+            from acet.application.views import changes, run_completeness
 
+            self.bg(run_completeness, run, done=self.banner.show_completeness)
             self.bg(changes, run, done=self.table.set_rows)
 
 

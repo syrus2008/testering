@@ -161,3 +161,63 @@ def jobs(ws: Workspace) -> list[dict[str, Any]]:
     from acet.jobs.store import list_jobs
 
     return list_jobs(ws.db)
+
+
+def run_completeness(ws: Workspace, run_id: str) -> dict[str, Any]:
+    """Completeness banner data of an analysis run (same wording as reports)."""
+    from acet.reporting import vocabulary as voc
+
+    r = ws.db.conn.execute("SELECT status, missing_evidence_json FROM analysis_run WHERE id=?", (run_id,)).fetchone()
+    if r is None:
+        return voc.completeness("UNKNOWN", [])
+    return voc.completeness(r["status"], json.loads(r["missing_evidence_json"] or "[]"))
+
+
+def lineage_events(ws: Workspace, lineage_id: str) -> list[dict[str, Any]]:
+    """History of one lineage in its latest run, each row with the report's inference wording."""
+    from acet.reporting import vocabulary as voc
+
+    row = ws.db.conn.execute(
+        "SELECT analysis_run_id FROM lineage_assignment WHERE lineage_id=? ORDER BY rowid DESC LIMIT 1", (lineage_id,)
+    ).fetchone()
+    if row is None:
+        return []
+    run = ws.db.conn.execute(
+        "SELECT resolved_config_json FROM analysis_run WHERE id=?", (row["analysis_run_id"],)
+    ).fetchone()
+    rules = json.loads(run["resolved_config_json"] or "{}").get("rules") if run else None
+    out = []
+    for a in ws.db.conn.execute(
+        "SELECT la.*, fi.address, fi.name, fi.artifact_sha256, r.version_label FROM lineage_assignment la"
+        " JOIN function_instance fi ON fi.id=la.function_instance_id JOIN build b ON b.id=la.build_id"
+        " LEFT JOIN release r ON r.id=b.release_id WHERE la.lineage_id=? AND la.analysis_run_id=? ORDER BY la.rowid",
+        (lineage_id, row["analysis_run_id"]),
+    ):
+        ev = json.loads(a["evidence_json"] or "{}")
+        view = voc.lineage_event_view(a["relation"], ev)
+        historical = {
+            "RESURRECTED_CONFIRMED": a["lineage_id"],
+            "RESURRECTED_CANDIDATE": ev.get("previous_lineage"),
+            "SPLIT_PARENT": ev.get("parent"),
+        }.get(a["relation"])
+        out.append(
+            {
+                "build_id": a["build_id"],
+                "build": a["version_label"] or a["build_id"][:8],
+                "relation": a["relation"],
+                "name": a["name"],
+                "address": a["address"],
+                "status": a["status"],
+                "lineage_id": a["lineage_id"],
+                "historical_lineage_id": historical,
+                **view,
+                "decision": ev.get("decision") or ev.get("status"),
+                "provenance": {
+                    "lineage_run_id": a["analysis_run_id"],
+                    "lineage_rules": rules,
+                    "compare_run_id": ev.get("compare_run"),
+                    "assignment_status": a["status"],
+                },
+            }
+        )
+    return out

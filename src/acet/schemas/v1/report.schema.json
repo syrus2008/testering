@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://acet.local/schemas/v1/report.schema.json",
   "title": "ACET report v1",
-  "description": "Canonical report model (spec \u00a742). Executive and Technical views derive from it. Every scientific cell carries a MeasurementState (ACET-CLOSE-004).",
+  "description": "Canonical report model (spec §42). Executive and Technical views derive from it. Every scientific cell carries a MeasurementState (ACET-CLOSE-004).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -53,7 +53,8 @@
       "required": [
         "headline",
         "uncertainty",
-        "no_global_score"
+        "no_global_score",
+        "completeness"
       ],
       "properties": {
         "headline": {
@@ -70,6 +71,42 @@
         },
         "no_global_score": {
           "const": true
+        },
+        "completeness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "run_status",
+            "is_partial",
+            "missing",
+            "statement"
+          ],
+          "properties": {
+            "run_status": {
+              "type": "string"
+            },
+            "is_partial": {
+              "type": "boolean"
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "missing": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "processor"
+                ]
+              }
+            },
+            "statement": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -99,7 +136,8 @@
               "strength_class",
               "evidence_diversity",
               "engine_count",
-              "inference_state"
+              "inference_state",
+              "confidence"
             ],
             "properties": {
               "decision": {
@@ -115,17 +153,38 @@
               },
               "inference_state": {
                 "enum": [
-                  "CONFIRMED_BY_RULE",
-                  "STRONG",
-                  "PROBABLE",
+                  "NOT_OBSERVED",
+                  "UNRESOLVED",
+                  "ABSTAIN",
+                  "HYPOTHESIS",
                   "AMBIGUOUS",
                   "CONFLICTING",
-                  "UNRESOLVED",
-                  "ABSTAIN"
+                  "PROBABLE",
+                  "STRONG",
+                  "CONFIRMED_BY_RULE"
                 ]
               },
               "probability": {
                 "type": "null"
+              },
+              "confidence": {
+                "type": "object",
+                "required": [
+                  "display",
+                  "calibration_state"
+                ],
+                "properties": {
+                  "display": {
+                    "const": "class"
+                  },
+                  "calibration_state": {
+                    "enum": [
+                      "UNCALIBRATED",
+                      "OUT_OF_DISTRIBUTION",
+                      "CALIBRATED"
+                    ]
+                  }
+                }
               }
             }
           }
@@ -151,13 +210,122 @@
           "type": [
             "object",
             "null"
-          ]
+          ],
+          "required": [
+            "run_id",
+            "status",
+            "summary",
+            "events"
+          ],
+          "properties": {
+            "events": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "lineage_id",
+                  "historical_lineage_id",
+                  "relation",
+                  "instance",
+                  "inference_state",
+                  "rule",
+                  "status_text",
+                  "explanation",
+                  "supporting_families",
+                  "contradicting_families",
+                  "reasons",
+                  "provenance"
+                ],
+                "properties": {
+                  "relation": {
+                    "enum": [
+                      "CONTINUATION",
+                      "MODIFIED",
+                      "SPLIT_PARENT",
+                      "MERGE_PARENT",
+                      "DISAPPEARED",
+                      "RESURRECTED_CANDIDATE",
+                      "RESURRECTED_CONFIRMED",
+                      "UNRESOLVED"
+                    ]
+                  },
+                  "inference_state": {
+                    "enum": [
+                      "NOT_OBSERVED",
+                      "UNRESOLVED",
+                      "ABSTAIN",
+                      "HYPOTHESIS",
+                      "AMBIGUOUS",
+                      "CONFLICTING",
+                      "PROBABLE",
+                      "STRONG",
+                      "CONFIRMED_BY_RULE"
+                    ]
+                  },
+                  "status_text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "supporting_families": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "contradicting_families": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "provenance": {
+                    "type": "object",
+                    "required": [
+                      "lineage_run_id",
+                      "lineage_rules"
+                    ]
+                  }
+                }
+              }
+            }
+          }
         },
         "missing_evidence": {
           "type": "array"
         },
         "external_events": {
-          "type": "array"
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "interpretation"
+            ],
+            "properties": {
+              "interpretation": {
+                "const": "temporal correlation only, not a cause"
+              }
+            }
+          }
+        },
+        "calibration": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "engine",
+              "state",
+              "text"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "UNCALIBRATED",
+                  "OUT_OF_DISTRIBUTION",
+                  "CALIBRATED"
+                ]
+              }
+            }
+          }
         }
       }
     },

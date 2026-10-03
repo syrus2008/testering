@@ -56,3 +56,25 @@ recovery can never be bought with purity.
 ## Remaining gaps
 Demo v2→v3 losses `policy_decide` and `mainCRTStartup` are matcher recall misses (code changed a lot), not
 resurrections. The corpus is small and clang-only; a compiler/optimisation/LTO/stripping matrix is the next step.
+
+## Reporting and UI (closure pass)
+- One vocabulary, `acet.reporting.vocabulary`, decides each claim's inference level (`INFERENCE_RANK`, weakest
+  `NOT_OBSERVED`/`UNRESOLVED` → `HYPOTHESIS` → `PROBABLE` → `STRONG` → `CONFIRMED_BY_RULE`) and its wording. The report
+  model writes `inference_state`, `status_text` and `explanation`; Markdown, HTML, CSV and the UI only transcribe them.
+- Report model: `technical.lineage.events` — the lineage events of the compared transition (historical lineage,
+  instance, relation, rule, supporting/contradicting families, reasons, explanation, decision, provenance:
+  lineage run, rules, compare run). Split/merge links and resurrection candidates are `HYPOTHESIS`;
+  `RESURRECTED_CONFIRMED` carries "Historical identity reused because …"; rejected resurrections stay visible.
+- Executive summary counts confirmed resurrections and candidates, calling candidates hypotheses.
+- `executive.completeness`: `COMPLETED_PARTIAL` (or any missing evidence) opens Markdown/HTML with a banner listing the
+  missing evidence and stating that missing evidence is not negative evidence; the Compare and Changes pages show
+  the same banner. Function rows carry the calibration state (`UNCALIBRATED` / `OUT_OF_DISTRIBUTION` /
+  `CALIBRATED`); probabilities stay null. External events carry "temporal correlation only, not a cause".
+- `invariant_problems()` runs on every report: a model that overstates (candidate shown confirmed, candidate
+  presented as fact in the executive summary, partial run not flagged, printed probability) is refused.
+- Lineage UI: history rows show inference and statement; the Evidence Inspector shows the same text as the report
+  (hypotheses headed "⚠ HYPOTHESIS — NOT ESTABLISHED"); hypothesis nodes are drawn differently in the graph.
+- Tests: `tests/integration/test_report_fidelity.py` (terms survive model → JSON/MD/HTML/CSV; renderers transcribe
+  inference exactly, property-based over random reports with hostile names — a manual mutation check confirmed that a renderer
+  printing a hypothesis as CONFIRMED_BY_RULE fails these tests), `tests/ui/test_lineage_inspector.py`. Matcher and lineage
+  thresholds were not changed.

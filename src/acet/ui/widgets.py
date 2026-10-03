@@ -125,3 +125,30 @@ class ErrorDialog(QDialog):
 
 def info(parent: QWidget, title: str, text: str) -> None:
     QMessageBox.information(parent, title, text)
+
+
+class PartialBanner(QLabel):
+    """Very visible notice for a COMPLETED_PARTIAL run: what is missing, and that missing evidence is not
+    negative evidence. Text comes from acet.reporting.vocabulary.completeness (same as reports)."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWordWrap(True)
+        self.setAccessibleName("Completeness warning")
+        self.setStyleSheet(
+            "QLabel{border:3px solid #b45309;background:#fff7ed;color:#7c2d12;padding:8px;font-weight:600}"
+        )
+        self.setVisible(False)
+
+    def show_completeness(self, c: dict[str, Any]) -> None:
+        if not c.get("is_partial"):
+            self.setVisible(False)
+            self.setText("")
+            return
+        missing = "\n".join(
+            f"• Missing: {m['processor']} — {m.get('outcome')}: {m.get('reason')}" for m in c["missing"]
+        )
+        self.setText(
+            f"⚠ {c['title']}\nRun status: {c['run_status']}\n{missing}\n{c['statement']}".replace("\n\n", "\n")
+        )
+        self.setVisible(True)

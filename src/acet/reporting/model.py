@@ -16,17 +16,114 @@ from acet.domain.error_codes import AcetError
 from acet.domain.jsonschema import validate_named
 from acet.domain.timeutil import utc_now_iso
 from acet.engines.quirks import load_known_limitations
+from acet.reporting import vocabulary as voc
 from acet.storage import repositories as repo
 
-INFERENCE = {
-    "EXACT": "CONFIRMED_BY_RULE",
-    "STRONG": "STRONG",
-    "PROBABLE": "PROBABLE",
-    "AMBIGUOUS": "AMBIGUOUS",
-    "CONFLICT": "CONFLICTING",
-    "UNRESOLVED": "UNRESOLVED",
-    "ABSTAIN": "ABSTAIN",
-}
+INFERENCE = voc.DECISION_INFERENCE
+MATCHER_ENGINE = "acet.featurematch"
+
+
+def _calibration_state(ws: Workspace, sha: str) -> dict[str, Any]:
+    """Whether a validated calibration covers this artifact's analysis context (ACC-147). Reports
+    always print classes; this only tells the reader whether the context is in or out of distribution."""
+    from acet.analysis.results import derived_for_artifact
+    from acet.benchmark.context import analysis_context, context_key
+
+    rows = ws.db.conn.execute(
+        "SELECT context_key FROM calibration_profile WHERE engine=? AND validated=1", (MATCHER_ENGINE,)
+    ).fetchall()
+    if not rows:
+        state = "UNCALIBRATED"
+        key = None
+    else:
+        size = ws.db.conn.execute("SELECT size_bytes FROM artifact WHERE sha256=?", (sha,)).fetchone()
+        key = context_key(
+            analysis_context(
+                derived_for_artifact(ws, "acet.pe", sha),
+                derived_for_artifact(ws, "acet.features", sha),
+                size[0] if size else None,
+                derived_for_artifact(ws, "ghidra.extract", sha),
+            )
+        )
+        state = "CALIBRATED" if any(r["context_key"] == key for r in rows) else "OUT_OF_DISTRIBUTION"
+    return {"engine": MATCHER_ENGINE, "state": state, "context_key": key, "text": voc.CALIBRATION_TEXT[state]}
+
+
+def _lineage_section(ws: Workspace, product_id: str, left: str, right: str) -> dict[str, Any] | None:
+    """Lineage events of the compared transition (left → right) from the latest lineage run covering it."""
+    runs = ws.db.conn.execute(
+        "SELECT id, status, input_hashes_json, resolved_config_json FROM analysis_run WHERE scope_type='lineage'"
+        " AND scope_id=? ORDER BY seq DESC",
+        (product_id,),
+    ).fetchall()
+    lr = None
+    for r in runs:
+        b = json.loads(r["input_hashes_json"] or "{}").get("builds") or []
+        if left in b and right in b and b.index(right) == b.index(left) + 1:
+            lr = r
+            break
+    if lr is None:
+        return {
+            "run_id": None,
+            "status": "NOT_COMPUTED",
+            "note": "No lineage run covers this transition; lineage evidence is missing, not negative.",
+            "summary": {},
+            "events": [],
+        }
+    rules = json.loads(lr["resolved_config_json"] or "{}").get("rules")
+    events = []
+    for a in ws.db.conn.execute(
+        "SELECT la.*, fi.address, fi.name, fi.artifact_sha256 FROM lineage_assignment la JOIN function_instance fi"
+        " ON fi.id=la.function_instance_id WHERE la.analysis_run_id=? AND la.build_id=? ORDER BY la.rowid",
+        (lr["id"], right),
+    ):
+        ev = json.loads(a["evidence_json"] or "{}")
+        view = voc.lineage_event_view(a["relation"], ev)
+        historical = {
+            "RESURRECTED_CONFIRMED": a["lineage_id"],
+            "RESURRECTED_CANDIDATE": ev.get("previous_lineage"),
+            "SPLIT_PARENT": ev.get("parent"),
+        }.get(a["relation"])
+        events.append(
+            {
+                "lineage_id": a["lineage_id"],
+                "historical_lineage_id": historical,
+                "relation": a["relation"],
+                "instance": {
+                    "function_instance_id": a["function_instance_id"],
+                    "artifact": a["artifact_sha256"],
+                    "address": a["address"],
+                    "name": a["name"],
+                    "build_id": a["build_id"],
+                    "component_role": a["component_role"],
+                },
+                **view,
+                "decision": ev.get("decision") or ev.get("status"),
+                "provenance": {
+                    "lineage_run_id": lr["id"],
+                    "lineage_rules": rules,
+                    "compare_run_id": ev.get("compare_run"),
+                    "assignment_status": a["status"],
+                },
+            }
+        )
+    by_rel: dict[str, int] = {}
+    by_inf: dict[str, int] = {}
+    for e in events:
+        by_rel[e["relation"]] = by_rel.get(e["relation"], 0) + 1
+        by_inf[e["inference_state"]] = by_inf.get(e["inference_state"], 0) + 1
+    return {
+        "run_id": lr["id"],
+        "status": lr["status"],
+        "rules": rules,
+        "summary": {
+            "relations": dict(sorted(by_rel.items())),
+            "inference_states": dict(sorted(by_inf.items())),
+            "resurrections_confirmed": by_rel.get("RESURRECTED_CONFIRMED", 0),
+            "resurrection_candidates": by_rel.get("RESURRECTED_CANDIDATE", 0),
+        },
+        "events": events,
+    }
 
 
 def _run_info(ws: Workspace, run_id: str) -> dict[str, Any]:
@@ -84,6 +181,7 @@ def compare_report(ws: Workspace, run_id: str, *, include_sensitive: bool = Fals
                 ],
             }
         )
+    calib = {c["sha256"]: _calibration_state(ws, c["sha256"]) for c in comps[0]["components"]}
     names = {
         r["id"]: r["name"]
         for r in ws.db.conn.execute(
@@ -113,6 +211,10 @@ def compare_report(ws: Workspace, run_id: str, *, include_sensitive: bool = Fals
                 "evidence_diversity": c["evidence_diversity"],
                 "engine_count": c["engine_count"],
                 "probability": None,
+                "confidence": {
+                    "display": "class",
+                    "calibration_state": (calib.get(c["left_artifact_sha256"]) or {}).get("state", "UNCALIBRATED"),
+                },
                 "supporting_families": ev.get("supporting_families") or [],
                 "contradicting": len(ev.get("contradicting_evidence") or []),
                 "side": ev.get("side", "pair"),
@@ -140,25 +242,8 @@ def compare_report(ws: Workspace, run_id: str, *, include_sensitive: bool = Fals
                 "notes": ev.get("notes", []),
             }
         )
-    lineage = None
     prod = ws.db.conn.execute("SELECT product_id FROM build WHERE id=?", (left,)).fetchone()["product_id"]
-    lr = ws.db.conn.execute(
-        "SELECT id, status FROM analysis_run WHERE scope_type='lineage' AND scope_id=? ORDER BY seq DESC LIMIT 1",
-        (prod,),
-    ).fetchone()
-    if lr is not None:
-        rel = dict(
-            ws.db.conn.execute(
-                "SELECT relation, count(*) FROM lineage_assignment WHERE analysis_run_id=? GROUP BY relation",
-                (lr["id"],),
-            ).fetchall()
-        )
-        links = dict(
-            ws.db.conn.execute(
-                "SELECT relation, count(*) FROM lineage_link WHERE analysis_run_id=? GROUP BY relation", (lr["id"],)
-            ).fetchall()
-        )
-        lineage = {"run_id": lr["id"], "status": lr["status"], "relations": rel, "links": links}
+    lineage = _lineage_section(ws, prod, left, right)
     unresolved_left = sum(1 for f in functions if f["side"] == "pair" and f["decision"] == "UNRESOLVED")
     unresolved_right = sum(1 for f in functions if f["side"] == "right-only")
     head = [
@@ -168,6 +253,15 @@ def compare_report(ws: Workspace, run_id: str, *, include_sensitive: bool = Fals
         f"{unresolved_left} function(s) without a counterpart and {unresolved_right} new-side function(s) "
         "remain UNRESOLVED; they are not classified as removed or new.",
     ]
+    ls = (lineage or {}).get("summary") or {}
+    if ls.get("resurrections_confirmed") or ls.get("resurrection_candidates"):
+        head.append(
+            f"Lineage: {ls.get('resurrections_confirmed', 0)} resurrection(s) confirmed by rule (historical identity "
+            f"reused on converging evidence); {ls.get('resurrection_candidates', 0)} resurrection candidate(s) remain "
+            "hypotheses — not established."
+        )
+    if (lineage or {}).get("status") == "NOT_COMPUTED":
+        head.append("Lineage was not computed for this transition (missing evidence, not a negative result).")
     unusual = [c for c in changes if c["severity_class"] in ("UNUSUAL", "EXTREME")]
     if unusual:
         head.append(
@@ -183,8 +277,12 @@ def compare_report(ws: Workspace, run_id: str, *, include_sensitive: bool = Fals
     ]
     if unverified:
         unc.append("Unverified engines: " + ", ".join(sorted(unverified)))
+    for comp_sha, cs in sorted(calib.items()):
+        if cs["state"] != "CALIBRATED":
+            unc.append(f"Calibration for {comp_sha[:12]}: {cs['text']}.")
     if events:
-        unc.append(f"{len(events)} external event(s) are temporal correlations, not causes.")
+        unc.append(f"{len(events)} external event(s): {voc.TEMPORAL_CORRELATION}.")
+    completeness = voc.completeness(run["status"], run["missing_evidence"])
     providers = {p for p, v in ((run["engines"] or {}).get("providers") or {}).items() if v.get("available")}
     report = {
         "schema_version": 1,
@@ -192,7 +290,12 @@ def compare_report(ws: Workspace, run_id: str, *, include_sensitive: bool = Fals
         "generated_at": utc_now_iso(),
         "acet_version": acet.__version__,
         "scope": {"type": "compare", "id": run_id},
-        "executive": {"headline": head, "uncertainty": unc, "no_global_score": True},
+        "executive": {
+            "headline": head,
+            "uncertainty": unc,
+            "no_global_score": True,
+            "completeness": completeness,
+        },
         "technical": {
             "runs": [run],
             "components": comps,
@@ -200,7 +303,8 @@ def compare_report(ws: Workspace, run_id: str, *, include_sensitive: bool = Fals
             "changes": changes,
             "lineage": lineage,
             "missing_evidence": run["missing_evidence"],
-            "external_events": events,
+            "external_events": [{**e, "interpretation": voc.TEMPORAL_CORRELATION} for e in events],
+            "calibration": list(calib.values()),
         },
         "provenance": {
             "profiles": [run["profile"]],
@@ -212,4 +316,7 @@ def compare_report(ws: Workspace, run_id: str, *, include_sensitive: bool = Fals
         "sensitive_content_included": include_sensitive,
     }
     validate_named(report, "report")
+    problems = voc.invariant_problems(report)
+    if problems:  # a model that overstates its evidence is a bug, never a report
+        raise AcetError("ACET-INT-001", "report invariants violated: " + "; ".join(problems))
     return report

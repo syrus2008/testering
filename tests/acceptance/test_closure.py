@@ -539,7 +539,26 @@ def test_incompatible_metrics_are_not_compared(ws, product_id, replay):
     )
 )
 def test_unknown_never_becomes_zero(value):
-    assert json.loads(stable_json(value)) == value  # None survives every serialization as null, never 0
+    import unicodedata
+
+    from hypothesis import assume
+
+    from acet.domain.canonical import CanonicalJsonError
+
+    def nfc(v):  # canonical JSON rule 5: strings are NFC-normalized (U+F900 → U+8C48)
+        if isinstance(v, str):
+            return unicodedata.normalize("NFC", v)
+        if isinstance(v, list):
+            return [nfc(x) for x in v]
+        if isinstance(v, dict):
+            return {nfc(k): nfc(x) for k, x in v.items()}
+        return v
+
+    try:
+        encoded = stable_json(value)
+    except CanonicalJsonError:
+        assume(False)  # two keys equal after NFC: refused by design, not a None issue
+    assert json.loads(encoded) == nfc(value)  # None survives every serialization as null, never 0
     from acet.changes.baseline import BaselineClass, classify
 
     assert classify(None, [1.0] * 10).cls is BaselineClass.UNKNOWN
