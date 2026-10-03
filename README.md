@@ -80,9 +80,11 @@ Engines come from a signed **Engine Pack** (Ghidra + private Java 21 runtime + G
 the Engine Pack Manager ([ADR-0013](docs/adr/0013-engine-pack-manager.md)): the `Engines` button in the top bar,
 *Settings → Analysis Engines*, or `acet engines status|install [--file F]|verify|repair|rollback|recover`.
 Nothing is downloaded without consent, every package (downloaded or local) is signature- and hash-checked,
-installation is atomic, and a pack is READY only after the real `doctor --full` self-test ran on it. Remote
-installation needs a signed index published by the release owner (`src/acet/platform/distribution.json`, empty
-today); until then use *Install from file…*. A workspace can still pin a pack (`engines.pinned_pack`). For
+installation is atomic, and a pack is READY only after the real `doctor --full` self-test ran on it. Development
+and test builds resolve the signed **dev channel** (`src/acet/platform/distribution.json`; Windows x64 pack built by
+`.github/workflows/engine-pack.yml` from `packaging/engine-pack/win64/recipe.json`); the same `.acetengine` can be
+installed with *Install from file…*. A STABLE release refuses the dev channel and its key. A workspace can still pin
+a pack (`engines.pinned_pack`). For
 development: `ACET_GHIDRA_DIR`, `ACET_BINDIFF` and
 `ACET_QBINDIFF_PYTHON`. Without engines ACET runs FAST and reports **DEGRADED**. CI without engines uses the
 **golden replay** provider (`ACET_GHIDRA_REPLAY_DIR=datasets/demo/golden/ghidra`), which serves recorded real
