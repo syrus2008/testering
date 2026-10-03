@@ -18,8 +18,7 @@ on:
       - "packaging/engine-pack/**"
       - "tools/engine_pack_release.py"
       - "tools/build_engine_pack.py"
-      - "src/acet/platform/engine_manager.py"
-      - "src/acet/platform/distribution.json"
+      - "src/acet/**"
       - "tests/live/**"
       - ".github/workflows/engine-pack.yml"
   workflow_dispatch:

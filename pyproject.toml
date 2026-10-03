@@ -29,7 +29,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 "acet.storage.migrations" = ["*.sql"]
 "acet" = ["schemas/v1/*.json"]
-"acet.engines" = ["*.json", "ghidra_scripts/*"]
+"acet.engines" = ["*.json", "ghidra_scripts/*.java", "ghidra_scripts_binexport/*.java"]
 "acet.platform" = ["*.json"]
 
 [tool.pytest.ini_options]

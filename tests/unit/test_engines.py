@@ -218,3 +218,30 @@ def test_configured_ghidra_without_java_is_not_replaced_by_replay(tmp_path, monk
     monkeypatch.setattr(environment, "ghidra_dir", lambda o: None)
     info = environment.detect().providers["ghidra"]
     assert info.available and info.extra.get("replay") and info.verified is False
+
+
+def test_core_ghidra_scripts_never_depend_on_an_optional_extension(tmp_path, monkeypatch):
+    """REAL-TEST-002: without the BinExport extension, Ghidra could not resolve ACET's script bundle at all."""
+    from pathlib import Path
+
+    from acet.engines import ghidra
+
+    for java in ghidra.SCRIPTS.rglob("*.java"):  # the core bundle (subdirectories included)
+        assert "com.google.security.binexport" not in java.read_text(encoding="utf-8"), java
+    assert ghidra.script_path([("AcetExport.java", [])]) == str(ghidra.SCRIPTS)
+    with_be = ghidra.script_path([("AcetExport.java", []), ("AcetBinExport.java", ["x"])]).split(";")
+    assert [Path(p) for p in with_be] == [ghidra.SCRIPTS, ghidra.OPTIONAL_SCRIPT_DIRS["AcetBinExport.java"]]
+    assert ghidra.OPTIONAL_SCRIPT_DIRS["AcetBinExport.java"].joinpath("AcetBinExport.java").is_file()
+    # a stale compiled bundle of ACET's scripts (a class whose source moved away) is purged; others are kept
+    monkeypatch.setattr(ghidra, "_ghidra_settings_roots", lambda: [tmp_path])
+    bundles = tmp_path / "ghidra_11.4.2_PUBLIC" / "osgi" / "compiled-bundles"
+    for name, classes in {"stale": ["AcetExport", "AcetSetAnalyzers", "AcetBinExport", "GeneratedActivator"],
+                          "fresh": ["AcetExport", "AcetSetAnalyzers", "GeneratedActivator"],
+                          "binexport": ["AcetBinExport", "GeneratedActivator"],
+                          "foreign": ["SomeoneElsesScript", "Helper", "GeneratedActivator"]}.items():  # fmt: skip
+        (bundles / name).mkdir(parents=True)
+        for c in classes:
+            (bundles / name / f"{c}.class").write_bytes(b"\xca\xfe")
+    removed = ghidra.purge_stale_script_bundles([ghidra.SCRIPTS, *ghidra.OPTIONAL_SCRIPT_DIRS.values()])
+    assert [p.name for p in removed] == ["stale"]
+    assert sorted(p.name for p in bundles.iterdir()) == ["binexport", "foreign", "fresh"]

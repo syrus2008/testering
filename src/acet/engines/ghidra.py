@@ -21,6 +21,10 @@ from acet.engines.proc import run_engine
 from acet.engines.worker import WorkerContext
 
 SCRIPTS = Path(__file__).resolve().parent / "ghidra_scripts"
+# Ghidra compiles each script directory as one OSGi bundle: a script importing an optional extension
+# (BinExport) would make the whole directory (subdirectories included) unresolvable without it, so it lives
+# in a sibling directory and is only put on the script path when it is used.
+OPTIONAL_SCRIPT_DIRS = {"AcetBinExport.java": SCRIPTS.with_name("ghidra_scripts_binexport")}
 EXPORT_FORMAT = "acet-ghidra-export@1"
 
 
@@ -40,6 +44,35 @@ def ghidra_version(ghidra_dir: Path) -> str | None:
         return None
 
 
+def _ghidra_settings_roots() -> list[Path]:
+    home = Path.home()
+    roots = [home / ".config" / "ghidra", home / ".ghidra"]
+    for env in ("XDG_CONFIG_HOME", "APPDATA", "LOCALAPPDATA"):
+        if os.environ.get(env):
+            roots.append(Path(os.environ[env]) / "ghidra")
+    return roots
+
+
+def purge_stale_script_bundles(script_dirs: list[Path]) -> list[Path]:
+    """Ghidra caches each script directory as a compiled OSGi bundle and keeps the classes of scripts that were
+    since removed or moved (with their imports). A stale bundle of ACET's own scripts is deleted, never another."""
+    dirs = [{p.stem for p in d.glob("*.java")} for d in script_dirs]
+    removed = []
+    for root in _ghidra_settings_roots():
+        for bundle in root.glob("*/osgi/compiled-bundles/*"):
+            classes = {c.stem.split("$")[0] for c in bundle.glob("*.class")} - {"GeneratedActivator"}
+            # the bundle of one of ACET's directories, carrying a class that directory has no source for
+            if any(classes & scripts and not classes <= scripts for scripts in dirs):
+                shutil.rmtree(bundle, ignore_errors=True)
+                removed.append(bundle)
+    return removed
+
+
+def script_path(post_scripts: list[tuple[str, list[str]]]) -> str:
+    dirs = [SCRIPTS, *sorted({OPTIONAL_SCRIPT_DIRS[n] for n, _a in post_scripts if n in OPTIONAL_SCRIPT_DIRS})]
+    return ";".join(str(d) for d in dirs)  # Ghidra's -scriptPath separator on every platform
+
+
 def run_headless(
     ctx: WorkerContext,
     binary: Path,
@@ -49,6 +82,8 @@ def run_headless(
     captured: list[str] | None = None,
 ) -> tuple[int, int]:
     gdir = Path(os.environ["ACET_GHIDRA_DIR"])
+    for stale in purge_stale_script_bundles([SCRIPTS, *OPTIONAL_SCRIPT_DIRS.values()]):
+        print(f"removed stale compiled Ghidra script bundle {stale}", flush=True)
     ctx.engine_version = f"ghidra-{ghidra_version(gdir)}"
     project = work / "ghidra_project"
     project.mkdir(parents=True, exist_ok=True)
@@ -63,7 +98,7 @@ def run_headless(
         str(binary),
         "-readOnly",
         "-scriptPath",
-        str(SCRIPTS),
+        script_path(post_scripts),
         "-preScript",
         "AcetSetAnalyzers.java",
         str(analyzers),
