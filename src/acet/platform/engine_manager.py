@@ -648,7 +648,9 @@ def install_archive(
         log.write("INSTALL_START", pack=f"{manifest['id']}@{manifest['version']}", source=source,
                   archive_sha256=archive_sha)  # fmt: skip
         if not platform_matches(manifest.get("platform")):
-            raise fail("PACK_INCOMPATIBLE", f"{name} is built for {manifest.get('platform')}, this is {current_platform()}")
+            raise fail(
+                "PACK_INCOMPATIBLE", f"{name} is built for {manifest.get('platform')}, this is {current_platform()}"
+            )
         with zipfile.ZipFile(archive) as z:
             installed = int(manifest.get("installed_size") or sum(i.file_size for i in z.infolist()))
         check_disk(engines_root(), installed * 2)  # staging + the move is a rename (same volume)
