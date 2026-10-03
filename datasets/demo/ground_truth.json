@@ -1,0 +1,402 @@
+{
+  "dataset": "acet-demo",
+  "schema_version": 1,
+  "license": "ACET project (original code)",
+  "versions": [
+    "v1",
+    "v2",
+    "v3"
+  ],
+  "components": [
+    "guardcore.dll",
+    "guardsvc.exe"
+  ],
+  "functions": {
+    "guardcore.dll": {
+      "v1": {
+        "mem_compare": 6442455040,
+        "mem_copy": 6442455104,
+        "str_len": 6442455152,
+        "checksum32": 6442455184,
+        "crc32": 6442455296,
+        "xor_obfuscate": 6442455376,
+        "parse_config": 6442455440,
+        "check_magic": 6442455600,
+        "validate_header": 6442455632,
+        "scan_signatures": 6442455664,
+        "heartbeat_tick": 6442455808,
+        "policy_decide": 6442455840,
+        "report_event": 6442455888,
+        "GuardInit": 6442455920,
+        "GuardScan": 6442455936,
+        "GuardTick": 6442456064
+      },
+      "v2": {
+        "mem_compare": 6442455040,
+        "mem_copy": 6442455104,
+        "str_len": 6442455152,
+        "checksum32": 6442455184,
+        "crc32": 6442455296,
+        "obfuscate_buffer": 6442455376,
+        "parse_line": 6442455440,
+        "parse_config": 6442455520,
+        "validate_header_full": 6442455648,
+        "scan_signatures": 6442455712,
+        "heartbeat_tick": 6442455856,
+        "policy_decide": 6442455888,
+        "integrity_probe": 6442455936,
+        "GuardInit": 6442456000,
+        "GuardScan": 6442456016,
+        "GuardTick": 6442456144
+      },
+      "v3": {
+        "mem_compare": 6442455040,
+        "mem_copy": 6442455104,
+        "str_len": 6442455152,
+        "checksum32": 6442455184,
+        "crc32": 6442455296,
+        "obfuscate_buffer": 6442455376,
+        "parse_line": 6442455440,
+        "parse_config": 6442455520,
+        "validate_header_full": 6442455648,
+        "scan_signatures": 6442455712,
+        "heartbeat_tick": 6442455856,
+        "policy_decide": 6442455888,
+        "report_event": 6442455936,
+        "integrity_probe": 6442456048,
+        "telemetry_flush": 6442456112,
+        "GuardInit": 6442456208,
+        "GuardScan": 6442456224,
+        "GuardTick": 6442456368
+      }
+    },
+    "guardsvc.exe": {
+      "v1": {
+        "parse_args": 5368713216,
+        "compute_token": 5368713312,
+        "schedule_loop": 5368713344,
+        "mainCRTStartup": 5368713424
+      },
+      "v2": {
+        "parse_args": 5368713216,
+        "compute_token": 5368713344,
+        "schedule_loop": 5368713376,
+        "mainCRTStartup": 5368713456
+      },
+      "v3": {
+        "parse_args": 5368713216,
+        "compute_token": 5368713344,
+        "schedule_loop": 5368713376,
+        "mainCRTStartup": 5368713456
+      }
+    }
+  },
+  "transitions": [
+    {
+      "component": "guardcore.dll",
+      "from": "v1",
+      "to": "v2",
+      "pairs": [
+        {
+          "left": 6442455920,
+          "right": 6442456000,
+          "name": "GuardInit",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455936,
+          "right": 6442456016,
+          "name": "GuardScan",
+          "relation": "MODIFIED"
+        },
+        {
+          "left": 6442456064,
+          "right": 6442456144,
+          "name": "GuardTick",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455184,
+          "right": 6442455184,
+          "name": "checksum32",
+          "relation": "MODIFIED"
+        },
+        {
+          "left": 6442455296,
+          "right": 6442455296,
+          "name": "crc32",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455808,
+          "right": 6442455856,
+          "name": "heartbeat_tick",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455040,
+          "right": 6442455040,
+          "name": "mem_compare",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455104,
+          "right": 6442455104,
+          "name": "mem_copy",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455440,
+          "right": 6442455520,
+          "name": "parse_config",
+          "relation": "MODIFIED"
+        },
+        {
+          "left": 6442455840,
+          "right": 6442455888,
+          "name": "policy_decide",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455664,
+          "right": 6442455712,
+          "name": "scan_signatures",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455152,
+          "right": 6442455152,
+          "name": "str_len",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455376,
+          "right": 6442455376,
+          "name": "xor_obfuscate",
+          "relation": "CONTINUATION"
+        }
+      ],
+      "splits": [
+        {
+          "left": 6442455440,
+          "rights": [
+            6442455520,
+            6442455440
+          ],
+          "name": "parse_config"
+        }
+      ],
+      "merges": [
+        {
+          "lefts": [
+            6442455632,
+            6442455600
+          ],
+          "right": 6442455648,
+          "name": "validate_header_full"
+        }
+      ],
+      "new": [
+        {
+          "right": 6442455936,
+          "name": "integrity_probe",
+          "resurrected": false
+        }
+      ],
+      "disappeared": [
+        {
+          "left": 6442455888,
+          "name": "report_event"
+        }
+      ]
+    },
+    {
+      "component": "guardsvc.exe",
+      "from": "v1",
+      "to": "v2",
+      "pairs": [
+        {
+          "left": 5368713312,
+          "right": 5368713344,
+          "name": "compute_token",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 5368713424,
+          "right": 5368713456,
+          "name": "mainCRTStartup",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 5368713216,
+          "right": 5368713216,
+          "name": "parse_args",
+          "relation": "MODIFIED"
+        },
+        {
+          "left": 5368713344,
+          "right": 5368713376,
+          "name": "schedule_loop",
+          "relation": "CONTINUATION"
+        }
+      ],
+      "splits": [],
+      "merges": [],
+      "new": [],
+      "disappeared": []
+    },
+    {
+      "component": "guardcore.dll",
+      "from": "v2",
+      "to": "v3",
+      "pairs": [
+        {
+          "left": 6442456000,
+          "right": 6442456208,
+          "name": "GuardInit",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442456016,
+          "right": 6442456224,
+          "name": "GuardScan",
+          "relation": "MODIFIED"
+        },
+        {
+          "left": 6442456144,
+          "right": 6442456368,
+          "name": "GuardTick",
+          "relation": "MODIFIED"
+        },
+        {
+          "left": 6442455184,
+          "right": 6442455184,
+          "name": "checksum32",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455296,
+          "right": 6442455296,
+          "name": "crc32",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455856,
+          "right": 6442455856,
+          "name": "heartbeat_tick",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455936,
+          "right": 6442456048,
+          "name": "integrity_probe",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455040,
+          "right": 6442455040,
+          "name": "mem_compare",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455104,
+          "right": 6442455104,
+          "name": "mem_copy",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455376,
+          "right": 6442455376,
+          "name": "obfuscate_buffer",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455520,
+          "right": 6442455520,
+          "name": "parse_config",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455440,
+          "right": 6442455440,
+          "name": "parse_line",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455888,
+          "right": 6442455888,
+          "name": "policy_decide",
+          "relation": "MODIFIED"
+        },
+        {
+          "left": 6442455712,
+          "right": 6442455712,
+          "name": "scan_signatures",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455152,
+          "right": 6442455152,
+          "name": "str_len",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 6442455648,
+          "right": 6442455648,
+          "name": "validate_header_full",
+          "relation": "CONTINUATION"
+        }
+      ],
+      "splits": [],
+      "merges": [],
+      "new": [
+        {
+          "right": 6442455936,
+          "name": "report_event",
+          "resurrected": true
+        },
+        {
+          "right": 6442456112,
+          "name": "telemetry_flush",
+          "resurrected": false
+        }
+      ],
+      "disappeared": []
+    },
+    {
+      "component": "guardsvc.exe",
+      "from": "v2",
+      "to": "v3",
+      "pairs": [
+        {
+          "left": 5368713344,
+          "right": 5368713344,
+          "name": "compute_token",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 5368713456,
+          "right": 5368713456,
+          "name": "mainCRTStartup",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 5368713216,
+          "right": 5368713216,
+          "name": "parse_args",
+          "relation": "CONTINUATION"
+        },
+        {
+          "left": 5368713376,
+          "right": 5368713376,
+          "name": "schedule_loop",
+          "relation": "MODIFIED"
+        }
+      ],
+      "splits": [],
+      "merges": [],
+      "new": [],
+      "disappeared": []
+    }
+  ]
+}

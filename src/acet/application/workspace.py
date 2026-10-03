@@ -59,7 +59,7 @@ def create_workspace(name: str, parent: Path | None = None) -> Workspace:
     if not name.strip():
         raise AcetError("ACET-WS-001", "workspace name is required")
     wid = uuid7()
-    root = Path(parent) if parent else workspaces_root()
+    root = (Path(parent) if parent else workspaces_root()).resolve()
     path = root / wid
     path.mkdir(parents=True, exist_ok=False)
     for sub in WORKSPACE_SUBDIRS:
@@ -77,7 +77,7 @@ def create_workspace(name: str, parent: Path | None = None) -> Workspace:
 
 
 def open_workspace(path: Path, *, read_only: bool = False, auto_migrate: bool = True) -> Workspace:
-    path = Path(path)
+    path = Path(path).resolve()
     dbfile = path / DB_FILENAME
     if not dbfile.is_file():
         raise AcetError("ACET-WS-001", f"no {DB_FILENAME} in workspace")

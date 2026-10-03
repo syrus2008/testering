@@ -25,13 +25,17 @@ class CanonicalJsonError(TypeError):
     pass
 
 
-def _normalize(value: Any, path: str = "$") -> Any:
+def _normalize(value: Any, path: str = "$", floats: bool = False) -> Any:
     if value is None or isinstance(value, bool):
         return value
     if isinstance(value, int):
         return value
     if isinstance(value, float):
-        raise CanonicalJsonError(f"float not allowed in canonical JSON at {path}")
+        if not floats:
+            raise CanonicalJsonError(f"float not allowed in canonical JSON at {path}")
+        if value != value or value in (float("inf"), float("-inf")):
+            raise CanonicalJsonError(f"non-finite float at {path}")
+        return value
     if isinstance(value, str):
         return unicodedata.normalize("NFC", value)
     if isinstance(value, Mapping):
@@ -42,10 +46,10 @@ def _normalize(value: Any, path: str = "$") -> Any:
             nk = unicodedata.normalize("NFC", k)
             if nk in out:
                 raise CanonicalJsonError(f"duplicate key after NFC normalization at {path}: {nk!r}")
-            out[nk] = _normalize(v, f"{path}.{nk}")
+            out[nk] = _normalize(v, f"{path}.{nk}", floats)
         return out
     if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
-        return [_normalize(v, f"{path}[{i}]") for i, v in enumerate(value)]
+        return [_normalize(v, f"{path}[{i}]", floats) for i, v in enumerate(value)]
     raise CanonicalJsonError(f"unsupported type {type(value).__name__} at {path}")
 
 
@@ -59,3 +63,20 @@ def canonical_json(value: Any) -> bytes:
 def canonical_hash(value: Any) -> str:
     """SHA-256 (lowercase hex) of the canonical JSON encoding of ``value``."""
     return hashlib.sha256(canonical_json(value)).hexdigest()
+
+
+def stable_json(value: Any) -> bytes:
+    """Canonical form that also allows finite floats (shortest round-trip repr).
+
+    Used for persisted payloads and derived outputs, which must be byte-stable
+    across runs (determinism classes D0/D1) but may carry measurements. Never
+    used for identities/fingerprints, which use :func:`canonical_json`.
+    """
+    return json.dumps(
+        _normalize(value, "$", True), sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    ).encode("utf-8")
+
+
+def stable_hash(value: Any) -> str:
+    """SHA-256 of :func:`stable_json` — for comparing measured outputs (D1 determinism), not identities."""
+    return hashlib.sha256(stable_json(value)).hexdigest()

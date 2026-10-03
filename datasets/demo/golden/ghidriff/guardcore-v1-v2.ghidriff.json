@@ -1,0 +1,632 @@
+{
+  "program_options": {
+    "guardcore.dll": {
+      "Decompiler": {
+        "Prototype Evaluation": "__fastcall"
+      },
+      "Specification Extensions": {
+        "FormatVersion": "0",
+        "VersionCounter": "0"
+      },
+      "Analyzers": {
+        "ASCII Strings": "true",
+        "ASCII Strings.Create Strings Containing Existing Strings": "true",
+        "ASCII Strings.Create Strings Containing References": "true",
+        "ASCII Strings.Force Model Reload": "false",
+        "ASCII Strings.Minimum String Length": "LEN_5",
+        "ASCII Strings.Model File": "StringModel.sng",
+        "ASCII Strings.Require Null Termination for String": "true",
+        "ASCII Strings.Search Only in Accessible Memory Blocks": "true",
+        "ASCII Strings.String Start Alignment": "ALIGN_1",
+        "ASCII Strings.String end alignment": "4",
+        "Aggressive Instruction Finder": "false",
+        "Aggressive Instruction Finder.Create Analysis Bookmarks": "true",
+        "Apply Data Archives": "true",
+        "Apply Data Archives.Archive Chooser": "[Auto-Detect]",
+        "Apply Data Archives.Create Analysis Bookmarks": "true",
+        "Apply Data Archives.GDT User File Archive Path": null,
+        "Apply Data Archives.User Project Archive Path": null,
+        "Call Convention ID": "true",
+        "Call Convention ID.Analysis Decompiler Timeout (sec)": "60",
+        "Call-Fixup Installer": "true",
+        "Condense Filler Bytes": "false",
+        "Condense Filler Bytes.Filler Value": "Auto",
+        "Condense Filler Bytes.Minimum number of sequential bytes": "1",
+        "Create Address Tables": "true",
+        "Create Address Tables.Allow Offcut References": "false",
+        "Create Address Tables.Auto Label Table": "false",
+        "Create Address Tables.Create Analysis Bookmarks": "true",
+        "Create Address Tables.Maxmimum Pointer Distance": "16777215",
+        "Create Address Tables.Minimum Pointer Address": "4132",
+        "Create Address Tables.Minimum Table Size": "2",
+        "Create Address Tables.Pointer Alignment": "1",
+        "Create Address Tables.Relocation Table Guide": "true",
+        "Create Address Tables.Table Alignment": "4",
+        "Data Reference": "true",
+        "Data Reference.Address Table Alignment": "1",
+        "Data Reference.Address Table Minimum Size": "2",
+        "Data Reference.Align End of Strings": "false",
+        "Data Reference.Ascii String References": "true",
+        "Data Reference.Create Address Tables": "true",
+        "Data Reference.Minimum String Length": "5",
+        "Data Reference.References to Pointers": "true",
+        "Data Reference.Relocation Table Guide": "true",
+        "Data Reference.Respect Execute Flag": "true",
+        "Data Reference.Subroutine References": "true",
+        "Data Reference.Switch Table References": "false",
+        "Data Reference.Unicode String References": "true",
+        "Decompiler Parameter ID": "true",
+        "Decompiler Parameter ID.Analysis Clear Level": "ANALYSIS",
+        "Decompiler Parameter ID.Analysis Decompiler Timeout (sec)": "60",
+        "Decompiler Parameter ID.Commit Data Types": "true",
+        "Decompiler Parameter ID.Commit Void Return Values": "false",
+        "Decompiler Parameter ID.Prototype Evaluation": "__fastcall",
+        "Decompiler Switch Analysis": "true",
+        "Decompiler Switch Analysis.Analysis Decompiler Timeout (sec)": "60",
+        "Demangler Microsoft": "true",
+        "Demangler Microsoft.Apply Function Calling Conventions": "true",
+        "Demangler Microsoft.Apply Function Signatures": "true",
+        "Demangler Microsoft.C-Style Symbol Interpretation": "FUNCTION_IF_EXISTS",
+        "Demangler Microsoft.Demangle Only Known Mangled Symbols": "false",
+        "Disassemble Entry Points": "true",
+        "Disassemble Entry Points.Respect Execute Flag": "true",
+        "Embedded Media": "true",
+        "Embedded Media.Create Analysis Bookmarks": "true",
+        "External Entry References": "true",
+        "Function ID": "true",
+        "Function ID.Always Apply FID Labels": "false",
+        "Function ID.Create Analysis Bookmarks": "true",
+        "Function ID.Instruction Count Threshold": "14.6",
+        "Function ID.Multiple Match Threshold": "30.0",
+        "Non-Returning Functions - Discovered": "true",
+        "Non-Returning Functions - Discovered.Create Analysis Bookmarks": "true",
+        "Non-Returning Functions - Discovered.Function Non-return Threshold": "3",
+        "Non-Returning Functions - Discovered.Repair Flow Damage": "true",
+        "Non-Returning Functions - Known": "true",
+        "Non-Returning Functions - Known.Create Analysis Bookmarks": "true",
+        "PDB MSDIA": "false",
+        "PDB MSDIA.Search untrusted symbol servers": "false",
+        "PDB Universal": "true",
+        "PDB Universal.Import Source Line Info": "true",
+        "PDB Universal.Search untrusted symbol servers": "false",
+        "Reference": "true",
+        "Reference.Address Table Alignment": "1",
+        "Reference.Address Table Minimum Size": "2",
+        "Reference.Align End of Strings": "false",
+        "Reference.Ascii String References": "true",
+        "Reference.Create Address Tables": "true",
+        "Reference.Minimum String Length": "5",
+        "Reference.References to Pointers": "true",
+        "Reference.Relocation Table Guide": "true",
+        "Reference.Respect Execute Flag": "true",
+        "Reference.Subroutine References": "true",
+        "Reference.Switch Table References": "false",
+        "Reference.Unicode String References": "true",
+        "Scalar Operand References": "true",
+        "Scalar Operand References.Relocation Table Guide": "true",
+        "Shared Return Calls": "true",
+        "Shared Return Calls.Allow Conditional Jumps": "false",
+        "Shared Return Calls.Assume Contiguous Functions Only": "true",
+        "Stack": "true",
+        "Stack.Create Local Variables": "true",
+        "Stack.Create Param Variables": "false",
+        "Stack.Max Threads": "2",
+        "Stack.useNewFunctionStackAnalysis": "true",
+        "Subroutine References": "true",
+        "Subroutine References.Create Thunks Early": "true",
+        "Variadic Function Signature Override": "false",
+        "Variadic Function Signature Override.Create Analysis Bookmarks": "false",
+        "Windows x86 PE Exception Handling": "true",
+        "Windows x86 PE RTTI Analyzer": "true",
+        "Windows x86 Thread Environment Block (TEB) Analyzer": "true",
+        "Windows x86 Thread Environment Block (TEB) Analyzer.Starting Address of the TEB": "",
+        "Windows x86 Thread Environment Block (TEB) Analyzer.Windows OS Version": "Windows 7",
+        "WindowsPE x86 Propagate External Parameters": "false",
+        "WindowsResourceReference": "true",
+        "WindowsResourceReference.Create Analysis Bookmarks": "true",
+        "x86 Constant Reference Analyzer": "true",
+        "x86 Constant Reference Analyzer.Create Data from pointer": "false",
+        "x86 Constant Reference Analyzer.Function parameter/return Pointer analysis": "true",
+        "x86 Constant Reference Analyzer.Max Threads": "2",
+        "x86 Constant Reference Analyzer.Min absolute reference": "4",
+        "x86 Constant Reference Analyzer.Require pointer param data type": "false",
+        "x86 Constant Reference Analyzer.Speculative reference max": "256",
+        "x86 Constant Reference Analyzer.Speculative reference min": "1024",
+        "x86 Constant Reference Analyzer.Stored Value Pointer analysis": "true",
+        "x86 Constant Reference Analyzer.Trust values read from writable memory": "true"
+      },
+      "Program Information": {
+        "Analyzed": "true",
+        "Compiler": "clang:unknown",
+        "Created With Ghidra Version": "11.4.2",
+        "Date Created": "Sat Oct 03 15:14:44 UTC 2026",
+        "Executable Format": "Portable Executable (PE)",
+        "Executable Location": "/home/user/testering/datasets/demo/builds/v2/guardcore.dll",
+        "Executable MD5": "52fdc8d03fc396616460ec957b1de819",
+        "Executable SHA256": "93525c344299cd35de42c8be8439ba2a54f877ea5c1f8ab00d85fdb2e052941a",
+        "FSRL": "file:///home/user/testering/datasets/demo/builds/v2/guardcore.dll?MD5=52fdc8d03fc396616460ec957b1de819",
+        "Preferred Root Namespace Category": "",
+        "RTTI Found": "false",
+        "Relocatable": "true",
+        "SectionAlignment": "4096",
+        "Should Ask To Analyze": "false"
+      }
+    }
+  },
+  "matches": {
+    "address_matches": {
+      "180001370": [
+        [
+          "1800013c0",
+          [
+            "SymbolsHash"
+          ]
+        ]
+      ],
+      "180001400": [
+        [
+          "180001450",
+          [
+            "SymbolsHash"
+          ]
+        ]
+      ],
+      "180001380": [
+        [
+          "1800013d0",
+          [
+            "SymbolsHash"
+          ]
+        ]
+      ],
+      "180001410": [
+        [
+          "180001460",
+          [
+            "SymbolsHash"
+          ]
+        ]
+      ],
+      "180001070": [
+        [
+          "180001070",
+          [
+            "ExactBytesFunctionHasher"
+          ]
+        ]
+      ],
+      "180001000": [
+        [
+          "180001000",
+          [
+            "ExactBytesFunctionHasher"
+          ]
+        ]
+      ],
+      "180001150": [
+        [
+          "180001150",
+          [
+            "ExactBytesFunctionHasher"
+          ]
+        ]
+      ],
+      "180001100": [
+        [
+          "180001100",
+          [
+            "ExactBytesFunctionHasher"
+          ]
+        ]
+      ],
+      "180001300": [
+        [
+          "180001330",
+          [
+            "ExactInstructionsFunctionHasher"
+          ]
+        ]
+      ],
+      "180001270": [
+        [
+          "1800012a0",
+          [
+            "ExactInstructionsFunctionHasher"
+          ]
+        ]
+      ],
+      "180001320": [
+        [
+          "180001350",
+          [
+            "ExactInstructionsFunctionHasher"
+          ]
+        ]
+      ],
+      "180001090": [
+        [
+          "180001090",
+          [
+            "StructuralGraphExactHash"
+          ]
+        ]
+      ],
+      "180001190": [
+        [
+          "1800011e0",
+          [
+            "SigCallingCalledHasher"
+          ]
+        ]
+      ],
+      "180001230": [
+        [
+          "180001260",
+          [
+            "Implied Match"
+          ]
+        ]
+      ],
+      "180001350": [
+        [
+          "180001380",
+          [
+            "Decomp Match"
+          ]
+        ]
+      ]
+    },
+    "name_matches": {
+      "GuardInit": [
+        [
+          "GuardInit",
+          [
+            "SymbolsHash"
+          ]
+        ]
+      ],
+      "GuardTick": [
+        [
+          "GuardTick",
+          [
+            "SymbolsHash"
+          ]
+        ]
+      ],
+      "GuardScan": [
+        [
+          "GuardScan",
+          [
+            "SymbolsHash"
+          ]
+        ]
+      ],
+      "entry": [
+        [
+          "entry",
+          [
+            "SymbolsHash"
+          ]
+        ]
+      ],
+      "FUN_180001070": [
+        [
+          "FUN_180001070",
+          [
+            "ExactBytesFunctionHasher"
+          ]
+        ]
+      ],
+      "FUN_180001000": [
+        [
+          "FUN_180001000",
+          [
+            "ExactBytesFunctionHasher"
+          ]
+        ]
+      ],
+      "FUN_180001150": [
+        [
+          "FUN_180001150",
+          [
+            "ExactBytesFunctionHasher"
+          ]
+        ]
+      ],
+      "FUN_180001100": [
+        [
+          "FUN_180001100",
+          [
+            "ExactBytesFunctionHasher"
+          ]
+        ]
+      ],
+      "FUN_180001300": [
+        [
+          "FUN_180001330",
+          [
+            "ExactInstructionsFunctionHasher"
+          ]
+        ]
+      ],
+      "FUN_180001270": [
+        [
+          "FUN_1800012a0",
+          [
+            "ExactInstructionsFunctionHasher"
+          ]
+        ]
+      ],
+      "FUN_180001320": [
+        [
+          "FUN_180001350",
+          [
+            "ExactInstructionsFunctionHasher"
+          ]
+        ]
+      ],
+      "FUN_180001090": [
+        [
+          "FUN_180001090",
+          [
+            "StructuralGraphExactHash"
+          ]
+        ]
+      ],
+      "FUN_180001190": [
+        [
+          "FUN_1800011e0",
+          [
+            "SigCallingCalledHasher"
+          ]
+        ]
+      ],
+      "FUN_180001230": [
+        [
+          "FUN_180001260",
+          [
+            "Implied Match"
+          ]
+        ]
+      ],
+      "FUN_180001350": [
+        [
+          "FUN_180001380",
+          [
+            "Decomp Match"
+          ]
+        ]
+      ]
+    }
+  },
+  "stats": {
+    "added_funcs_len": 0,
+    "deleted_funcs_len": 2,
+    "modified_funcs_len": 1,
+    "added_symbols_len": 0,
+    "deleted_symbols_len": 0,
+    "diff_time": 5.362369537353516,
+    "deleted_strings_len": 0,
+    "added_strings_len": 0,
+    "match_types": {
+      "SymbolsHash": 4,
+      "ExactBytesFunctionHasher": 4,
+      "ExactInstructionsFunctionHasher": 3,
+      "StructuralGraphExactHash": 1,
+      "SigCallingCalledHasher": 1,
+      "Implied Match": 1,
+      "Decomp Match": 1
+    },
+    "items_to_process": 3,
+    "diff_types": {
+      "code": 1,
+      "name": 1,
+      "fullname": 1,
+      "length": 1,
+      "sig": 1,
+      "address": 1,
+      "calling": 1
+    },
+    "unmatched_funcs_len": 2,
+    "total_funcs_len": 32,
+    "matched_funcs_len": 30,
+    "matched_funcs_with_code_changes_len": 1,
+    "matched_funcs_with_non_code_changes_len": 0,
+    "matched_funcs_no_changes_len": 29,
+    "match_func_similarity_percent": "96.6667%",
+    "func_match_overall_percent": "93.7500%",
+    "first_matches": {
+      "SymbolsHash": 4,
+      "ExactBytesFunctionHasher": 4,
+      "ExactInstructionsFunctionHasher": 3,
+      "StructuralGraphExactHash": 1,
+      "SigCallingCalledHasher": 1,
+      "Implied Match": 1,
+      "Decomp Match": 1
+    }
+  },
+  "symbols": {
+    "added": [],
+    "deleted": []
+  },
+  "strings": {
+    "added": [],
+    "deleted": []
+  },
+  "functions": {
+    "added": [],
+    "deleted": [
+      {
+        "name": "FUN_180001250",
+        "fullname": "FUN_180001250",
+        "parent": "Global",
+        "refcount": 1,
+        "length": 27,
+        "called": [],
+        "calling": [
+          "GuardScan"
+        ],
+        "paramcount": 2,
+        "address": "180001250",
+        "sig": "bool __fastcall FUN_180001250(longlong param_1, uint param_2)",
+        "code": "\nbool FUN_180001250(longlong param_1,uint param_2)\n\n{\n  return false;\n}\n\n",
+        "instructions": -6549334598357370091,
+        "mnemonics": 1019033541217947698,
+        "blocks": -4479141478508126548,
+        "sym_type": "Function",
+        "sym_source": "DEFAULT",
+        "external": false
+      },
+      {
+        "name": "FUN_180001190",
+        "fullname": "FUN_180001190",
+        "parent": "Global",
+        "refcount": 1,
+        "length": 68,
+        "called": [],
+        "calling": [
+          "FUN_1800011e0"
+        ],
+        "paramcount": 2,
+        "address": "180001190",
+        "sig": "bool __fastcall FUN_180001190(longlong param_1, uint * param_2)",
+        "code": "\nbool FUN_180001190(longlong param_1,uint *param_2)\n\n{\n  char cVar1;\n  uint uVar2;\n  bool bVar3;\n  uint uVar4;\n  \n  uVar2 = *param_2;\n  bVar3 = false;\n  uVar4 = uVar2;\n  do {\n    cVar1 = *(char *)(param_1 + (ulonglong)uVar4);\n    if (cVar1 == '=') {\n      bVar3 = true;\n    }\n    else if ((cVar1 == '\\0') || (cVar1 == '\\n')) {\n      return uVar2 + 2 < uVar4 && bVar3;\n    }\n    uVar4 = uVar4 + 1;\n    *param_2 = uVar4;\n  } while( true );\n}\n\n",
+        "instructions": 4301720760213433317,
+        "mnemonics": 2742050510372660188,
+        "blocks": -3449117834238758931,
+        "sym_type": "Function",
+        "sym_source": "DEFAULT",
+        "external": false
+      }
+    ],
+    "modified": [
+      {
+        "old": {
+          "name": "FUN_180001190",
+          "fullname": "FUN_180001190",
+          "parent": "Global",
+          "refcount": 1,
+          "length": 68,
+          "called": [],
+          "calling": [
+            "FUN_1800011e0"
+          ],
+          "paramcount": 2,
+          "address": "180001190",
+          "sig": "bool __fastcall FUN_180001190(longlong param_1, uint * param_2)",
+          "code": "\nbool FUN_180001190(longlong param_1,uint *param_2)\n\n{\n  char cVar1;\n  uint uVar2;\n  bool bVar3;\n  uint uVar4;\n  \n  uVar2 = *param_2;\n  bVar3 = false;\n  uVar4 = uVar2;\n  do {\n    cVar1 = *(char *)(param_1 + (ulonglong)uVar4);\n    if (cVar1 == '=') {\n      bVar3 = true;\n    }\n    else if ((cVar1 == '\\0') || (cVar1 == '\\n')) {\n      return uVar2 + 2 < uVar4 && bVar3;\n    }\n    uVar4 = uVar4 + 1;\n    *param_2 = uVar4;\n  } while( true );\n}\n\n",
+          "instructions": 4301720760213433317,
+          "mnemonics": 2742050510372660188,
+          "blocks": -3449117834238758931,
+          "sym_type": "Function",
+          "sym_source": "DEFAULT",
+          "external": false
+        },
+        "new": {
+          "name": "FUN_180001250",
+          "fullname": "FUN_180001250",
+          "parent": "Global",
+          "refcount": 1,
+          "length": 27,
+          "called": [],
+          "calling": [
+            "GuardScan"
+          ],
+          "paramcount": 2,
+          "address": "180001250",
+          "sig": "bool __fastcall FUN_180001250(longlong param_1, uint param_2)",
+          "code": "\nbool FUN_180001250(longlong param_1,uint param_2)\n\n{\n  return false;\n}\n\n",
+          "instructions": -6549334598357370091,
+          "mnemonics": 1019033541217947698,
+          "blocks": -4479141478508126548,
+          "sym_type": "Function",
+          "sym_source": "DEFAULT",
+          "external": false
+        },
+        "diff": "--- FUN_180001190\n+++ FUN_180001250\n@@ -1,25 +1,7 @@\n \n-bool FUN_180001190(longlong param_1,uint *param_2)\n+bool FUN_180001250(longlong param_1,uint param_2)\n \n {\n-  char cVar1;\n-  uint uVar2;\n-  bool bVar3;\n-  uint uVar4;\n-  \n-  uVar2 = *param_2;\n-  bVar3 = false;\n-  uVar4 = uVar2;\n-  do {\n-    cVar1 = *(char *)(param_1 + (ulonglong)uVar4);\n-    if (cVar1 == '=') {\n-      bVar3 = true;\n-    }\n-    else if ((cVar1 == '\\0') || (cVar1 == '\\n')) {\n-      return uVar2 + 2 < uVar4 && bVar3;\n-    }\n-    uVar4 = uVar4 + 1;\n-    *param_2 = uVar4;\n-  } while( true );\n+  return false;\n }\n \n",
+        "diff_type": [
+          "code",
+          "name",
+          "fullname",
+          "length",
+          "sig",
+          "address",
+          "calling"
+        ],
+        "ratio": 0.23,
+        "i_ratio": 0.06,
+        "m_ratio": 0.65,
+        "b_ratio": 0.24,
+        "match_types": [
+          "Implied Match"
+        ]
+      }
+    ]
+  },
+  "old_meta": {
+    "Program Name": "guardcore.dll",
+    "Language ID": "x86:LE:64:default (4.6)",
+    "Compiler ID": "clangwindows",
+    "Processor": "x86",
+    "Endian": "Little",
+    "Address Size": "64",
+    "Minimum Address": "180000000",
+    "Maximum Address": "ff0000184f",
+    "# of Bytes": "9816",
+    "# of Memory Blocks": "6",
+    "# of Instructions": "298",
+    "# of Defined Data": "121",
+    "# of Functions": "16",
+    "# of Symbols": "130",
+    "# of Data Types": "54",
+    "# of Data Type Categories": "3",
+    "Analyzed": "true",
+    "Compiler": "clang:unknown",
+    "Created With Ghidra Version": "11.4.2",
+    "Date Created": "Sat Oct 03 15:14:44 UTC 2026",
+    "Executable Format": "Portable Executable (PE)",
+    "Executable Location": "/home/user/testering/datasets/demo/builds/v1/guardcore.dll",
+    "Executable MD5": "589c2e6631489c101d8d0fb6a70156cb",
+    "Executable SHA256": "52c429bbf5e77c79e5bdf39868fb20084694579ca800dbb2895fdf7292d0ab5e",
+    "FSRL": "file:///home/user/testering/datasets/demo/builds/v1/guardcore.dll?MD5=589c2e6631489c101d8d0fb6a70156cb",
+    "Preferred Root Namespace Category": "",
+    "RTTI Found": "false",
+    "Relocatable": "true",
+    "SectionAlignment": "4096",
+    "Should Ask To Analyze": "false"
+  },
+  "new_meta": {
+    "Program Name": "guardcore.dll",
+    "Language ID": "x86:LE:64:default (4.6)",
+    "Compiler ID": "clangwindows",
+    "Processor": "x86",
+    "Endian": "Little",
+    "Address Size": "64",
+    "Minimum Address": "180000000",
+    "Maximum Address": "ff0000184f",
+    "# of Bytes": "9812",
+    "# of Memory Blocks": "6",
+    "# of Instructions": "334",
+    "# of Defined Data": "120",
+    "# of Functions": "16",
+    "# of Symbols": "135",
+    "# of Data Types": "55",
+    "# of Data Type Categories": "3",
+    "Analyzed": "true",
+    "Compiler": "clang:unknown",
+    "Created With Ghidra Version": "11.4.2",
+    "Date Created": "Sat Oct 03 15:14:44 UTC 2026",
+    "Executable Format": "Portable Executable (PE)",
+    "Executable Location": "/home/user/testering/datasets/demo/builds/v2/guardcore.dll",
+    "Executable MD5": "52fdc8d03fc396616460ec957b1de819",
+    "Executable SHA256": "93525c344299cd35de42c8be8439ba2a54f877ea5c1f8ab00d85fdb2e052941a",
+    "FSRL": "file:///home/user/testering/datasets/demo/builds/v2/guardcore.dll?MD5=52fdc8d03fc396616460ec957b1de819",
+    "Preferred Root Namespace Category": "",
+    "RTTI Found": "false",
+    "Relocatable": "true",
+    "SectionAlignment": "4096",
+    "Should Ask To Analyze": "false"
+  },
+  "md_credits": "\n<sub>Generated with `ghidriff` version: 1.0.0 on 2026-10-03T15:15:00</sub>",
+  "html_credits": "\n<sub>Generated with <code>ghidriff</code> version: 1.0.0 on 2026-10-03T15:15:00</sub>"
+}

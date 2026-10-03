@@ -1,0 +1,25 @@
+ guardsvc
+
+ Timestamp is 00000000 (Repro mode)
+
+ Preferred load address is 0000000140000000
+
+ Start         Length     Name                   Class
+ 0001:00000000 000000eeH .text                   CODE
+ 0002:00000000 00000006H .rdata                  DATA
+ 0003:00000000 00000000H .data                   DATA
+ 0003:00000000 00000004H .bss                    DATA
+
+  Address         Publics by Value              Rva+Base               Lib:Object
+
+ 0001:00000000       parse_args                 0000000140001000     guardsvc-594776.o
+ 0001:00000060       compute_token              0000000140001060     guardsvc-594776.o
+ 0001:00000080       schedule_loop              0000000140001080     guardsvc-594776.o
+ 0001:000000d0       mainCRTStartup             00000001400010d0     guardsvc-594776.o
+ 0002:00000000       ??_C@_05CFBOGPOB@?9v?5?9q?$AA@ 0000000140002000     guardsvc-594776.o
+
+ entry point at         0001:000000d0
+
+ Static symbols
+
+ 0003:00000000       g_ticks                    0000000140003000     guardsvc-594776.o

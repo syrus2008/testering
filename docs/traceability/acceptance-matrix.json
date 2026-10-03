@@ -1,8 +1,8 @@
 {
   "spec_version": "3.0",
   "summary": {
-    "automated": 23,
-    "not_started": 119,
+    "automated": 54,
+    "not_started": 88,
     "partial": 8
   },
   "criteria": [
@@ -84,43 +84,56 @@
       "id": "ACC-010",
       "subject": "Resume",
       "criterion": "Après arrêt forcé de l’application, les jobs interrompus sont proposés à la reprise.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_resume_after_crash_does_not_redo_completed_nodes",
+        "tests/integration/test_jobs.py::test_interrupted_jobs_are_offered_for_resume"
+      ]
     },
     {
       "id": "ACC-011",
       "subject": "Partial",
       "criterion": "Échec d’un moteur optionnel produit COMPLETED_PARTIAL et missing_evidence.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_missing_optional_engine_gives_partial_with_missing_evidence"
+      ]
     },
     {
       "id": "ACC-012",
       "subject": "Cache",
       "criterion": "Relancer même processor/config/input produit cache hit.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_cache_hit_and_reproducibility"
+      ]
     },
     {
       "id": "ACC-013",
       "subject": "Stale",
       "criterion": "Changer processor version marque les descendants STALE sans supprimer les anciens résultats.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_processor_version_change_marks_descendants_stale"
+      ]
     },
     {
       "id": "ACC-014",
       "subject": "Reproducibility",
       "criterion": "Chaque Analysis Run expose versions, config hashes et input hashes.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_cache_hit_and_reproducibility"
+      ]
     },
     {
       "id": "ACC-015",
       "subject": "Explainability",
       "criterion": "Chaque consensus match ouvre supporting/contradicting evidence.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_consensus_explainable_and_raw_preserved"
+      ]
     },
     {
       "id": "ACC-016",
@@ -143,15 +156,19 @@
       "id": "ACC-018",
       "subject": "Lineage history",
       "criterion": "Ajouter Build C étend la lineage sans supprimer les assignments de l’ancien run.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_lineage_split_merge_and_incremental_extension"
+      ]
     },
     {
       "id": "ACC-019",
       "subject": "Split/merge",
       "criterion": "Le modèle accepte au moins un split et un merge dans les fixtures.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_lineage_split_merge_and_incremental_extension"
+      ]
     },
     {
       "id": "ACC-020",
@@ -187,6 +204,7 @@
       "criterion": "Toutes les migrations fixtures réussissent ou rollbackent atomiquement.",
       "status": "automated",
       "tests": [
+        "tests/integration/test_storage.py::test_every_migration_step_applies_in_sequence",
         "tests/integration/test_storage.py::test_migration_failure_rolls_back_atomically"
       ]
     },
@@ -201,8 +219,10 @@
       "id": "ACC-026",
       "subject": "Doctor",
       "criterion": "Doctor --full exécute un golden self-test fonctionnel.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_live_engines.py::test_live_standard_matches_golden_extraction"
+      ]
     },
     {
       "id": "ACC-027",
@@ -236,8 +256,10 @@
       "id": "ACC-031",
       "subject": "Disk preflight",
       "criterion": "Un job lourd refuse de démarrer si l’espace estimé est insuffisant.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_jobs.py::test_heavy_job_refused_without_disk"
+      ]
     },
     {
       "id": "ACC-032",
@@ -250,8 +272,10 @@
       "id": "ACC-033",
       "subject": "Provider capability",
       "criterion": "L’UI dépend des capabilities, pas du nom d’un moteur spécifique.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_capabilities_drive_availability"
+      ]
     },
     {
       "id": "ACC-034",
@@ -294,15 +318,20 @@
       "id": "ACC-038",
       "subject": "Determinism",
       "criterion": "Le golden dataset répété produit les mêmes facts et sorties déterministes définies.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_determinism_declared_and_repeat_checked",
+        "tests/integration/test_live_engines.py::test_live_standard_matches_golden_extraction"
+      ]
     },
     {
       "id": "ACC-039",
       "subject": "Coverage",
       "criterion": "Un run partiel expose coverage et raisons de non-couverture.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_missing_optional_engine_gives_partial_with_missing_evidence"
+      ]
     },
     {
       "id": "ACC-040",
@@ -378,15 +407,19 @@
       "id": "ACC-048",
       "subject": "Raw scores",
       "criterion": "Les scores moteurs originaux restent accessibles après consensus.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_consensus_explainable_and_raw_preserved"
+      ]
     },
     {
       "id": "ACC-049",
       "subject": "Evidence diversity",
       "criterion": "Le consensus distingue nombre de moteurs et diversité de familles de preuve.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_consensus_explainable_and_raw_preserved"
+      ]
     },
     {
       "id": "ACC-050",
@@ -399,22 +432,28 @@
       "id": "ACC-051",
       "subject": "Provider completion",
       "criterion": "Exit 0 + sortie manquante ne peut jamais produire COMPLETED.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_supervisor.py::test_exit_zero_without_valid_outputs_is_never_completed"
+      ]
     },
     {
       "id": "ACC-052",
       "subject": "Job Object",
       "criterion": "Tous les descendants d’un provider sont terminés après hard cancel.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_supervisor.py::test_process_tree_is_killed_on_hard_timeout"
+      ]
     },
     {
       "id": "ACC-053",
       "subject": "Ghidra false-success",
       "criterion": "Une erreur interne connue dans les logs dégrade le run.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_supervisor.py::test_engine_internal_error_in_logs_degrades_run"
+      ]
     },
     {
       "id": "ACC-054",
@@ -554,8 +593,10 @@
       "id": "ACC-072",
       "subject": "QBinDiff guard",
       "criterion": "Le provider refuse/limite automatiquement un input dépassant le budget configuré.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/unit/test_engines.py::test_qbindiff_memory_gate"
+      ]
     },
     {
       "id": "ACC-073",
@@ -568,8 +609,10 @@
       "id": "ACC-074",
       "subject": "Provider registry",
       "criterion": "Doctor affiche limitations applicables au pack courant.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/unit/test_engines.py::test_known_limitations_registry"
+      ]
     },
     {
       "id": "ACC-075",
@@ -610,8 +653,10 @@
       "id": "ACC-080",
       "subject": "No silent fallback",
       "criterion": "Tout provider remplacé/skippé apparaît dans run/report.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_missing_optional_engine_gives_partial_with_missing_evidence"
+      ]
     },
     {
       "id": "ACC-081",
@@ -663,8 +708,10 @@
       "id": "ACC-087",
       "subject": "Log bounds",
       "criterion": "Provider très bavard ne remplit pas indéfiniment le disque.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_supervisor.py::test_logs_are_bounded"
+      ]
     },
     {
       "id": "ACC-088",
@@ -712,8 +759,10 @@
       "id": "ACC-094",
       "subject": "Power policy",
       "criterion": "Annuler/finir un job restaure toujours l’état de prévention de veille.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_jobs.py::test_sleep_prevention_always_restored"
+      ]
     },
     {
       "id": "ACC-095",
@@ -791,6 +840,7 @@
       "criterion": "Une transition illégale est refusée sans mutation DB.",
       "status": "automated",
       "tests": [
+        "tests/integration/test_jobs.py::test_illegal_job_transition_has_no_side_effect",
         "tests/unit/test_domain.py::test_illegal_transition_rejected"
       ]
     },
@@ -798,22 +848,28 @@
       "id": "ACC-105",
       "subject": "Single-flight",
       "criterion": "100 requêtes concurrentes même cache key ⇒ un calcul lourd.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_jobs.py::test_single_flight_runs_one_heavy_computation"
+      ]
     },
     {
       "id": "ACC-106",
       "subject": "Dead lock recovery",
       "criterion": "Lock owner mort est détecté/récupéré.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_jobs.py::test_dead_lock_owner_is_recovered"
+      ]
     },
     {
       "id": "ACC-107",
       "subject": "No long tx",
       "criterion": "Instrumentation confirme absence d’appel moteur sous transaction DB longue.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_cache_hit_and_reproducibility"
+      ]
     },
     {
       "id": "ACC-108",
@@ -982,6 +1038,7 @@
       "criterion": "Migration supportée réussit après backup.",
       "status": "automated",
       "tests": [
+        "tests/integration/test_storage.py::test_every_migration_step_applies_in_sequence",
         "tests/integration/test_storage.py::test_migration_failure_rolls_back_atomically"
       ]
     },
@@ -989,8 +1046,10 @@
       "id": "ACC-131",
       "subject": "Human/raw separation",
       "criterion": "Human assertion ne modifie matcher_result.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_consensus_explainable_and_raw_preserved"
+      ]
     },
     {
       "id": "ACC-132",
@@ -1017,15 +1076,19 @@
       "id": "ACC-135",
       "subject": "Determinism declaration",
       "criterion": "Tous processors déclarent D0-D3.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_determinism_declared_and_repeat_checked"
+      ]
     },
     {
       "id": "ACC-136",
       "subject": "D0 repeat",
       "criterion": "Processor D0 répété produit hash sortie identique.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_determinism_declared_and_repeat_checked"
+      ]
     },
     {
       "id": "ACC-137",
@@ -1077,15 +1140,19 @@
       "id": "ACC-143",
       "subject": "Provider distrust",
       "criterion": "Exit 0 + invariant invalide = failure/partial.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_supervisor.py::test_exit_zero_without_valid_outputs_is_never_completed"
+      ]
     },
     {
       "id": "ACC-144",
       "subject": "Historical run",
       "criterion": "Réanalyse ne change aucun row historique immuable.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/integration/test_analysis.py::test_processor_version_change_marks_descendants_stale"
+      ]
     },
     {
       "id": "ACC-145",

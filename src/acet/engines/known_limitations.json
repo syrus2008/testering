@@ -1,0 +1,51 @@
+{
+  "registry_version": 1,
+  "limitations": [
+    {
+      "id": "KL-BDF-001",
+      "provider_id": "bindiff",
+      "provider_version_range": "*",
+      "input_context": {"function_count_bucket": "XL"},
+      "symptom": "BinDiff result database grows beyond provider limits on very large inputs",
+      "severity": "MEDIUM",
+      "workaround": "Restrict to compatible components or rely on Ghidriff results",
+      "source": "ACET spec §70 ACET-BDF-003",
+      "status": "OPEN",
+      "symptom_regex": "(?i)(database or disk is full|too many functions)"
+    },
+    {
+      "id": "KL-BEX-001",
+      "provider_id": "binexport",
+      "provider_version_range": "*",
+      "input_context": {"format": "PE32+", "symbols_present": false},
+      "symptom": "BinExport may fail on functions with overlapping or non-contiguous bodies",
+      "severity": "LOW",
+      "workaround": "Result marked SKIPPED_KNOWN_LIMITATION; Ghidriff evidence kept",
+      "source": "ACET spec §70 ACET-BDF-002",
+      "status": "OPEN",
+      "symptom_regex": "(?i)(overlapping|non-contiguous).*function"
+    },
+    {
+      "id": "KL-QBD-001",
+      "provider_id": "qbindiff",
+      "provider_version_range": "*",
+      "input_context": {"function_count_bucket": "L"},
+      "symptom": "Memory consumption grows quadratically with function count",
+      "severity": "HIGH",
+      "workaround": "Memory gate skips or reduces the perimeter (ACET-QBD-001)",
+      "source": "QBinDiff documentation; ACET spec §69",
+      "status": "MITIGATED"
+    },
+    {
+      "id": "KL-GHD-001",
+      "provider_id": "ghidra",
+      "provider_version_range": "*",
+      "input_context": {"packing_indicators": true},
+      "symptom": "Packed or virtualized code yields poor function boundary recovery",
+      "severity": "HIGH",
+      "workaround": "Extraction quality lowers reliability; never interpreted as a software change (ACET-SCI-003)",
+      "source": "ACET spec §67",
+      "status": "OPEN"
+    }
+  ]
+}

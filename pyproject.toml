@@ -24,6 +24,8 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "acet.storage.migrations" = ["*.sql"]
+"acet" = ["schemas/v1/*.json"]
+"acet.engines" = ["*.json", "ghidra_scripts/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -46,3 +48,8 @@ ignore = ["RUF001", "RUF002", "RUF003", "E501"]
 python_version = "3.11"
 strict = true
 files = ["src/acet"]
+exclude = ["src/acet/engines/qbindiff_runner\\.py"]  # runs in the Engine Pack's own interpreter
+
+[[tool.mypy.overrides]]
+module = ["tlsh", "qbindiff.*", "PySide6.*"]
+ignore_missing_imports = true

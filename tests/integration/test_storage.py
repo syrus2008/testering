@@ -57,24 +57,37 @@ def test_split_statements_handles_triggers():
 
 
 @pytest.mark.acceptance("ACC-024", "ACC-130")
+def test_every_migration_step_applies_in_sequence(tmp_path: Path):
+    """ACC-024/ACC-130: each supported schema version migrates to the next, with a backup."""
+    migs = load_migrations()
+    db = Database(tmp_path / "acet.db")
+    for i in range(1, len(migs) + 1):
+        assert migrate(db, tmp_path / "backups", migrations=migs[:i]) == i
+        assert db.integrity_check() == []
+    assert len(list((tmp_path / "backups").glob("pre-migration-*.db"))) == len(migs) - 1
+    db.close()
+
+
+@pytest.mark.acceptance("ACC-024", "ACC-130")
 def test_migration_failure_rolls_back_atomically(tmp_path: Path):
     db = Database(tmp_path / "acet.db")
     base = load_migrations()
     migrate(db, tmp_path / "backups", migrations=base)
     with db.transaction() as tx:
         tx.execute("INSERT INTO workspace VALUES ('w','n','t',1)")
-    bad = Migration(2, "0002_bad.sql", "ALTER TABLE build ADD COLUMN extra TEXT;\nCREATE TABLE broken (;\n")
+    nxt = len(base) + 1
+    bad = Migration(nxt, f"{nxt:04d}_bad.sql", "ALTER TABLE build ADD COLUMN extra TEXT;\nCREATE TABLE broken (;\n")
     with pytest.raises(AcetError) as ei:
         migrate(db, tmp_path / "backups", migrations=[*base, bad])
     assert ei.value.code == "ACET-DB-002"
-    assert db.user_version == 1
+    assert db.user_version == len(base)
     cols = {r[1] for r in db.conn.execute("PRAGMA table_info(build)")}
     assert "extra" not in cols
     assert db.conn.execute("SELECT count(*) FROM workspace").fetchone()[0] == 1
-    assert list((tmp_path / "backups").glob("pre-migration-v0001-*.db"))
+    assert list((tmp_path / "backups").glob(f"pre-migration-v{len(base):04d}-*.db"))
 
-    good = Migration(2, "0002_good.sql", "ALTER TABLE build ADD COLUMN extra TEXT;\n")
-    assert migrate(db, tmp_path / "backups", migrations=[*base, good]) == 2
+    good = Migration(nxt, f"{nxt:04d}_good.sql", "ALTER TABLE build ADD COLUMN extra TEXT;\n")
+    assert migrate(db, tmp_path / "backups", migrations=[*base, good]) == nxt
     assert "extra" in {r[1] for r in db.conn.execute("PRAGMA table_info(build)")}
     db.close()
 

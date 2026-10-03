@@ -257,6 +257,138 @@ def cmd_backup(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _run_exit(status: str) -> int:
+    return {
+        "COMPLETED": EXIT_OK,
+        "COMPLETED_PARTIAL": EXIT_PARTIAL,
+        "CANCELLED": EXIT_PARTIAL,
+        "RUNNING": EXIT_PARTIAL,
+    }.get(status, EXIT_ANALYSIS)
+
+
+def _print_run(args: argparse.Namespace, s: Any) -> int:
+    d = s.to_dict()
+    lines = [f"run {d['run_id']} {d['status']} coverage={d['coverage']} cache_hits={d['cache_hits']}"]
+    lines += [f"  missing: {m['processor']} {m['outcome']} — {m['reason']}" for m in d["missing_evidence"]]
+    lines += [f"  warning: {w}" for w in d["warnings"]]
+    _emit(args, d, "\n".join(lines))
+    return _run_exit(d["status"])
+
+
+def cmd_analyze(args: argparse.Namespace) -> int:
+    from acet.analysis.orchestrator import analyze_build
+
+    with _open(args) as ws:
+        return _print_run(args, analyze_build(ws, args.build_id, args.profile))
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    from acet.analysis.orchestrator import compare_builds
+
+    with _open(args) as ws:
+        return _print_run(args, compare_builds(ws, args.left, args.right, args.profile))
+
+
+def cmd_lineage(args: argparse.Namespace) -> int:
+    from acet.lineage.builder import build_lineage
+
+    with _open(args) as ws:
+        prod = _product_id(ws, args.product)
+        res = build_lineage(ws, prod, incremental=not args.full)
+    _emit(args, res.to_dict(), json.dumps(res.to_dict(), indent=2))
+    return EXIT_PARTIAL if res.missing_pairs else EXIT_OK
+
+
+def _product_id(ws: Any, ref: str) -> str:
+    from acet.storage import repositories as repo
+
+    p = repo.find_product(ws.db.conn, ref)
+    if p is None:
+        raise AcetError("ACET-NOTFOUND-001", f"product {ref!r}")
+    return str(p["id"])
+
+
+def cmd_runs_list(args: argparse.Namespace) -> int:
+    with _open(args, read_only=True) as ws:
+        rows = [
+            dict(r)
+            for r in ws.db.conn.execute(
+                "SELECT id, scope_type, scope_id, status, coverage, started_at, finished_at FROM analysis_run ORDER BY seq"
+            )
+        ]
+    _emit(
+        args,
+        rows,
+        "\n".join(f"{r['id']}  {r['scope_type']:<8} {r['status']:<18} cov={r['coverage']}" for r in rows)
+        or "(no runs)",
+    )
+    return EXIT_OK
+
+
+def cmd_runs_show(args: argparse.Namespace) -> int:
+    with _open(args, read_only=True) as ws:
+        run = ws.db.conn.execute("SELECT * FROM analysis_run WHERE id=?", (args.run_id,)).fetchone()
+        if run is None:
+            raise AcetError("ACET-NOTFOUND-001", f"run {args.run_id}")
+        d = dict(run)
+        d["processor_runs"] = [
+            dict(r)
+            for r in ws.db.conn.execute(
+                "SELECT processor_id, processor_version, status, outcome, cache_hit, cache_key, input_hash, config_hash,"
+                " termination, completion_state, error_code FROM processor_run WHERE analysis_run_id=? ORDER BY rowid",
+                (args.run_id,),
+            )
+        ]
+    for k in ("resolved_config_json", "missing_evidence_json", "coverage_json", "warnings_json", "input_hashes_json"):
+        if d.get(k):
+            d[k[:-5]] = json.loads(d.pop(k))
+    _emit(args, d, json.dumps(d, indent=2, default=str))
+    return EXIT_OK
+
+
+def cmd_jobs_list(args: argparse.Namespace) -> int:
+    from acet.jobs import store as jobs
+
+    with _open(args) as ws:
+        recovered = jobs.recover_interrupted(ws.db)
+        items = jobs.list_jobs(ws.db, active_only=not args.all)
+    text = "\n".join(
+        f"{j['id']}  {j['job_type']:<9} {j['state']:<16} {j['stage'] or '':<24} {j['progress']}" for j in items
+    )
+    if recovered:
+        text += f"\n{len(recovered)} interrupted job(s) can be resumed: acet jobs resume <id>"
+    _emit(args, {"jobs": items, "recovered": recovered}, text or "(no jobs)")
+    return EXIT_OK
+
+
+def cmd_jobs_resume(args: argparse.Namespace) -> int:
+    from acet.analysis.orchestrator import resume
+    from acet.jobs import store as jobs
+
+    with _open(args) as ws:
+        jobs.recover_interrupted(ws.db)
+        return _print_run(args, resume(ws, args.job_id))
+
+
+def cmd_jobs_cancel(args: argparse.Namespace) -> int:
+    from acet.jobs import store as jobs
+
+    with _open(args) as ws:
+        jobs.request(ws.db, args.job_id, "cancel")
+        state = jobs.get_job(ws.db, args.job_id)["state"]  # type: ignore[index]
+    _emit(args, {"job_id": args.job_id, "state": state}, f"job {args.job_id}: {state}")
+    return EXIT_OK
+
+
+def cmd_jobs_pause(args: argparse.Namespace) -> int:
+    from acet.jobs import store as jobs
+
+    with _open(args) as ws:
+        jobs.request(ws.db, args.job_id, "pause")
+    _emit(args, {"job_id": args.job_id, "state": "PAUSING"}, f"job {args.job_id}: pause requested")
+    return EXIT_OK
+
+
 def _not_yet(phase: str):  # type: ignore[no-untyped-def]
     def run(args: argparse.Namespace) -> int:
         _emit(args, {"error": "not implemented", "roadmap_phase": phase}, f"not implemented yet (roadmap {phase})")

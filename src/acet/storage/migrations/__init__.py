@@ -29,4 +29,4 @@ def load_migrations() -> list[Migration]:
     return out
 
 
-LATEST_SCHEMA_VERSION = 1
+LATEST_SCHEMA_VERSION = 3

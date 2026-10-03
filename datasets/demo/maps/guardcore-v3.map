@@ -1,0 +1,46 @@
+ guardcore
+
+ Timestamp is 00000000 (Repro mode)
+
+ Preferred load address is 0000000180000000
+
+ Start         Length     Name                   Class
+ 0001:00000000 00000566H .text                   CODE
+ 0002:00000000 00000034H .rdata                  DATA
+ 0003:00000000 00000000H .data                   DATA
+ 0003:00000000 00000110H .bss                    DATA
+
+  Address         Publics by Value              Rva+Base               Lib:Object
+
+ 0001:00000000       mem_compare                0000000180001000     guardcore-a90582.o
+ 0001:00000040       mem_copy                   0000000180001040     guardcore-a90582.o
+ 0001:00000070       str_len                    0000000180001070     guardcore-a90582.o
+ 0001:00000090       checksum32                 0000000180001090     guardcore-a90582.o
+ 0001:00000100       crc32                      0000000180001100     guardcore-a90582.o
+ 0001:00000150       obfuscate_buffer           0000000180001150     guardcore-a90582.o
+ 0001:00000190       parse_line                 0000000180001190     guardcore-a90582.o
+ 0001:000001e0       parse_config               00000001800011e0     guardcore-a90582.o
+ 0001:00000260       validate_header_full       0000000180001260     guardcore-a90582.o
+ 0001:000002a0       scan_signatures            00000001800012a0     guardcore-a90582.o
+ 0001:00000330       heartbeat_tick             0000000180001330     guardcore-a90582.o
+ 0001:00000350       policy_decide              0000000180001350     guardcore-a90582.o
+ 0001:00000380       report_event               0000000180001380     guardcore-a90582.o
+ 0001:000003f0       integrity_probe            00000001800013f0     guardcore-a90582.o
+ 0001:00000430       telemetry_flush            0000000180001430     guardcore-a90582.o
+ 0001:00000490       GuardInit                  0000000180001490     guardcore-a90582.o
+ 0001:000004a0       GuardScan                  00000001800014a0     guardcore-a90582.o
+ 0001:00000530       GuardTick                  0000000180001530     guardcore-a90582.o
+ 0001:00000560       _DllMainCRTStartup         0000000180001560     guardcore-a90582.o
+ 0002:00000020       ??_C@_04BDIALFFA@FGRD?$AA@ 0000000180002020     guardcore-a90582.o
+ 0002:00000025       ??_C@_04PKGCAPDC@HOOK?$AA@ 0000000180002025     guardcore-a90582.o
+ 0002:0000002a       ??_C@_04PNNKJEI@PTCH?$AA@  000000018000202a     guardcore-a90582.o
+ 0002:0000002f       ??_C@_04LECPINJC@INJT?$AA@ 000000018000202f     guardcore-a90582.o
+
+ entry point at         0001:00000560
+
+ Static symbols
+
+ 0002:00000000       g_sigs                     0000000180002000     guardcore-a90582.o
+ 0003:00000000       g_state                    0000000180003000     guardcore-a90582.o
+ 0003:00000004       g_ring_pos                 0000000180003004     guardcore-a90582.o
+ 0003:00000010       g_ring                     0000000180003010     guardcore-a90582.o

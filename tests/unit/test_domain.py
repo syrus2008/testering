@@ -227,7 +227,7 @@ def test_no_execution_primitives_in_core():
 
 
 def test_json_schemas_are_valid_json():
-    root = Path(__file__).resolve().parents[2] / "schemas" / "v1"
+    root = Path(__file__).resolve().parents[2] / "src" / "acet" / "schemas" / "v1"
     files = list(root.glob("*.schema.json"))
     assert files
     for f in files:

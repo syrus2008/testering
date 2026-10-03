@@ -7,7 +7,7 @@ import json
 import sqlite3
 from typing import Any
 
-from acet.domain.canonical import canonical_json
+from acet.domain.canonical import stable_json
 from acet.domain.ids import uuid7
 from acet.domain.timeutil import utc_now_iso
 
@@ -24,7 +24,7 @@ def audit(
     conn.execute(
         "INSERT INTO audit_event(id, event_type, target_type, target_id, created_at, payload_json)"
         " VALUES (?,?,?,?,?,?)",
-        (aid, event_type, target_type, target_id, utc_now_iso(), canonical_json(payload or {}).decode()),
+        (aid, event_type, target_type, target_id, utc_now_iso(), stable_json(payload or {}).decode()),
     )
     return aid
 
@@ -81,3 +81,9 @@ def build_artifacts(conn: sqlite3.Connection, build_id: str) -> list[dict[str, A
 
 def loads(text: str | None) -> Any:
     return None if text is None else json.loads(text)
+
+
+def next_seq(conn: sqlite3.Connection, name: str = "global") -> int:
+    """Monotonic causal sequence (ACET-TIME-001). Must run inside a write transaction."""
+    conn.execute("UPDATE sequence SET value = value + 1 WHERE name=?", (name,))
+    return int(conn.execute("SELECT value FROM sequence WHERE name=?", (name,)).fetchone()[0])
