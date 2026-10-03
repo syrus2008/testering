@@ -986,6 +986,27 @@ def _require_mandatory(profile: Profile, env: EngineEnvironment) -> None:
         raise AcetError("ACET-GHD-001", f"profile {profile.ref} needs Ghidra; use FAST@1 or install the Engine Pack")
 
 
+def _close_finished(ws: Workspace, job_id: str, run: Any) -> RunSummary:
+    status = str(run["status"])
+    if status in ("COMPLETED", "COMPLETED_PARTIAL"):
+        path = ["PREPARING", "RUNNING", "POST_PROCESSING", "COMPLETED"]
+    elif status == "CANCELLED":
+        path = ["CANCELLING", "CANCELLED"]
+    else:
+        path = ["PREPARING", "FAILED_PERMANENT"]
+    for dst in path:
+        jobs.transition(ws.db, job_id, dst)
+    rows = ws.db.conn.execute(
+        "SELECT processor_id, outcome FROM processor_run WHERE analysis_run_id=?", (run["id"],)
+    ).fetchall()
+    with ws.db.transaction() as tx:
+        repo.audit(tx, "analysis.resume_already_finished", "analysis_run", run["id"], {"status": status})
+    return RunSummary(
+        run["id"], job_id, status, run["coverage"], {r["processor_id"]: r["outcome"] for r in rows}, [], 0,
+        ["the run had already finished when the application stopped; only its job was closed"],
+    )  # fmt: skip
+
+
 def resume(ws: Workspace, job_id: str, *, env: EngineEnvironment | None = None, fault: FaultHook = _noop) -> RunSummary:
     """Resume an INTERRUPTED/PAUSED/FAILED_RETRYABLE job (ACC-010). Completed nodes are not redone."""
     job = jobs.get_job(ws.db, job_id)
@@ -1008,6 +1029,9 @@ def resume(ws: Workspace, job_id: str, *, env: EngineEnvironment | None = None, 
         jobs.transition(ws.db, job_id, "QUEUED", attempts=int(job["attempts"]) + 1)
     else:
         raise AcetError("ACET-DOM-001", f"job in state {job['state']} cannot be resumed")
+    if run["status"] in ANALYSIS_RUN.terminal:
+        # Killed after the run was finalised but before its job was: nothing to redo, only the job to close.
+        return _close_finished(ws, job_id, run)
     if run["status"] == "INTERRUPTED":
         orch._set_run(run["id"], "RECOVERING")
         orch._set_run(run["id"], "QUEUED")

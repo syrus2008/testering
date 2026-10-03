@@ -112,3 +112,26 @@ def test_sleep_prevention_always_restored():
     assert not power.prevention_active()
     with power.keep_awake(False):
         assert not power.prevention_active()
+
+
+def test_killed_after_the_run_finished_closes_the_job_without_redoing_it(ws, product_id):
+    """CI repro (ACC-108): the application died between 'run COMPLETED' and 'job COMPLETED'."""
+    from pathlib import Path
+
+    from acet.analysis.orchestrator import analyze_build, resume
+    from acet.ingest.importer import ImportRequest, import_build
+
+    demo = Path(__file__).resolve().parents[2] / "datasets" / "demo" / "builds" / "v1"
+    b = import_build(ws, ImportRequest([demo], product_id)).build_id
+    s = analyze_build(ws, b, "FAST@1")
+    assert s.status == "COMPLETED"
+    with ws.db.transaction() as tx:  # the job row as the kill left it: still RUNNING, owner gone
+        tx.execute("UPDATE job SET state='RUNNING', owner_pid=999999, owner_host=? WHERE id=?",
+                   (socket.gethostname(), s.job_id))  # fmt: skip
+    before = ws.db.conn.execute("SELECT COUNT(*) FROM processor_run WHERE analysis_run_id=?", (s.run_id,)).fetchone()[0]
+    assert jobs.recover_interrupted(ws.db) == [s.job_id]
+    r = resume(ws, s.job_id)
+    assert r.status == "COMPLETED" and r.run_id == s.run_id
+    assert jobs.get_job(ws.db, s.job_id)["state"] == "COMPLETED"
+    after = ws.db.conn.execute("SELECT COUNT(*) FROM processor_run WHERE analysis_run_id=?", (s.run_id,)).fetchone()[0]
+    assert after == before  # nothing re-executed
