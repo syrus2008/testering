@@ -41,7 +41,12 @@ def ghidra_version(ghidra_dir: Path) -> str | None:
 
 
 def run_headless(
-    ctx: WorkerContext, binary: Path, *, post_scripts: list[tuple[str, list[str]]], work: Path
+    ctx: WorkerContext,
+    binary: Path,
+    *,
+    post_scripts: list[tuple[str, list[str]]],
+    work: Path,
+    captured: list[str] | None = None,
 ) -> tuple[int, int]:
     gdir = Path(os.environ["ACET_GHIDRA_DIR"])
     ctx.engine_version = f"ghidra-{ghidra_version(gdir)}"
@@ -75,9 +80,13 @@ def run_headless(
         nonlocal errors
         if re.search(r"^\s*ERROR\b", line):
             errors += 1
+        if re.search(r"(?i)analysis timed out|analysis timeout", line):
+            ctx.termination = "timeout"  # native Ghidra timeout made visible in the completion manifest (ACC-054)
 
     ctx.auto_heartbeat = False
-    code = run_engine(argv, cwd=work, heartbeat=ctx.heartbeat, stop_requested=ctx.stop_requested, on_line=on_line)
+    code = run_engine(
+        argv, cwd=work, heartbeat=ctx.heartbeat, stop_requested=ctx.stop_requested, on_line=on_line, captured=captured
+    )
     shutil.rmtree(project, ignore_errors=True)  # ACET-GHD-006: never shared, never kept
     return code, errors
 

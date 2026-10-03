@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import uuid
 from pathlib import Path
 
@@ -222,8 +223,10 @@ def test_no_execution_primitives_in_core():
         mods = _imports(py)
         assert not (mods & banned_modules), (py, mods & banned_modules)
         text = py.read_text(encoding="utf-8")
-        for call in ("os.system(", "os.startfile(", "os.exec", "os.spawn", "eval(", "exec("):
+        for call in ("os.system(", "os.startfile(", "os.exec", "os.spawn"):
             assert call not in text, (py, call)
+        # Builtin eval/exec are banned; Qt's QDialog.exec()/QApplication.exec() methods are not.
+        assert not re.search(r"(?<![.\w])(eval|exec)\(", text), py
 
 
 def test_json_schemas_are_valid_json():

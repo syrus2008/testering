@@ -187,6 +187,14 @@ CATALOG: dict[str, ErrorSpec] = {
             "No previous application version is recorded; reinstall the desired version.",
         ),
         _e(
+            "ACET-DB-004",
+            "Database busy",
+            F.DATABASE,
+            Out.RETRYABLE_FAILURE,
+            "The operation waited the bounded busy timeout and was not applied.",
+            "Retry when the other ACET operation finishes.",
+        ),
+        _e(
             "ACET-SEC-001",
             "Unsafe archive path",
             F.SECURITY,
@@ -316,6 +324,9 @@ def classify_exception(exc: BaseException) -> AcetError:
         return AcetError("ACET-DOM-001", str(exc))
     if isinstance(exc, FileNotFoundError | PermissionError | IsADirectoryError):
         return AcetError("ACET-IMP-001", type(exc).__name__)
+    # Matched by name: the domain layer must not import sqlite3.
+    if type(exc).__name__ == "OperationalError" and "locked" in str(exc).lower():
+        return AcetError("ACET-DB-004", "bounded busy timeout elapsed (ACC-111)")
     if isinstance(exc, OSError) and getattr(exc, "errno", None) == 28:  # ENOSPC
         return AcetError("ACET-IMP-003", "ENOSPC")
     return AcetError("ACET-INT-001", f"{type(exc).__name__}: {exc}")

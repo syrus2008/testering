@@ -53,9 +53,12 @@ def export(ctx: WorkerContext) -> dict[str, Any]:
     work = ctx.output_dir / "_work"
     work.mkdir(exist_ok=True)
     out = work / "export.BinExport"
-    code, log_errors = run_headless(ctx, binary, post_scripts=[("AcetBinExport.java", [str(out)])], work=work)
+    output: list[str] = []
+    code, log_errors = run_headless(
+        ctx, binary, post_scripts=[("AcetBinExport.java", [str(out)])], work=work, captured=output
+    )
     if code != 0 or not out.is_file():
-        _known_limitation(ctx, "binexport", work)
+        _known_limitation(ctx, "binexport", output)
         ctx.error(f"BinExport failed (exit {code})")
         shutil.rmtree(work, ignore_errors=True)
         return {"status": "invalid"}
@@ -71,10 +74,9 @@ def export(ctx: WorkerContext) -> dict[str, Any]:
     }
 
 
-def _known_limitation(ctx: WorkerContext, provider: str, work: Path) -> None:
-    text = ""
-    for p in work.glob("**/*.log"):
-        text += p.read_text(encoding="utf-8", errors="replace")
+def _known_limitation(ctx: WorkerContext, provider: str, output: list[str]) -> None:
+    """ACET-BDF-002 / ACC-073: a recognised provider failure becomes SKIPPED_KNOWN_LIMITATION."""
+    text = "\n".join(output)
     for kl in applicable_limitations(provider, None):
         if kl.matches_log(text):
             ctx.skip("SKIPPED_KNOWN_LIMITATION", kl.symptom, kl.id)
@@ -142,12 +144,14 @@ def diff(ctx: WorkerContext) -> dict[str, Any]:
     work.mkdir(exist_ok=True)
     exe = os.environ.get("ACET_PROVIDER_BINDIFF") or "bindiff"
     version_line: list[str] = []
+    output: list[str] = []
     ctx.auto_heartbeat = False
     code = run_engine(
         [exe, "--primary", str(lfile), "--secondary", str(rfile), "--output_dir", str(work)],
         cwd=work,
         heartbeat=ctx.heartbeat,
         stop_requested=ctx.stop_requested,
+        captured=output,
         on_line=lambda ln: version_line.append(ln) if ln.startswith("BinDiff") else None,
     )
     ctx.engine_version = (
@@ -157,7 +161,7 @@ def diff(ctx: WorkerContext) -> dict[str, Any]:
     )
     results = sorted(work.glob("*.BinDiff"))
     if code != 0 or not results:
-        _known_limitation(ctx, "bindiff", work)
+        _known_limitation(ctx, "bindiff", output)
         ctx.error(f"BinDiff failed (exit {code})")
         shutil.rmtree(work, ignore_errors=True)
         return {

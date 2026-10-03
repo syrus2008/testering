@@ -12,6 +12,7 @@ import sqlite3
 import sys
 from dataclasses import dataclass, field
 from enum import StrEnum
+from pathlib import Path
 from typing import Any
 
 import acet
@@ -136,6 +137,19 @@ def system_checks() -> list[Check]:
     return checks
 
 
+def location_check(path: Path) -> Check:
+    """ACET-FS-002: an active workspace on a network share / removable media is risky for SQLite WAL."""
+    p = str(path)
+    remote = p.startswith(("\\\\", "//")) or p.startswith(("/mnt/", "/media/", "/net/"))
+    return Check(
+        "workspace.location",
+        CheckStatus.WARN if remote else CheckStatus.OK,
+        "network or removable location: keep the active workspace on a local NTFS volume"
+        if remote
+        else "local filesystem",
+    )
+
+
 def workspace_checks(ws: Workspace, *, full: bool = False) -> tuple[list[Check], ReconcileReport]:
     checks: list[Check] = []
     problems = ws.problems or ws.db.integrity_check(quick=not full)
@@ -161,6 +175,18 @@ def workspace_checks(ws: Workspace, *, full: bool = False) -> tuple[list[Check],
             CheckStatus.OK if rec.clean else CheckStatus.FAIL,
             "clean" if rec.clean else "inconsistencies found",
             rec.to_dict(),
+        )
+    )
+    checks.append(location_check(ws.path))
+    from acet.platform.capacity import capacity
+
+    cap = capacity(ws)
+    checks.append(
+        Check(
+            "capacity",
+            CheckStatus.OK if cap["validated"] else CheckStatus.WARN,
+            cap["warning"] or f"class {cap['class']} (validated envelope)",
+            cap,
         )
     )
     usage = shutil.disk_usage(ws.path)

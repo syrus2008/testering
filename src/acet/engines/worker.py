@@ -51,6 +51,7 @@ class WorkerContext:
         self.counts: dict[str, int] = {}
         self.extra_outputs: list[str] = []
         self.engine_version: str | None = None
+        self.termination = "normal"  # set by adapters that observe an engine-native timeout (ACET-GHD-005)
         self._hb = output_dir / ".heartbeat"
         # Engine adapters switch this off and beat on real engine activity, so a hung
         # engine behind a live wrapper is still detected (ACET-JOB-003).
@@ -118,9 +119,28 @@ def _utc() -> str:
     return utc_now_iso()
 
 
+def _forbid_network() -> None:
+    """§61: analysis workers have no network unless a capability explicitly needs it (ACC-003/078)."""
+    import socket
+
+    def refuse(*_a: object, **_k: object) -> None:
+        raise PermissionError("network access is disabled for ACET analysis workers (ACET-SEC-002)")
+
+    socket.socket.connect = refuse  # type: ignore[method-assign]
+    socket.socket.connect_ex = refuse  # type: ignore[method-assign,assignment]
+    socket.create_connection = refuse  # type: ignore[assignment]
+    socket.getaddrinfo = refuse  # type: ignore[assignment]
+
+
 def main(argv: list[str]) -> int:
     from acet.analysis.registry import resolve_entry
     from acet.domain.jsonschema import validate_named
+
+    if os.environ.get("ACET_NO_NETWORK") == "1":
+        _forbid_network()
+    corr = os.environ.get("ACET_CORRELATION")
+    if corr:
+        print(f"ACET correlation: {corr}", flush=True)  # ACET-OBS-001: incident traceable UI→job→processor→logs
 
     req_path = Path(argv[0])
     request = json.loads(req_path.read_text(encoding="utf-8"))
@@ -188,7 +208,7 @@ def main(argv: list[str]) -> int:
         "run_id": request["job_id"],
         "started_at": started,
         "finished_at": _utc(),
-        "termination": termination,
+        "termination": ctx.termination if termination == "normal" else termination,
         "engine_exit_code": 0,
         "engine_reported_errors": len(ctx.errors),
         "engine_reported_warnings": len(ctx.warnings),

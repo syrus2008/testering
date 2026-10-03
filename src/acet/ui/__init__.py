@@ -1,1 +1,5 @@
-"""acet.ui — PySide6 only (ACET-ARCH-001). Not implemented yet (roadmap P13)."""
+"""acet.ui — PySide6 desktop UI (ACET-ARCH-001: the only package importing Qt).
+
+All business logic lives in acet.application/analysis/...; every potentially slow
+call runs in a background task with its own workspace connection (ACC-029).
+"""

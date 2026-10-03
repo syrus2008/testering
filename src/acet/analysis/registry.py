@@ -13,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from acet.domain.canonical import canonical_hash
+from acet.domain.canonical import stable_hash
 from acet.domain.enums import Capability, DeterminismClass
 from acet.domain.error_codes import AcetError
 
@@ -202,7 +202,7 @@ class Profile:
 
     @property
     def config_hash(self) -> str:
-        return canonical_hash(self.as_json())
+        return stable_hash(self.as_json())  # parameters may be floats (timeouts, fractions)
 
     def processor_config(self, processor_id: str) -> dict[str, Any]:
         cfg: dict[str, Any] = dict(self.config.get("processors", {}).get(processor_id, {}))

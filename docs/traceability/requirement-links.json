@@ -1,0 +1,1253 @@
+{
+ "ACET-ANA-001": {
+  "implemented_by": [
+   "src/acet/analysis/registry.py"
+  ],
+  "acceptance": [
+   "ACC-014"
+  ],
+  "tests": [
+   "tests/integration/test_analysis.py::test_cache_hit_and_reproducibility"
+  ]
+ },
+ "ACET-ANA-002": {
+  "implemented_by": [
+   "src/acet/analysis/orchestrator.py"
+  ],
+  "acceptance": [
+   "ACC-011",
+   "ACC-039"
+  ],
+  "tests": []
+ },
+ "ACET-ANA-003": {
+  "implemented_by": [
+   "src/acet/analysis/orchestrator.py"
+  ],
+  "acceptance": [
+   "ACC-013"
+  ],
+  "tests": []
+ },
+ "ACET-ANA-004": {
+  "implemented_by": [
+   "src/acet/domain/cache.py"
+  ],
+  "acceptance": [
+   "ACC-012"
+  ],
+  "tests": [
+   "tests/unit/test_domain.py::test_cache_key_depends_on_every_component"
+  ]
+ },
+ "ACET-ARC-001": {
+  "implemented_by": [
+   "src/acet/reporting/acetpack.py"
+  ],
+  "acceptance": [
+   "ACC-066"
+  ],
+  "tests": []
+ },
+ "ACET-ARC-002": {
+  "implemented_by": [
+   "src/acet/reporting/acetpack.py"
+  ],
+  "acceptance": [
+   "ACC-022"
+  ],
+  "tests": [
+   "tests/integration/test_p11.py::test_pack_without_artifacts_reimports_results_and_annotations"
+  ]
+ },
+ "ACET-ARC-003": {
+  "implemented_by": [
+   "src/acet/reporting/acetpack.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/acceptance/test_requirements.py::test_encrypted_archive_entries_refused"
+  ]
+ },
+ "ACET-ARCH-001": {
+  "implemented_by": [
+   "docs/adr/0001-layered-architecture.md"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/unit/test_domain.py::test_domain_is_pure_and_headless"
+  ]
+ },
+ "ACET-ARCH-002": {
+  "implemented_by": [
+   "src/acet/jobs/supervisor.py"
+  ],
+  "acceptance": [
+   "ACC-009",
+   "ACC-112"
+  ],
+  "tests": []
+ },
+ "ACET-ARCH-003": {
+  "implemented_by": [
+   "src/acet/domain/jsonschema.py"
+  ],
+  "acceptance": [
+   "ACC-086"
+  ],
+  "tests": [
+   "tests/unit/test_domain.py::test_json_schemas_are_valid_json"
+  ]
+ },
+ "ACET-BDF-001": {
+  "implemented_by": [
+   "src/acet/analysis/registry.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_live_engines.py::test_live_deep_with_all_providers"
+  ]
+ },
+ "ACET-BDF-002": {
+  "implemented_by": [
+   "src/acet/engines/bindiff.py"
+  ],
+  "acceptance": [
+   "ACC-073"
+  ],
+  "tests": []
+ },
+ "ACET-BDF-003": {
+  "implemented_by": [
+   "src/acet/engines/bindiff.py"
+  ],
+  "acceptance": [
+   "ACC-073"
+  ],
+  "tests": []
+ },
+ "ACET-BEN-001": {
+  "implemented_by": [
+   "src/acet/benchmark/runner.py"
+  ],
+  "acceptance": [
+   "ACC-027"
+  ],
+  "tests": []
+ },
+ "ACET-BEN-002": {
+  "implemented_by": [
+   "src/acet/benchmark/metrics.py"
+  ],
+  "acceptance": [
+   "ACC-050"
+  ],
+  "tests": []
+ },
+ "ACET-BEN-003": {
+  "implemented_by": [
+   "src/acet/benchmark/calibration.py"
+  ],
+  "acceptance": [
+   "ACC-028"
+  ],
+  "tests": []
+ },
+ "ACET-BEN-004": {
+  "implemented_by": [
+   "src/acet/benchmark/runner.py"
+  ],
+  "acceptance": [
+   "ACC-133"
+  ],
+  "tests": []
+ },
+ "ACET-BEN-005": {
+  "implemented_by": [
+   "src/acet/benchmark/runner.py"
+  ],
+  "acceptance": [
+   "ACC-133"
+  ],
+  "tests": []
+ },
+ "ACET-BEN-006": {
+  "implemented_by": [
+   "src/acet/benchmark/runner.py"
+  ],
+  "acceptance": [
+   "ACC-134"
+  ],
+  "tests": []
+ },
+ "ACET-CACHE-001": {
+  "implemented_by": [
+   "src/acet/analysis/orchestrator.py"
+  ],
+  "acceptance": [
+   "ACC-013",
+   "ACC-012"
+  ],
+  "tests": []
+ },
+ "ACET-CAP-001": {
+  "implemented_by": [
+   "src/acet/platform/capacity.py"
+  ],
+  "acceptance": [
+   "ACC-121"
+  ],
+  "tests": []
+ },
+ "ACET-CFG-001": {
+  "implemented_by": [
+   "src/acet/analysis/orchestrator.py"
+  ],
+  "acceptance": [
+   "ACC-124"
+  ],
+  "tests": []
+ },
+ "ACET-CHG-001": {
+  "implemented_by": [
+   "src/acet/changes/detector.py"
+  ],
+  "acceptance": [
+   "ACC-017",
+   "ACC-115"
+  ],
+  "tests": []
+ },
+ "ACET-CHG-002": {
+  "implemented_by": [
+   "src/acet/changes/events.py"
+  ],
+  "acceptance": [
+   "ACC-040"
+  ],
+  "tests": []
+ },
+ "ACET-CLOSE-001": {
+  "implemented_by": [
+   "docs/closure/subsystem-checklists.json"
+  ],
+  "acceptance": [
+   "ACC-101"
+  ],
+  "tests": []
+ },
+ "ACET-CLOSE-002": {
+  "implemented_by": [
+   "src/acet/domain/error_codes.py"
+  ],
+  "acceptance": [
+   "ACC-102"
+  ],
+  "tests": []
+ },
+ "ACET-CLOSE-003": {
+  "implemented_by": [
+   "src/acet/domain/error_codes.py"
+  ],
+  "acceptance": [
+   "ACC-103"
+  ],
+  "tests": []
+ },
+ "ACET-CLOSE-004": {
+  "implemented_by": [
+   "src/acet/reporting/model.py"
+  ],
+  "acceptance": [
+   "ACC-021"
+  ],
+  "tests": []
+ },
+ "ACET-CLOSE-005": {
+  "implemented_by": [
+   "src/acet/domain/state_machines.py"
+  ],
+  "acceptance": [
+   "ACC-104"
+  ],
+  "tests": []
+ },
+ "ACET-CMP-001": {
+  "implemented_by": [
+   "src/acet/analysis/compatibility.py"
+  ],
+  "acceptance": [
+   "ACC-093"
+  ],
+  "tests": []
+ },
+ "ACET-COMP-001": {
+  "implemented_by": [
+   "src/acet/platform/compatibility-matrix.json"
+  ],
+  "acceptance": [
+   "ACC-092"
+  ],
+  "tests": []
+ },
+ "ACET-CON-001": {
+  "implemented_by": [
+   "src/acet/jobs/locks.py"
+  ],
+  "acceptance": [
+   "ACC-105"
+  ],
+  "tests": []
+ },
+ "ACET-CON-002": {
+  "implemented_by": [
+   "src/acet/jobs/locks.py"
+  ],
+  "acceptance": [
+   "ACC-106"
+  ],
+  "tests": []
+ },
+ "ACET-DATA-001": {
+  "implemented_by": [
+   "src/acet/storage/content_store.py"
+  ],
+  "acceptance": [
+   "ACC-005"
+  ],
+  "tests": []
+ },
+ "ACET-DATA-002": {
+  "implemented_by": [
+   "src/acet/storage/migrations/0001_initial.sql"
+  ],
+  "acceptance": [
+   "ACC-017",
+   "ACC-115"
+  ],
+  "tests": []
+ },
+ "ACET-DB-001": {
+  "implemented_by": [
+   "src/acet/storage/db.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_storage.py::test_foreign_keys_and_wal"
+  ]
+ },
+ "ACET-DB-002": {
+  "implemented_by": [
+   "src/acet/storage/db.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_storage.py::test_foreign_keys_and_wal"
+  ]
+ },
+ "ACET-DB-003": {
+  "implemented_by": [
+   "src/acet/storage/migrator.py"
+  ],
+  "acceptance": [
+   "ACC-024"
+  ],
+  "tests": []
+ },
+ "ACET-DB-004": {
+  "implemented_by": [
+   "src/acet/storage/db.py"
+  ],
+  "acceptance": [
+   "ACC-055"
+  ],
+  "tests": []
+ },
+ "ACET-DB-005": {
+  "implemented_by": [
+   "src/acet/storage/db.py"
+  ],
+  "acceptance": [
+   "ACC-055"
+  ],
+  "tests": []
+ },
+ "ACET-DB-006": {
+  "implemented_by": [
+   "src/acet/storage/db.py"
+  ],
+  "acceptance": [
+   "ACC-081"
+  ],
+  "tests": []
+ },
+ "ACET-DET-001": {
+  "implemented_by": [
+   "src/acet/analysis/registry.py"
+  ],
+  "acceptance": [
+   "ACC-135",
+   "ACC-136",
+   "ACC-137",
+   "ACC-138"
+  ],
+  "tests": []
+ },
+ "ACET-DR-001": {
+  "implemented_by": [
+   "src/acet/application/workspace.py"
+  ],
+  "acceptance": [
+   "ACC-128"
+  ],
+  "tests": []
+ },
+ "ACET-ENG-001": {
+  "implemented_by": [
+   "src/acet/jobs/completion.py"
+  ],
+  "acceptance": [
+   "ACC-051"
+  ],
+  "tests": []
+ },
+ "ACET-ENG-002": {
+  "implemented_by": [
+   "src/acet/engines/ghidra.py"
+  ],
+  "acceptance": [
+   "ACC-053",
+   "ACC-054"
+  ],
+  "tests": []
+ },
+ "ACET-ENG-003": {
+  "implemented_by": [
+   "src/acet/engines/quirks.py"
+  ],
+  "acceptance": [
+   "ACC-053"
+  ],
+  "tests": []
+ },
+ "ACET-ENG-004": {
+  "implemented_by": [
+   "src/acet/engines/known_limitations.json"
+  ],
+  "acceptance": [
+   "ACC-073",
+   "ACC-074"
+  ],
+  "tests": []
+ },
+ "ACET-EVT-001": {
+  "implemented_by": [
+   "src/acet/changes/events.py"
+  ],
+  "acceptance": [
+   "ACC-096"
+  ],
+  "tests": []
+ },
+ "ACET-EVT-002": {
+  "implemented_by": [
+   "src/acet/changes/events.py"
+  ],
+  "acceptance": [
+   "ACC-145"
+  ],
+  "tests": []
+ },
+ "ACET-EXP-001": {
+  "implemented_by": [
+   "src/acet/reporting/acetpack.py"
+  ],
+  "acceptance": [
+   "ACC-022"
+  ],
+  "tests": []
+ },
+ "ACET-EXP-002": {
+  "implemented_by": [
+   "src/acet/reporting/acetpack.py"
+  ],
+  "acceptance": [
+   "ACC-023"
+  ],
+  "tests": []
+ },
+ "ACET-FMT-001": {
+  "implemented_by": [
+   "src/acet/reporting/acetpack.py"
+  ],
+  "acceptance": [
+   "ACC-085",
+   "ACC-021"
+  ],
+  "tests": []
+ },
+ "ACET-FMT-002": {
+  "implemented_by": [
+   "src/acet/reporting/acetpack.py"
+  ],
+  "acceptance": [
+   "ACC-085"
+  ],
+  "tests": []
+ },
+ "ACET-FMT-003": {
+  "implemented_by": [
+   "src/acet/domain/canonical.py"
+  ],
+  "acceptance": [
+   "ACC-067"
+  ],
+  "tests": []
+ },
+ "ACET-FS-001": {
+  "implemented_by": [
+   "src/acet/ingest/discover.py"
+  ],
+  "acceptance": [
+   "ACC-065"
+  ],
+  "tests": []
+ },
+ "ACET-FS-002": {
+  "implemented_by": [
+   "src/acet/platform/doctor.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/acceptance/test_requirements.py::test_network_workspace_location_warns"
+  ]
+ },
+ "ACET-GHD-004": {
+  "implemented_by": [
+   "src/acet/analysis/registry.py"
+  ],
+  "acceptance": [
+   "ACC-014"
+  ],
+  "tests": [
+   "tests/integration/test_live_engines.py::test_live_standard_matches_golden_extraction"
+  ]
+ },
+ "ACET-GHD-005": {
+  "implemented_by": [
+   "src/acet/engines/ghidra.py"
+  ],
+  "acceptance": [
+   "ACC-054"
+  ],
+  "tests": []
+ },
+ "ACET-GHD-006": {
+  "implemented_by": [
+   "src/acet/engines/ghidra.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_live_engines.py::test_live_standard_matches_golden_extraction"
+  ]
+ },
+ "ACET-HUM-001": {
+  "implemented_by": [
+   "src/acet/application/annotations.py"
+  ],
+  "acceptance": [
+   "ACC-132"
+  ],
+  "tests": []
+ },
+ "ACET-IMP-001": {
+  "implemented_by": [
+   "src/acet/ingest/classify.py"
+  ],
+  "acceptance": [
+   "ACC-004"
+  ],
+  "tests": []
+ },
+ "ACET-IMP-002": {
+  "implemented_by": [
+   "src/acet/storage/content_store.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_import.py::test_source_modified_between_hash_and_copy"
+  ]
+ },
+ "ACET-IMP-003": {
+  "implemented_by": [
+   "src/acet/storage/content_store.py"
+  ],
+  "acceptance": [
+   "ACC-005"
+  ],
+  "tests": []
+ },
+ "ACET-IMP-004": {
+  "implemented_by": [
+   "src/acet/ingest/importer.py"
+  ],
+  "acceptance": [
+   "ACC-006"
+  ],
+  "tests": []
+ },
+ "ACET-IMP-005": {
+  "implemented_by": [
+   "src/acet/ingest/importer.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_import.py::test_near_duplicate_warns_but_never_merges"
+  ]
+ },
+ "ACET-IMP-006": {
+  "implemented_by": [
+   "src/acet/ingest/importer.py"
+  ],
+  "acceptance": [
+   "ACC-047"
+  ],
+  "tests": []
+ },
+ "ACET-JOB-001": {
+  "implemented_by": [
+   "src/acet/jobs/store.py"
+  ],
+  "acceptance": [
+   "ACC-010",
+   "ACC-108"
+  ],
+  "tests": []
+ },
+ "ACET-JOB-002": {
+  "implemented_by": [
+   "src/acet/analysis/orchestrator.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_analysis.py::test_cancel_keeps_completed_results"
+  ]
+ },
+ "ACET-JOB-003": {
+  "implemented_by": [
+   "src/acet/jobs/supervisor.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_supervisor.py::test_heartbeat_loss_marks_hung"
+  ]
+ },
+ "ACET-JOB-004": {
+  "implemented_by": [
+   "src/acet/jobs/store.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_jobs.py::test_priority_aging_prevents_starvation"
+  ]
+ },
+ "ACET-LIC-001": {
+  "implemented_by": [
+   "src/acet/platform/engine_packs.py"
+  ],
+  "acceptance": [
+   "ACC-127"
+  ],
+  "tests": []
+ },
+ "ACET-LIN-001": {
+  "implemented_by": [
+   "src/acet/lineage/builder.py"
+  ],
+  "acceptance": [
+   "ACC-018",
+   "ACC-144"
+  ],
+  "tests": []
+ },
+ "ACET-LIN-002": {
+  "implemented_by": [
+   "src/acet/lineage/builder.py"
+  ],
+  "acceptance": [
+   "ACC-018",
+   "ACC-019"
+  ],
+  "tests": []
+ },
+ "ACET-MAT-001": {
+  "implemented_by": [
+   "src/acet/analysis/processors/features.py"
+  ],
+  "acceptance": [
+   "ACC-093"
+  ],
+  "tests": []
+ },
+ "ACET-MAT-002": {
+  "implemented_by": [
+   "src/acet/matching/consensus.py"
+  ],
+  "acceptance": [
+   "ACC-049"
+  ],
+  "tests": []
+ },
+ "ACET-MAT-003": {
+  "implemented_by": [
+   "src/acet/matching/store.py"
+  ],
+  "acceptance": [
+   "ACC-048"
+  ],
+  "tests": []
+ },
+ "ACET-MODE-001": {
+  "implemented_by": [
+   "src/acet/application/settings.py"
+  ],
+  "acceptance": [
+   "ACC-098"
+  ],
+  "tests": []
+ },
+ "ACET-OBS-001": {
+  "implemented_by": [
+   "src/acet/engines/worker.py"
+  ],
+  "acceptance": [
+   "ACC-088"
+  ],
+  "tests": []
+ },
+ "ACET-OBS-002": {
+  "implemented_by": [
+   "src/acet/jobs/supervisor.py"
+  ],
+  "acceptance": [
+   "ACC-087"
+  ],
+  "tests": []
+ },
+ "ACET-PE-001": {
+  "implemented_by": [
+   "src/acet/analysis/pe.py"
+  ],
+  "acceptance": [
+   "ACC-075"
+  ],
+  "tests": []
+ },
+ "ACET-PE-002": {
+  "implemented_by": [
+   "src/acet/changes/detector.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_analysis.py::test_fast_analysis_real_pe_facts"
+  ]
+ },
+ "ACET-PRI-001": {
+  "implemented_by": [
+   "src/acet/ingest/importer.py"
+  ],
+  "acceptance": [
+   "ACC-032"
+  ],
+  "tests": [
+   "tests/integration/test_import.py::test_nominal_import"
+  ]
+ },
+ "ACET-PRI-002": {
+  "implemented_by": [
+   "src/acet/platform/sanitize.py"
+  ],
+  "acceptance": [
+   "ACC-076"
+  ],
+  "tests": []
+ },
+ "ACET-PRI-003": {
+  "implemented_by": [
+   "src/acet/application/settings.py"
+  ],
+  "acceptance": [
+   "ACC-003"
+  ],
+  "tests": [],
+  "waiver": "No telemetry exists in V1; setting telemetry.enabled defaults to false and requires Developer mode."
+ },
+ "ACET-PROD-001": {
+  "implemented_by": [
+   "src/acet/matching/consensus.py"
+  ],
+  "acceptance": [
+   "ACC-016",
+   "ACC-028",
+   "ACC-015"
+  ],
+  "tests": []
+ },
+ "ACET-PROD-002": {
+  "implemented_by": [
+   "docs/adr/0010-no-artifact-execution.md"
+  ],
+  "acceptance": [
+   "ACC-004"
+  ],
+  "tests": []
+ },
+ "ACET-PROD-003": {
+  "implemented_by": [
+   "src/acet/domain/product_profile.py"
+  ],
+  "acceptance": [
+   "ACC-041"
+  ],
+  "tests": []
+ },
+ "ACET-PROF-001": {
+  "implemented_by": [
+   "src/acet/domain/product_profile.py"
+  ],
+  "acceptance": [
+   "ACC-097"
+  ],
+  "tests": []
+ },
+ "ACET-QBD-001": {
+  "implemented_by": [
+   "src/acet/engines/qbindiff_provider.py"
+  ],
+  "acceptance": [
+   "ACC-072"
+  ],
+  "tests": []
+ },
+ "ACET-QBD-002": {
+  "implemented_by": [
+   "src/acet/analysis/registry.py"
+  ],
+  "acceptance": [],
+  "tests": [
+   "tests/integration/test_analysis.py::test_capabilities_drive_availability"
+  ],
+  "waiver": "Experimental label carried in registry (experimental=True), provider manifest and matcher DTO; regression gates for QBinDiff contexts not yet defined."
+ },
+ "ACET-REL-001": {
+  "implemented_by": [
+   "tools/release_evidence.py"
+  ],
+  "acceptance": [
+   "ACC-139"
+  ],
+  "tests": []
+ },
+ "ACET-RES-001": {
+  "implemented_by": [
+   "src/acet/jobs/resources.py"
+  ],
+  "acceptance": [
+   "ACC-031"
+  ],
+  "tests": []
+ },
+ "ACET-RES-002": {
+  "implemented_by": [
+   "src/acet/jobs/power.py"
+  ],
+  "acceptance": [
+   "ACC-094"
+  ],
+  "tests": []
+ },
+ "ACET-RET-001": {
+  "implemented_by": [
+   "src/acet/platform/retention.py"
+  ],
+  "acceptance": [
+   "ACC-036",
+   "ACC-084"
+  ],
+  "tests": []
+ },
+ "ACET-RET-002": {
+  "implemented_by": [
+   "src/acet/platform/retention.py"
+  ],
+  "acceptance": [
+   "ACC-083"
+  ],
+  "tests": []
+ },
+ "ACET-RET-003": {
+  "implemented_by": [
+   "src/acet/platform/retention.py"
+  ],
+  "acceptance": [
+   "ACC-083"
+  ],
+  "tests": []
+ },
+ "ACET-SCI-001": {
+  "implemented_by": [
+   "src/acet/benchmark/calibration.py"
+  ],
+  "acceptance": [
+   "ACC-070"
+  ],
+  "tests": []
+ },
+ "ACET-SCI-002": {
+  "implemented_by": [
+   "src/acet/benchmark/calibration.py"
+  ],
+  "acceptance": [
+   "ACC-068",
+   "ACC-147"
+  ],
+  "tests": []
+ },
+ "ACET-SCI-003": {
+  "implemented_by": [
+   "src/acet/changes/detector.py"
+  ],
+  "acceptance": [
+   "ACC-071"
+  ],
+  "tests": []
+ },
+ "ACET-SEC-001": {
+  "implemented_by": [
+   "docs/adr/0010-no-artifact-execution.md"
+  ],
+  "acceptance": [
+   "ACC-004"
+  ],
+  "tests": []
+ },
+ "ACET-SEC-002": {
+  "implemented_by": [
+   "src/acet/engines/worker.py"
+  ],
+  "acceptance": [
+   "ACC-003",
+   "ACC-078"
+  ],
+  "tests": []
+ },
+ "ACET-SEC-003": {
+  "implemented_by": [
+   "src/acet/reporting/acetpack.py"
+  ],
+  "acceptance": [
+   "ACC-023"
+  ],
+  "tests": []
+ },
+ "ACET-SEC-004": {
+  "implemented_by": [
+   "packaging/acet.exe.manifest"
+  ],
+  "acceptance": [
+   "ACC-079"
+  ],
+  "tests": []
+ },
+ "ACET-SEC-005": {
+  "implemented_by": [
+   "docs/threat-model.md"
+  ],
+  "acceptance": [],
+  "tests": [],
+  "waiver": "No AppContainer/low-integrity restriction is enabled in V1, so no global restriction exists without a compatibility golden test; the gate is satisfied by construction until such a mitigation is introduced."
+ },
+ "ACET-SEC-006": {
+  "implemented_by": [
+   "src/acet/platform/secrets.py"
+  ],
+  "acceptance": [
+   "ACC-125"
+  ],
+  "tests": []
+ },
+ "ACET-SLO-001": {
+  "implemented_by": [
+   "docs/evidence/capacity-M.json"
+  ],
+  "acceptance": [
+   "ACC-119",
+   "ACC-120"
+  ],
+  "tests": []
+ },
+ "ACET-SRCH-001": {
+  "implemented_by": [
+   "src/acet/application/search.py"
+  ],
+  "acceptance": [
+   "ACC-020"
+  ],
+  "tests": []
+ },
+ "ACET-STO-001": {
+  "implemented_by": [
+   "src/acet/storage/content_store.py"
+  ],
+  "acceptance": [
+   "ACC-005"
+  ],
+  "tests": []
+ },
+ "ACET-STO-002": {
+  "implemented_by": [
+   "src/acet/storage/content_store.py"
+  ],
+  "acceptance": [
+   "ACC-095",
+   "ACC-109"
+  ],
+  "tests": []
+ },
+ "ACET-STO-003": {
+  "implemented_by": [
+   "src/acet/platform/retention.py"
+  ],
+  "acceptance": [
+   "ACC-084"
+  ],
+  "tests": []
+ },
+ "ACET-SUP-001": {
+  "implemented_by": [
+   "src/acet/platform/engine_packs.py"
+  ],
+  "acceptance": [
+   "ACC-058",
+   "ACC-149"
+  ],
+  "tests": []
+ },
+ "ACET-SUP-002": {
+  "implemented_by": [
+   "packaging/sign.ps1"
+  ],
+  "acceptance": [
+   "ACC-056"
+  ],
+  "tests": []
+ },
+ "ACET-SUP-003": {
+  "implemented_by": [
+   "tools/sbom.py"
+  ],
+  "acceptance": [
+   "ACC-059"
+  ],
+  "tests": []
+ },
+ "ACET-SUP-004": {
+  "implemented_by": [
+   "tools/release_evidence.py"
+  ],
+  "acceptance": [
+   "ACC-099"
+  ],
+  "tests": []
+ },
+ "ACET-SUP-005": {
+  "implemented_by": [
+   "src/acet/platform/updates.py"
+  ],
+  "acceptance": [
+   "ACC-090",
+   "ACC-091"
+  ],
+  "tests": []
+ },
+ "ACET-SYM-001": {
+  "implemented_by": [
+   "src/acet/analysis/registry.py"
+  ],
+  "acceptance": [
+   "ACC-077"
+  ],
+  "tests": []
+ },
+ "ACET-SYM-002": {
+  "implemented_by": [
+   "src/acet/analysis/registry.py"
+  ],
+  "acceptance": [
+   "ACC-077"
+  ],
+  "tests": []
+ },
+ "ACET-SYM-003": {
+  "implemented_by": [
+   "src/acet/analysis/pe.py"
+  ],
+  "acceptance": [],
+  "tests": [],
+  "waiver": "V1 imports no symbol files (no Symbol Provider); PDB references are recorded as sanitized facts only. Provenance fields will be required when a provider is added."
+ },
+ "ACET-TIME-001": {
+  "implemented_by": [
+   "src/acet/storage/repositories.py"
+  ],
+  "acceptance": [
+   "ACC-123"
+  ],
+  "tests": []
+ },
+ "ACET-TIME-002": {
+  "implemented_by": [
+   "src/acet/domain/timeutil.py"
+  ],
+  "acceptance": [
+   "ACC-122"
+  ],
+  "tests": []
+ },
+ "ACET-TIME-003": {
+  "implemented_by": [
+   "src/acet/domain/ids.py"
+  ],
+  "acceptance": [
+   "ACC-123"
+  ],
+  "tests": []
+ },
+ "ACET-TRACE-001": {
+  "implemented_by": [
+   "tools/gen_traceability.py"
+  ],
+  "acceptance": [
+   "ACC-116"
+  ],
+  "tests": []
+ },
+ "ACET-TRACE-002": {
+  "implemented_by": [
+   "tools/gen_traceability.py"
+  ],
+  "acceptance": [
+   "ACC-117"
+  ],
+  "tests": []
+ },
+ "ACET-TXN-001": {
+  "implemented_by": [
+   "src/acet/analysis/orchestrator.py"
+  ],
+  "acceptance": [
+   "ACC-107"
+  ],
+  "tests": []
+ },
+ "ACET-UPD-001": {
+  "implemented_by": [
+   "src/acet/platform/engine_packs.py"
+  ],
+  "acceptance": [
+   "ACC-034"
+  ],
+  "tests": []
+ },
+ "ACET-UPD-002": {
+  "implemented_by": [
+   "src/acet/analysis/orchestrator.py"
+  ],
+  "acceptance": [
+   "ACC-034",
+   "ACC-062"
+  ],
+  "tests": []
+ },
+ "ACET-UPD-003": {
+  "implemented_by": [
+   "src/acet/storage/migrator.py"
+  ],
+  "acceptance": [
+   "ACC-130"
+  ],
+  "tests": []
+ },
+ "ACET-UPD-004": {
+  "implemented_by": [
+   "src/acet/platform/updates.py"
+  ],
+  "acceptance": [
+   "ACC-089"
+  ],
+  "tests": []
+ },
+ "ACET-UPD-005": {
+  "implemented_by": [
+   "src/acet/platform/engine_packs.py"
+  ],
+  "acceptance": [
+   "ACC-061"
+  ],
+  "tests": []
+ },
+ "ACET-UPD-006": {
+  "implemented_by": [
+   "src/acet/platform/updates.py"
+  ],
+  "acceptance": [
+   "ACC-060"
+  ],
+  "tests": []
+ },
+ "ACET-UX-001": {
+  "implemented_by": [
+   "src/acet/analysis/orchestrator.py"
+  ],
+  "acceptance": [
+   "ACC-080"
+  ],
+  "tests": []
+ },
+ "ACET-VULN-001": {
+  "implemented_by": [
+   "SECURITY.md"
+  ],
+  "acceptance": [
+   "ACC-126"
+  ],
+  "tests": []
+ },
+ "ACET-WIN-001": {
+  "implemented_by": [
+   "src/acet/jobs/winjob.py"
+  ],
+  "acceptance": [
+   "ACC-052"
+  ],
+  "tests": []
+ },
+ "ACET-WIN-002": {
+  "implemented_by": [
+   "src/acet/jobs/supervisor.py"
+  ],
+  "acceptance": [
+   "ACC-052"
+  ],
+  "tests": []
+ },
+ "ACET-WIN-003": {
+  "implemented_by": [
+   "src/acet/jobs/supervisor.py"
+  ],
+  "acceptance": [
+   "ACC-087"
+  ],
+  "tests": []
+ }
+}

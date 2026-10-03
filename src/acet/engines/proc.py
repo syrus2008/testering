@@ -63,6 +63,8 @@ def run_engine(
     stop_requested: Callable[[], bool],
     env: dict[str, str] | None = None,
     on_line: Callable[[str], None] | None = None,
+    captured: list[str] | None = None,
+    capture_limit: int = 5000,
 ) -> int:
     """Run an engine as a child of the worker; forward its output; beat only on real activity
     (output lines or CPU progress of the engine tree)."""
@@ -89,6 +91,10 @@ def run_engine(
         heartbeat()
         if on_line is not None:
             on_line(line)
+        if captured is not None:
+            captured.append(line)
+            if len(captured) > capture_limit:
+                del captured[: len(captured) - capture_limit]
     code = proc.wait()
     done.set()
     time.sleep(0)

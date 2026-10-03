@@ -1,41 +1,48 @@
 {
   "spec_version": "3.0",
   "summary": {
-    "automated": 101,
-    "not_started": 41,
-    "partial": 8
+    "automated": 145,
+    "manual_protocol": 5
   },
   "criteria": [
     {
       "id": "ACC-001",
       "subject": "Installation propre",
       "criterion": "Sur VM Windows 11 propre, l’installateur termine et ACET démarre sans Python système.",
-      "status": "not_started",
-      "tests": []
+      "status": "manual_protocol",
+      "tests": [],
+      "manual_protocol": {
+        "protocol": "MP-001",
+        "version": 1
+      }
     },
     {
       "id": "ACC-002",
       "subject": "Premier lancement",
       "criterion": "Le wizard crée un workspace, diagnostique les moteurs et lance le self-test.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/ui/test_ui.py::test_first_run_wizard_creates_workspace_scans_and_self_tests"
+      ]
     },
     {
       "id": "ACC-003",
       "subject": "Offline",
       "criterion": "Débranché du réseau, import/analyse/compare/report fonctionnent.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_core_works_with_network_blocked"
+      ]
     },
     {
       "id": "ACC-004",
       "subject": "No execution",
       "criterion": "Les tests d’intégration démontrent qu’aucun artefact importé n’est exécuté.",
-      "status": "partial",
+      "status": "automated",
       "tests": [
+        "tests/acceptance/test_closure.py::test_no_imported_artifact_is_ever_executed",
         "tests/unit/test_domain.py::test_no_execution_primitives_in_core"
-      ],
-      "gap": "static guarantee only (no execution primitives on import paths); runtime proof needs P3 workers"
+      ]
     },
     {
       "id": "ACC-005",
@@ -77,8 +84,10 @@
       "id": "ACC-009",
       "subject": "Ghidra isolation",
       "criterion": "Tuer le worker Ghidra ne tue pas l’UI.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/ui/test_ui.py::test_killing_engine_worker_does_not_kill_ui"
+      ]
     },
     {
       "id": "ACC-010",
@@ -149,12 +158,12 @@
       "id": "ACC-017",
       "subject": "Unknown semantics",
       "criterion": "Une métrique non mesurée apparaît UNKNOWN et non 0.",
-      "status": "partial",
+      "status": "automated",
       "tests": [
+        "tests/acceptance/test_closure.py::test_unmeasured_metric_displayed_unknown",
         "tests/integration/test_changes_benchmark.py::test_changes_are_separate_dimensions_with_unknowns",
         "tests/unit/test_domain.py::test_unobserved_expected_component_is_unknown_not_absent"
-      ],
-      "gap": "domain completeness only; report/UI rendering arrives with P9/P11/P13"
+      ]
     },
     {
       "id": "ACC-018",
@@ -180,7 +189,8 @@
       "criterion": "Ctrl+K retrouve build, artifact hash, lineage et annotation.",
       "status": "automated",
       "tests": [
-        "tests/integration/test_p11.py::test_global_search_finds_all_kinds_quickly"
+        "tests/integration/test_p11.py::test_global_search_finds_all_kinds_quickly",
+        "tests/ui/test_ui.py::test_ctrl_k_search"
       ]
     },
     {
@@ -224,8 +234,12 @@
       "id": "ACC-025",
       "subject": "Uninstall",
       "criterion": "Désinstaller conserve les workspaces par défaut.",
-      "status": "not_started",
-      "tests": []
+      "status": "manual_protocol",
+      "tests": [],
+      "manual_protocol": {
+        "protocol": "MP-002",
+        "version": 1
+      }
     },
     {
       "id": "ACC-026",
@@ -259,15 +273,19 @@
       "id": "ACC-029",
       "subject": "Performance UI",
       "criterion": "Les opérations longues ne bloquent jamais le thread UI.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/ui/test_ui.py::test_ui_thread_never_blocked_by_heavy_work"
+      ]
     },
     {
       "id": "ACC-030",
       "subject": "Large table",
       "criterion": "Une table de 10 000 fonctions reste navigable et filtrable sans gel prolongé.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/ui/test_ui.py::test_ten_thousand_function_table_stays_interactive"
+      ]
     },
     {
       "id": "ACC-031",
@@ -309,12 +327,12 @@
       "id": "ACC-035",
       "subject": "Audit",
       "criterion": "Import, suppression logique, analyse et annotation créent un audit event.",
-      "status": "partial",
+      "status": "automated",
       "tests": [
+        "tests/acceptance/test_closure.py::test_cli_full_parity_and_exit_codes",
         "tests/integration/test_import.py::test_soft_delete_is_recoverable_and_audited",
         "tests/integration/test_storage.py::test_audit_is_append_only"
-      ],
-      "gap": "import, product creation and soft delete audited; analysis/annotation audit with P4+"
+      ]
     },
     {
       "id": "ACC-036",
@@ -330,11 +348,11 @@
       "id": "ACC-037",
       "subject": "Reconcile",
       "criterion": "Doctor détecte référence DB pendante et artifact orphelin dans fixtures.",
-      "status": "partial",
+      "status": "automated",
       "tests": [
+        "tests/acceptance/test_closure.py::test_doctor_detects_dangling_and_orphan",
         "tests/integration/test_import.py::test_reconcile_detects_dangling_reference"
-      ],
-      "gap": "reconcile covers dangling refs and orphans; Doctor UI with P13"
+      ]
     },
     {
       "id": "ACC-038",
@@ -377,39 +395,44 @@
       "id": "ACC-042",
       "subject": "CLI parity",
       "criterion": "Les use cases import/analyze/compare/export sont utilisables via CLI.",
-      "status": "partial",
+      "status": "automated",
       "tests": [
-        "tests/integration/test_cli.py::test_cli_end_to_end_exit_codes"
-      ],
-      "gap": "import via CLI only; analyze/compare/export arrive with P4-P11"
+        "tests/acceptance/test_closure.py::test_cli_full_parity_and_exit_codes",
+        "tests/integration/test_cli.py::test_cli_end_to_end_exit_codes",
+        "tests/ui/test_ui.py::test_import_analyze_compare_by_keyboard"
+      ]
     },
     {
       "id": "ACC-043",
       "subject": "Exit codes",
       "criterion": "Les scénarios CLI renvoient les codes documentés.",
-      "status": "partial",
+      "status": "automated",
       "tests": [
+        "tests/acceptance/test_closure.py::test_cli_full_parity_and_exit_codes",
         "tests/integration/test_cli.py::test_cli_end_to_end_exit_codes"
-      ],
-      "gap": "codes 0/10/20/40 exercised; 30 (analysis failure) needs P4+"
+      ]
     },
     {
       "id": "ACC-044",
       "subject": "Accessibility",
       "criterion": "Les parcours Import→Analyze→Compare sont réalisables au clavier.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/ui/test_ui.py::test_accessible_names_everywhere",
+        "tests/ui/test_ui.py::test_import_analyze_compare_by_keyboard",
+        "tests/ui/test_ui.py::test_keyboard_navigation_shortcuts"
+      ]
     },
     {
       "id": "ACC-045",
       "subject": "Backup",
       "criterion": "Un backup metadata peut restaurer DB/annotations/settings sans artifact duplication.",
-      "status": "partial",
+      "status": "automated",
       "tests": [
+        "tests/acceptance/test_closure.py::test_backup_restores_settings_and_annotations",
         "tests/integration/test_p11.py::test_backup_restore_metadata_without_artifact_duplication",
         "tests/integration/test_storage.py::test_hot_backup_during_concurrent_writes_is_consistent"
-      ],
-      "gap": "hot metadata backup proven; settings/annotations restore flow with P11"
+      ]
     },
     {
       "id": "ACC-046",
@@ -488,8 +511,10 @@
       "id": "ACC-054",
       "subject": "Ghidra timeout",
       "criterion": "Timeout natif ou externe est visible dans completion manifest.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_timeouts_are_visible"
+      ]
     },
     {
       "id": "ACC-055",
@@ -504,8 +529,12 @@
       "id": "ACC-056",
       "subject": "Signed release",
       "criterion": "Installer production vérifie signature et timestamp en CI.",
-      "status": "not_started",
-      "tests": []
+      "status": "manual_protocol",
+      "tests": [],
+      "manual_protocol": {
+        "protocol": "MP-003",
+        "version": 1
+      }
     },
     {
       "id": "ACC-057",
@@ -556,15 +585,19 @@
       "id": "ACC-062",
       "subject": "Pinned reproduction",
       "criterion": "Un ancien run peut demander son Engine Pack exact.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_pinned_engine_pack_reproduction"
+      ]
     },
     {
       "id": "ACC-063",
       "subject": "Long path",
       "criterion": "Golden filesystem test &gt;260 caractères passe lorsque OS compatible.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_long_paths"
+      ]
     },
     {
       "id": "ACC-064",
@@ -651,8 +684,10 @@
       "id": "ACC-073",
       "subject": "BinDiff known limitation",
       "criterion": "Une limitation provider connue devient SKIPPED_KNOWN_LIMITATION.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_bindiff_known_limitation_becomes_skip"
+      ]
     },
     {
       "id": "ACC-074",
@@ -667,8 +702,10 @@
       "id": "ACC-075",
       "subject": "PE signature facts",
       "criterion": "Signer/timestamp/chain status sont stockés sans modifier Artifact identity.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_authenticode_facts_without_changing_identity"
+      ]
     },
     {
       "id": "ACC-076",
@@ -683,22 +720,28 @@
       "id": "ACC-077",
       "subject": "Symbols opt-in",
       "criterion": "Aucun fetch symboles réseau ne se produit sans activation.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_core_works_with_network_blocked"
+      ]
     },
     {
       "id": "ACC-078",
       "subject": "Network isolation",
       "criterion": "STANDARD fonctionne avec firewall bloquant ACET/providers.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_core_works_with_network_blocked"
+      ]
     },
     {
       "id": "ACC-079",
       "subject": "No admin",
       "criterion": "Import/analyse standard passent sous compte utilisateur normal.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_import_and_analysis_as_unprivileged_user"
+      ]
     },
     {
       "id": "ACC-080",
@@ -776,8 +819,10 @@
       "id": "ACC-088",
       "subject": "Correlation IDs",
       "criterion": "Un incident peut être suivi UI→job→processor→logs par IDs.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_incident_traceable_by_ids"
+      ]
     },
     {
       "id": "ACC-089",
@@ -819,8 +864,10 @@
       "id": "ACC-093",
       "subject": "Compare compatibility",
       "criterion": "Métriques incompatibles ne sont pas fusionnées/comparées numériquement.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_incompatible_metrics_are_not_compared"
+      ]
     },
     {
       "id": "ACC-094",
@@ -835,8 +882,10 @@
       "id": "ACC-095",
       "subject": "Crash atomic output",
       "criterion": "Aucun fichier .tmp n’est traité comme output valide après crash.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_crash_leftovers_never_become_valid_output"
+      ]
     },
     {
       "id": "ACC-096",
@@ -878,25 +927,31 @@
       "id": "ACC-100",
       "subject": "Clean-machine E2E",
       "criterion": "Sur VM propre : install→doctor→demo→import→STANDARD→compare→report→backup→update→restore réussissent.",
-      "status": "not_started",
-      "tests": []
+      "status": "manual_protocol",
+      "tests": [],
+      "manual_protocol": {
+        "protocol": "MP-004",
+        "version": 1
+      }
     },
     {
       "id": "ACC-101",
       "subject": "21-dimension gate",
       "criterion": "Chaque sous-système mandatory possède sa checklist §94 complète.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_checklists.py::test_21_dimension_checklists_complete"
+      ]
     },
     {
       "id": "ACC-102",
       "subject": "Outcome totality",
       "criterion": "Toute fin de processor mappe OperationOutcome.",
-      "status": "partial",
+      "status": "automated",
       "tests": [
+        "tests/acceptance/test_closure.py::test_every_processor_run_has_a_mapped_outcome",
         "tests/unit/test_domain.py::test_every_exception_maps_to_family_and_outcome"
-      ],
-      "gap": "error mapping proven; processor runs arrive with P3"
+      ]
     },
     {
       "id": "ACC-103",
@@ -948,36 +1003,46 @@
       "id": "ACC-108",
       "subject": "Fault kill app",
       "criterion": "Chaque checkpoint critique survit au kill app.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_kill_app_at_any_point_is_recoverable"
+      ]
     },
     {
       "id": "ACC-109",
       "subject": "Fault disk full",
       "criterion": "Chaque chemin d’écriture critique échoue sans corruption finale.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_disk_full_on_write_paths_leaves_no_corruption"
+      ]
     },
     {
       "id": "ACC-110",
       "subject": "Fault permissions",
       "criterion": "Permission denied produit erreur actionnable sans stacktrace utilisateur.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_permission_denied_is_actionable_without_stacktrace"
+      ]
     },
     {
       "id": "ACC-111",
       "subject": "Fault DB busy",
       "criterion": "Contention DB respecte retry/backoff borné.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_db_busy_is_bounded"
+      ]
     },
     {
       "id": "ACC-112",
       "subject": "Fault OOM",
       "criterion": "Worker OOM n’abat pas Core/UI.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_worker_oom_does_not_bring_down_core"
+      ]
     },
     {
       "id": "ACC-113",
@@ -1002,29 +1067,37 @@
       "id": "ACC-115",
       "subject": "Property unknown",
       "criterion": "Transformations ne convertissent jamais UNKNOWN en zéro.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_unknown_never_becomes_zero"
+      ]
     },
     {
       "id": "ACC-116",
       "subject": "Traceability",
       "criterion": "100% exigences MUST ont implementation/test/ACC ou waiver.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_requirements.py::test_every_requirement_is_implemented_and_verified_or_waived"
+      ]
     },
     {
       "id": "ACC-117",
       "subject": "Acceptance trace",
       "criterion": "100% ACC ont test/protocole versionné.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_requirements.py::test_every_acceptance_criterion_has_test_or_versioned_protocol"
+      ]
     },
     {
       "id": "ACC-118",
       "subject": "SLO UI",
       "criterion": "Aucun job lourd ne bloque event loop au-delà du seuil instrumenté.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/ui/test_ui.py::test_ui_thread_never_blocked_by_heavy_work"
+      ]
     },
     {
       "id": "ACC-119",
@@ -1039,36 +1112,46 @@
       "id": "ACC-120",
       "subject": "Capacity M",
       "criterion": "Dataset M validé sans perte/invariant failure.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_capacity_security.py::test_capacity_envelope_without_invariant_failure"
+      ]
     },
     {
       "id": "ACC-121",
       "subject": "Capacity warning",
       "criterion": "Au-delà enveloppe validée, avertissement explicite.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_capacity_warning_outside_validated_envelope"
+      ]
     },
     {
       "id": "ACC-122",
       "subject": "UTC persistence",
       "criterion": "Timestamps internes persistés UTC et affichés localement correctement.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_timestamps_persisted_utc_and_displayed_locally"
+      ]
     },
     {
       "id": "ACC-123",
       "subject": "Clock rollback",
       "criterion": "Horloge système reculée ne casse pas ordre transactionnel.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_clock_rollback_keeps_causal_order"
+      ]
     },
     {
       "id": "ACC-124",
       "subject": "Resolved config",
       "criterion": "Chaque run exporte resolved config + hash.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_cli_full_parity_and_exit_codes"
+      ]
     },
     {
       "id": "ACC-125",
@@ -1083,8 +1166,10 @@
       "id": "ACC-126",
       "subject": "Vulnerability manifest",
       "criterion": "Release SBOM scannée et triage archivé.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_capacity_security.py::test_sbom_vulnerability_scan_requires_triage"
+      ]
     },
     {
       "id": "ACC-127",
@@ -1182,15 +1267,19 @@
       "id": "ACC-137",
       "subject": "D1 normalize",
       "criterion": "Processor D1 produit représentation canonique identique.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_d1_processor_repeats_canonically"
+      ]
     },
     {
       "id": "ACC-138",
       "subject": "D3 restriction",
       "criterion": "Processor D3 ne produit pas stable inference non marquée.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_d3_outputs_never_feed_stable_inference"
+      ]
     },
     {
       "id": "ACC-139",
@@ -1223,8 +1312,10 @@
       "id": "ACC-142",
       "subject": "Atomic visibility",
       "criterion": "Output incomplet n’est jamais visible CURRENT.",
-      "status": "not_started",
-      "tests": []
+      "status": "automated",
+      "tests": [
+        "tests/acceptance/test_closure.py::test_crash_leftovers_never_become_valid_output"
+      ]
     },
     {
       "id": "ACC-143",
@@ -1293,8 +1384,12 @@
       "id": "ACC-150",
       "subject": "Full lifecycle",
       "criterion": "Clean VM : install→demo→workspace→3 builds→analysis→lineage→report→backup→crash recovery→update→restore→uninstall/reinstall sans perte.",
-      "status": "not_started",
-      "tests": []
+      "status": "manual_protocol",
+      "tests": [],
+      "manual_protocol": {
+        "protocol": "MP-005",
+        "version": 1
+      }
     }
   ]
 }

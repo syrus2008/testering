@@ -179,6 +179,9 @@ def check_archive(
             or len(p.parts) > limits.max_depth
         ):
             raise AcetError("ACET-SEC-001", f"unsafe path in archive: {name[:80]!r}")
+        if i.flag_bits & 0x1:
+            # ACET-ARC-003: no password guessing; encrypted members need an explicit user-supplied password
+            raise AcetError("ACET-SEC-001", f"encrypted entry (password required, never guessed): {name[:80]!r}")
         if stat.S_ISLNK(i.external_attr >> 16):
             raise AcetError("ACET-SEC-001", f"symbolic link in archive: {name[:80]!r}")
         if name.lower() in seen:
@@ -250,6 +253,7 @@ def import_pack(ws: Workspace, pack: Path, *, limits: ArchiveLimits | None = Non
                 out = stage / name
                 out.parent.mkdir(parents=True, exist_ok=True)
                 out.write_bytes(data)
+            manifest["_archive_sha256"] = hashlib.sha256(pack.read_bytes()).hexdigest()
             return _commit(ws, stage, manifest)
         finally:
             shutil.rmtree(stage, ignore_errors=True)
@@ -300,6 +304,15 @@ def _commit(ws: Workspace, stage: Path, manifest: dict[str, Any]) -> dict[str, A
             "pack.import",
             None,
             None,
-            {"rows": sum(stats.values()), "includes_artifacts": manifest["includes_artifacts"]},
+            {
+                "rows": sum(stats.values()),
+                "includes_artifacts": manifest["includes_artifacts"],
+                # ACET-ARC-002: the archive hash is kept as provenance; its members became their own objects
+                "archive_sha256": manifest.get("_archive_sha256"),
+            },
         )
-    return {"rows_inserted": stats, "includes_artifacts": manifest["includes_artifacts"]}
+    return {
+        "rows_inserted": stats,
+        "includes_artifacts": manifest["includes_artifacts"],
+        "archive_sha256": manifest.get("_archive_sha256"),
+    }

@@ -164,6 +164,10 @@ def plan(
                     else [f"{d.key}:{'|'.join(x[:16] for x in t)}"]
                 )
             for dep in spec.optional_deps:
+                # ACET-DET-001 / ACC-138: D3 (non-reproducible) outputs never feed stable inference unless
+                # the profile explicitly opts in (Research use, results then marked experimental).
+                if PROCESSORS[dep].determinism.value == "D3" and not profile.config.get("allow_d3"):
+                    continue
                 if dep in in_profile:
                     d = PROCESSORS[dep]
                     node.optional_deps += (
@@ -268,6 +272,11 @@ class Orchestrator:
                 f"UPDATE analysis_run SET {', '.join(f'{k}=?' for k in sets)} WHERE id=?", (*sets.values(), run_id)
             )
 
+    def _network_enabled(self) -> bool:
+        from acet.application.settings import get_setting
+
+        return bool(get_setting(self.ws, "network.enabled"))
+
     def _engine_pack_id(self) -> str:
         manifest = self.env.manifest()
         mhash = canonical_hash(manifest)
@@ -318,7 +327,7 @@ class Orchestrator:
                     ANALYSIS_RUN.initial,
                     utc_now_iso(),
                     stable_json(resolved).decode(),
-                    canonical_hash(resolved),
+                    stable_hash(resolved),
                     stable_json(sorted(set(artifacts))).decode(),
                     acet.__version__,
                     repo.next_seq(tx),
@@ -421,7 +430,13 @@ class Orchestrator:
         coverage = round(len(ok) / len(applicable), 4) if applicable else None
         missing = self._missing(nodes, done)
         required_failed = [m for m in missing if m["processor"].split("@")[0] not in OPTIONAL_PROCESSORS]
-        if applicable and not ok:
+        produced = [
+            n
+            for n in applicable
+            if done[n.key].outcome
+            in (OperationOutcome.SUCCESS, OperationOutcome.SUCCESS_WITH_WARNINGS, OperationOutcome.PARTIAL)
+        ]
+        if applicable and not produced:
             status = "FAILED"
         elif missing:
             status = "COMPLETED_PARTIAL"
@@ -610,7 +625,7 @@ class Orchestrator:
                 "qbindiff.diff": "qbindiff",
             }
             cfg["expected_engines"] = sorted(engine_names[p] for p in profile.processors if p in engine_names)
-        config_hash = canonical_hash(cfg)
+        config_hash = stable_hash(cfg)
         input_hashes = [i["sha256"] for i in inputs]
         input_hash = canonical_hash(input_hashes)
         key = cache_key(node.spec.id, node.spec.version, input_hashes, config_hash, node.spec.feature_schema_version)
@@ -688,6 +703,7 @@ class Orchestrator:
         env = {
             "PYTHONPATH": os.pathsep.join(filter(None, [str(SRC_ROOT), os.environ.get("PYTHONPATH")])),
             "ACET_CORRELATION": f"ws={self.ws.id} run={run_id} job={job_id} pr={prid}",
+            "ACET_NO_NETWORK": "0" if self._network_enabled() else "1",
         }  # ACET-OBS-001
         for k in ("ACET_GHIDRA_DIR", "GHIDRA_INSTALL_DIR", "ACET_GHIDRA_REPLAY_DIR"):
             if os.environ.get(k):

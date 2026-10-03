@@ -225,6 +225,19 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         with _open(args, read_only=True) as ws:
             wchecks, _ = workspace_checks(ws, full=args.full)
         checks += wchecks
+    if args.full:
+        from acet.platform.doctor import Check, CheckStatus
+        from acet.platform.selftest import run_self_test
+
+        st = run_self_test()
+        checks.append(
+            Check(
+                "golden self-test",
+                CheckStatus.OK if st["ok"] else CheckStatus.FAIL,
+                "; ".join(f"{c['name']}={'skipped' if c['ok'] is None else c['ok']}" for c in st["checks"]),
+                {"self_test": st},
+            )
+        )
     health = overall_health(checks)
     payload = {"health": health.value, "checks": [c.to_dict() for c in checks]}
     text = [f"ACET {acet.__version__} — {health.value}"]
@@ -621,14 +634,6 @@ def cmd_release_keygen(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
-def _not_yet(phase: str):  # type: ignore[no-untyped-def]
-    def run(args: argparse.Namespace) -> int:
-        _emit(args, {"error": "not implemented", "roadmap_phase": phase}, f"not implemented yet (roadmap {phase})")
-        return EXIT_USER
-
-    return run
-
-
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--workspace", "-w", help="workspace directory or id (or ACET_WORKSPACE)")
@@ -695,18 +700,134 @@ def build_parser() -> argparse.ArgumentParser:
     bk.add_argument("--dest")
     bk.set_defaults(func=cmd_backup)
 
-    for name, phase in (
-        ("analyze", "P4/P5"),
-        ("compare", "P6"),
-        ("benchmark", "P10"),
-        ("jobs", "P3"),
-        ("export", "P11"),
-        ("pack", "P11"),
-    ):
-        sp = sub.add_parser(name, parents=[common], help=f"(roadmap {phase})")
-        sp.add_argument("rest", nargs=argparse.REMAINDER)
-        sp.set_defaults(func=_not_yet(phase))
+    _register_analysis(sub, common)
+    _register_operations(sub, common)
     return p
+
+
+PROFILES_HELP = "FAST@1 | STANDARD@1 | DEEP@1 | RESEARCH@1 | STANDARD@2 | DEEP@2"
+
+
+def _register_analysis(sub: Any, common: argparse.ArgumentParser) -> None:
+    an = sub.add_parser("analyze", parents=[common], help="analyze one build")
+    an.add_argument("build_id")
+    an.add_argument("--profile", default="FAST@1", help=PROFILES_HELP)
+    an.set_defaults(func=cmd_analyze)
+    cp = sub.add_parser("compare", parents=[common], help="compare two builds")
+    cp.add_argument("left")
+    cp.add_argument("right")
+    cp.add_argument("--profile", default="STANDARD@1", help=PROFILES_HELP)
+    cp.set_defaults(func=cmd_compare)
+    ln = sub.add_parser("lineage", parents=[common], help="build/extend function lineage for a product")
+    ln.add_argument("--product", required=True)
+    ln.add_argument("--full", action="store_true", help="recompute from the first build instead of extending")
+    ln.set_defaults(func=cmd_lineage)
+    rn = sub.add_parser("runs", help="analysis runs").add_subparsers(dest="sub", required=True)
+    rn.add_parser("list", parents=[common]).set_defaults(func=cmd_runs_list)
+    rs = rn.add_parser("show", parents=[common])
+    rs.add_argument("run_id")
+    rs.set_defaults(func=cmd_runs_show)
+    jb = sub.add_parser("jobs", help="jobs").add_subparsers(dest="sub", required=True)
+    jl = jb.add_parser("list", parents=[common])
+    jl.add_argument("--all", action="store_true")
+    jl.set_defaults(func=cmd_jobs_list)
+    for name, fn in (("resume", cmd_jobs_resume), ("cancel", cmd_jobs_cancel), ("pause", cmd_jobs_pause)):
+        jp = jb.add_parser(name, parents=[common])
+        jp.add_argument("job_id")
+        jp.set_defaults(func=fn)
+    ch = sub.add_parser("changes", parents=[common], help="detected changes of a compare run (separate dimensions)")
+    ch.add_argument("run_id")
+    ch.set_defaults(func=cmd_changes)
+    ev = sub.add_parser("events", help="external events").add_subparsers(dest="sub", required=True)
+    ea = ev.add_parser("add", parents=[common])
+    ea.add_argument("--product", required=True)
+    ea.add_argument("--type", required=True)
+    ea.add_argument("--summary", required=True)
+    ea.add_argument("--source-class", required=True, choices=["OFFICIAL", "RESEARCH", "COMMUNITY", "LOCAL_NOTE"])
+    ea.add_argument("--source-ref")
+    ea.add_argument("--occurred-at")
+    ea.add_argument(
+        "--corroboration", default="UNCORROBORATED", choices=["UNCORROBORATED", "SINGLE_SOURCE", "MULTIPLE_SOURCES"]
+    )
+    ea.set_defaults(func=cmd_events_add)
+    tl = sub.add_parser("timeline", parents=[common], help="product timeline")
+    tl.add_argument("--product", required=True)
+    tl.set_defaults(func=cmd_timeline)
+    bm = sub.add_parser("benchmark", help="Benchmark Lab").add_subparsers(dest="sub", required=True)
+    br = bm.add_parser("run", parents=[common])
+    br.add_argument("dataset", help="dataset directory (dataset.json, builds/, ground_truth.json)")
+    br.add_argument("--profile", default="STANDARD@1")
+    br.add_argument("--split", default="all", choices=["all", "calibration", "test"])
+    br.add_argument("--baseline", help="regression baseline JSON; non-zero exit if a gate fails")
+    br.set_defaults(func=cmd_benchmark_run)
+    bc = bm.add_parser("calibrate", parents=[common])
+    bc.add_argument("benchmark_run_id")
+    bc.add_argument("--engine", default="acet.featurematch")
+    bc.set_defaults(func=cmd_benchmark_calibrate)
+
+
+def _register_operations(sub: Any, common: argparse.ArgumentParser) -> None:
+    ex = sub.add_parser("export", parents=[common], help="report for a compare run")
+    ex.add_argument("run_id")
+    ex.add_argument("--format", default="html", choices=["json", "html", "md", "csv"])
+    ex.add_argument("--output")
+    ex.add_argument("--include-sensitive", action="store_true", help="include strings/paths (off by default)")
+    ex.set_defaults(func=cmd_export)
+    pk = sub.add_parser("pack", help=".acetpack").add_subparsers(dest="sub", required=True)
+    pc = pk.add_parser("create", parents=[common])
+    pc.add_argument("output")
+    pc.add_argument("--include-artifacts", action="store_true", help="include original bytes (opt-in)")
+    pc.set_defaults(func=cmd_pack_create)
+    pi = pk.add_parser("import", parents=[common])
+    pi.add_argument("pack")
+    pi.set_defaults(func=cmd_pack_import)
+    dg = sub.add_parser("diagnostics", parents=[common], help="sanitized diagnostic package")
+    dg.add_argument("output")
+    dg.set_defaults(func=cmd_diagnostics)
+    rs = sub.add_parser("restore", parents=[common], help="restore metadata backup (validated)")
+    rs.add_argument("backup")
+    rs.set_defaults(func=cmd_restore)
+    cl = sub.add_parser("cleanup", parents=[common], help="retention cleanup (dry run unless --apply)")
+    cl.add_argument("--apply", action="store_true")
+    cl.set_defaults(func=cmd_cleanup)
+    pg = sub.add_parser("purge", parents=[common], help="purge a trashed build (dry run unless --apply)")
+    pg.add_argument("build_id")
+    pg.add_argument("--apply", action="store_true")
+    pg.set_defaults(func=cmd_purge)
+    an = sub.add_parser("annotate", parents=[common])
+    an.add_argument("target_type")
+    an.add_argument("target_id")
+    an.add_argument("body")
+    an.set_defaults(func=cmd_annotate)
+    se = sub.add_parser("search", parents=[common], help="global search (Ctrl+K backend)")
+    se.add_argument("query")
+    se.set_defaults(func=cmd_search)
+    eg = sub.add_parser("engine-pack", help="Engine Packs").add_subparsers(dest="sub", required=True)
+    for name in ("verify", "install"):
+        e2 = eg.add_parser(name, parents=[common])
+        e2.add_argument("path")
+        e2.set_defaults(func=cmd_pack_engine)
+    eg.add_parser("list", parents=[common]).set_defaults(func=cmd_pack_engine)
+    up = sub.add_parser("update", help="verified offline updates").add_subparsers(dest="sub", required=True)
+    ua = up.add_parser("apply", parents=[common])
+    ua.add_argument("bundle")
+    ua.add_argument("--install-root", required=True)
+    ua.add_argument("--current")
+    ua.add_argument("--channel", default="STABLE", choices=["STABLE", "BETA", "DEVELOPER"])
+    ua.set_defaults(func=cmd_update)
+    ur = up.add_parser("rollback", parents=[common])
+    ur.add_argument("--install-root", required=True)
+    ur.set_defaults(func=cmd_update)
+    rl = sub.add_parser("release", help="release tooling").add_subparsers(dest="sub", required=True)
+    rk = rl.add_parser("keygen", parents=[common])
+    rk.add_argument("secret_out", help="path OUTSIDE the repository")
+    rk.add_argument("--key-id", required=True)
+    rk.add_argument("--purpose", action="append", default=None, choices=["engine-pack", "update", "release"])
+    rk.set_defaults(func=cmd_release_keygen)
+    st = sub.add_parser("settings", parents=[common], help="show or set a setting (value as JSON)")
+    st.add_argument("key", nargs="?")
+    st.add_argument("value", nargs="?")
+    st.set_defaults(func=cmd_settings)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

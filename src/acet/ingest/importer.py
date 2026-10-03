@@ -296,3 +296,47 @@ def import_build(ws: Workspace, req: ImportRequest, *, fault: FaultHook = _noop)
             for f in planned
         ],
     )
+
+
+def preview_import(
+    ws: Workspace, paths: list[Path], product: str, overrides: Mapping[str, ComponentRole] | None = None
+) -> dict[str, Any]:
+    """PREVIEW/VALIDATE stage for the import wizard: nothing is written (spec §32)."""
+    import shutil as _sh
+
+    planned, warnings = plan_files(paths, overrides or {})
+    entries = [ComponentEntry(f.role, f.sha256) for f in planned]
+    fp = build_fingerprint(entries)
+    existing = repo.build_by_fingerprint(ws.db.conn, fp)
+    prod = repo.find_product(ws.db.conn, product)
+    new_bytes = sum(f.size_bytes for f in {f.sha256: f for f in planned}.values() if not ws.store.exists(f.sha256))
+    near = []
+    if prod is not None and existing is None:
+        shas = {f.sha256 for f in planned}
+        for b in ws.db.conn.execute("SELECT id FROM build WHERE product_id=? AND deleted_at IS NULL", (prod["id"],)):
+            other = {r["sha256"] for r in repo.build_artifacts(ws.db.conn, b["id"])}
+            union = shas | other
+            if union and len(shas & other) / len(union) >= NEAR_DUPLICATE_THRESHOLD:
+                near.append(b["id"])
+    return {
+        "files": [
+            {
+                "name": f.path.name,
+                "sha256": f.sha256,
+                "size_bytes": f.size_bytes,
+                "role": f.role.value,
+                "role_confidence": f.role_confidence.value,
+                "format": f.classification.format.value,
+                "reasons": list(f.classification.reasons),
+                "existing_artifact": ws.store.exists(f.sha256),
+            }
+            for f in planned
+        ],
+        "fingerprint": fp,
+        "existing_build": existing["id"] if existing else None,
+        "near_duplicates": near,
+        "new_bytes": new_bytes,
+        "free_bytes": _sh.disk_usage(ws.path).free,
+        "warnings": warnings,
+        "product_found": prod is not None,
+    }

@@ -333,7 +333,7 @@ def detect_changes(ws: Workspace, compare_run_id: str) -> dict[str, Any]:
                         for r in tx.execute(
                             "SELECT value FROM baseline_observation WHERE product_id=? AND component_role=? AND metric=?"
                             " ORDER BY seq",
-                            (product_id, role, dim.dimension.value),
+                            (product_id, role, f"{RULES}:{dim.dimension.value}"),
                         )
                     ]
                     b = classify(abs(metric) if metric is not None else None, [abs(h) for h in hist])
@@ -346,7 +346,7 @@ def detect_changes(ws: Workspace, compare_run_id: str) -> dict[str, Any]:
                                 uuid7(),
                                 product_id,
                                 role,
-                                dim.dimension.value,
+                                f"{RULES}:{dim.dimension.value}",
                                 float(metric),
                                 compare_run_id,
                                 repo.next_seq(tx),

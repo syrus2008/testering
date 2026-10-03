@@ -71,5 +71,26 @@ def test_cli_user_errors(capsys, tmp_path):
     assert code == EXIT_USER and "ACET-WS-001" in err
     code, _, _ = run(capsys, "no-such-command")
     assert code == EXIT_USER
-    code, out, _ = run(capsys, "analyze", "--json", "x")
-    assert code == EXIT_USER and json.loads(out)["roadmap_phase"]
+    code, _, err = run(capsys, "analyze", "x", "--workspace", str(tmp_path / "nowhere"))
+    assert code == EXIT_USER and "ACET-WS-001" in err
+
+
+def test_every_command_is_registered():
+    """Guard: each cmd_* handler must be reachable from the parser (a silent registration miss happened once)."""
+    import acet.cli.main as m
+
+    handlers = {name for name in dir(m) if name.startswith("cmd_")}
+    parser = m.build_parser()
+    reachable: set[str] = set()
+
+    def walk(p):  # type: ignore[no-untyped-def]
+        fn = p.get_default("func")
+        if fn is not None:
+            reachable.add(fn.__name__)
+        for action in p._actions:
+            if hasattr(action, "choices") and isinstance(action.choices, dict):
+                for sp in action.choices.values():
+                    walk(sp)
+
+    walk(parser)
+    assert handlers <= reachable, sorted(handlers - reachable)

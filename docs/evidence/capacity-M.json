@@ -1,0 +1,10 @@
+{
+  "class": "M",
+  "builds": 250,
+  "function_instances": 1000000,
+  "load_s": 15.6,
+  "search_s": 0.088,
+  "integrity_check": "ok",
+  "python": "3.11.15",
+  "machine": "CI container (4 vCPU, 15 GiB)"
+}
