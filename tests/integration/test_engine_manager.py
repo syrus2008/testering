@@ -574,3 +574,34 @@ def test_a_refused_pack_says_why_and_keeps_the_engine_logs(tmp_path):
     report = json.loads(Path(data["report"]).read_text(encoding="utf-8"))
     assert report["self_test"]["checks"][1]["diagnostics"]["processors"][0]["logs"]["stderr.log"] == ["boom"]
     assert "HEALTH_CHECK_DETAIL" in em.log_path().read_text(encoding="utf-8") and em.active_pack() is None
+
+
+def test_diagnostic_package_explains_the_engine_pack_state(ws, tmp_path, monkeypatch):
+    """REAL-TEST-002 diagnostics: a user's package must say what the Engine Pack Manager saw and stay valid JSON."""
+    from acet.platform import diagnostics, doctor
+    from acet.platform.doctor import Check, CheckStatus
+
+    failing = {"verdict": "FAILED", "engine_mode": "live",
+               "self_test": {"checks": [{"name": "STANDARD golden consensus", "ok": False, "detail": "x"}]}}  # fmt: skip
+    with pytest.raises(AcetError):
+        em.install_archive(make_pack(tmp_path), health_check=lambda d, m: failing)
+    win_path = r"C:\Users\someone\AppData\Local\ACET\engines"
+    real = doctor.system_checks
+    monkeypatch.setattr(
+        diagnostics,
+        "system_checks",
+        lambda: [*real(), Check("engine pack", CheckStatus.OK, "x", {"location": win_path})],
+    )
+    pkg = diagnostics.create_diagnostic_package(ws, tmp_path / "diag.zip")
+    with zipfile.ZipFile(pkg) as z:
+        names = set(z.namelist())
+        for n in names:
+            if n.endswith(".json"):
+                json.loads(z.read(n))  # every JSON file parses, Windows paths included
+        state = json.loads(z.read("engine_pack.json"))
+        assert "logs/engine-pack-install.log" in names and any(n.startswith("logs/engine-pack-health-") for n in names)
+        assert "HEALTH_CHECK_DETAIL" in z.read("logs/engine-pack-install.log").decode()
+        checks = z.read("system_checks.json").decode()
+    assert state["platform"] == em.current_platform() and "distribution" in state
+    assert state["trusted_engine_pack_keys"] == ["rel"] and state["status"]["pack"] is None  # refused: not active
+    assert "someone" not in checks and "<PATH>" in checks

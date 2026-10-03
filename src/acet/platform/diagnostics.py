@@ -14,17 +14,63 @@ from typing import Any
 import acet
 from acet.application.workspace import Workspace
 from acet.domain.timeutil import utc_now_iso
-from acet.engines.environment import detect
+from acet.platform import engine_manager
 from acet.platform.doctor import system_checks, workspace_checks
-from acet.platform.sanitize import sanitize
+from acet.platform.sanitize import sanitize, sanitize_obj
 
 LOG_TAIL_BYTES = 64 * 1024
 MAX_LOGS = 50
 
 
+def _engine_pack_state() -> dict[str, Any]:
+    """What the Engine Pack Manager sees: state, this build's distribution channel, trusted pack keys (ids only),
+    the engines directory (names and sizes) and the active-pack pointer. No network access."""
+    from acet.platform.signing import load_trust_store
+
+    out: dict[str, Any] = {"platform": engine_manager.current_platform()}
+    try:
+        st = engine_manager.status()
+        out["status"] = {k: st.get(k) for k in ("state", "pack", "profiles", "components", "verification")}
+    except Exception as exc:  # the package must be produced even when the manager cannot read its state
+        out["status_error"] = repr(exc)
+    dist = engine_manager.distribution_config()
+    out["distribution"] = {"channel": dist.get("channel"), "index_urls": dist.get("index_urls", [])}
+    try:
+        out["trusted_engine_pack_keys"] = sorted(
+            f"{k}{' (dev)' if v.get('channel') == 'dev' else ''}{' REVOKED' if v.get('revoked') else ''}"
+            for k, v in load_trust_store(local=True).items()
+            if "engine-pack" in v.get("purposes", [])
+        )
+    except Exception as exc:
+        out["trust_store_error"] = repr(exc)
+    root = engine_manager.engines_root()
+    pointer = engine_manager.pointer_path()
+    out["pointer"] = json.loads(pointer.read_text(encoding="utf-8")) if pointer.is_file() else None
+    out["engines_dir"] = {
+        sub: [
+            {"name": p.name, "size": p.stat().st_size if p.is_file() else None}
+            for p in sorted((root / sub).iterdir() if (root / sub).is_dir() else [])
+        ]
+        for sub in ("downloads", "staging", "packs")
+    }
+    return out
+
+
+def _engine_pack_logs() -> dict[str, str]:
+    files: dict[str, str] = {}
+    log = engine_manager.log_path()
+    if log.is_file():
+        files["logs/engine-pack-install.log"] = log.read_bytes()[-LOG_TAIL_BYTES:].decode("utf-8", "replace")
+    reports = sorted(log.parent.glob("engine-pack-health-*.json"), key=lambda p: p.stat().st_mtime)[-3:]
+    for p in reports:
+        files[f"logs/{p.name}"] = p.read_bytes()[-4 * LOG_TAIL_BYTES :].decode("utf-8", "replace")
+    return files
+
+
 def create_diagnostic_package(ws: Workspace | None, dest: Path) -> Path:
     def s(obj: Any) -> str:
-        return sanitize(json.dumps(obj, indent=2, default=str), workspace=ws.path if ws else None)
+        plain = json.loads(json.dumps(obj, default=str))
+        return json.dumps(sanitize_obj(plain, workspace=ws.path if ws else None), indent=2)
 
     files: dict[str, str] = {
         "versions.json": s(
@@ -37,9 +83,14 @@ def create_diagnostic_package(ws: Workspace | None, dest: Path) -> Path:
             }
         ),
         "system_checks.json": s([c.to_dict() for c in system_checks()]),
-        "providers.json": s({k: {**v.to_dict(), "location": None} for k, v in detect().providers.items()}),
+        "providers.json": s(
+            {k: {**v.to_dict(), "location": None} for k, v in engine_manager.engine_environment().providers.items()}
+        ),
+        "engine_pack.json": s(_engine_pack_state()),
         "README.txt": "ACET diagnostic package. Contains no artifact bytes and no full user paths (ACC-032).\n",
     }
+    for name, text in _engine_pack_logs().items():
+        files[name] = sanitize(text, workspace=ws.path if ws else None)
     if ws is not None:
         checks, _rec = workspace_checks(ws, full=False)
         files["workspace_checks.json"] = s([c.to_dict() for c in checks])

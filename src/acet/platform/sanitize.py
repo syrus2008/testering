@@ -6,6 +6,7 @@ import getpass
 import os
 import re
 from pathlib import Path
+from typing import Any
 
 _PDB = re.compile(r"(?i)(?:[a-z]:)?[\\/][^\s\"'<>|]*?\.pdb")
 _WINPATH = re.compile(r"(?i)\b[a-z]:\\(?:[^\\\s\"'<>|]+\\)*[^\\\s\"'<>|]*")
@@ -29,3 +30,15 @@ def sanitize(text: str, *, workspace: Path | None = None) -> str:
     if user and len(user) > 2:
         out = re.sub(rf"(?i)\b{re.escape(user)}\b", "<USER>", out)
     return out
+
+
+def sanitize_obj(obj: Any, *, workspace: Path | None = None) -> Any:
+    """``sanitize`` applied to every string of a JSON-like value *before* serialisation: rewriting the JSON text
+    instead would cut Windows paths in the middle of their escaped backslashes and produce invalid JSON."""
+    if isinstance(obj, str):
+        return sanitize(obj, workspace=workspace)
+    if isinstance(obj, dict):
+        return {sanitize(str(k), workspace=workspace): sanitize_obj(v, workspace=workspace) for k, v in obj.items()}
+    if isinstance(obj, list | tuple):
+        return [sanitize_obj(v, workspace=workspace) for v in obj]
+    return obj
