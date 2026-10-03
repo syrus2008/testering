@@ -225,6 +225,14 @@
     "installed_size": {
       "type": "integer",
       "minimum": 0
+    },
+    "platform": {
+      "description": "Operating system / architecture the pack's binaries run on; absent means platform-independent.",
+      "enum": [
+        "win-x64",
+        "linux-x64",
+        "any"
+      ]
     }
   }
 }

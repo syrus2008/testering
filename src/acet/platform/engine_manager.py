@@ -30,11 +30,13 @@ import hashlib
 import http.client
 import json
 import os
+import platform
 import re
 import shutil
 import socket
 import ssl
 import stat
+import sys
 import threading
 import urllib.error
 import urllib.parse
@@ -304,7 +306,21 @@ def fetch_index(url: str | None = None) -> list[dict[str, Any]]:
     raise errors[0]
 
 
+def current_platform() -> str:
+    machine = platform.machine().lower()
+    arch = "x64" if machine in ("amd64", "x86_64") else machine
+    osname = "win" if sys.platform == "win32" else sys.platform
+    return f"{osname}-{arch}"
+
+
+def platform_matches(pack_platform: str | None) -> bool:
+    return pack_platform in (None, "any") or pack_platform == current_platform()
+
+
 def resolve_compatible(entries: list[dict[str, Any]]) -> dict[str, Any]:
+    entries = [e for e in entries if platform_matches(e.get("platform"))]
+    if not entries:
+        raise fail("PACK_INCOMPATIBLE", f"no published pack is built for {current_platform()}")
     ok = [
         e
         for e in entries
@@ -624,16 +640,19 @@ def install_archive(
     try:
         progress("verify", 0, None, "Verifying package")
         res.steps.append("VERIFYING")
-        if expected_sha256 is not None and _sha256(archive) != expected_sha256:
+        archive_sha = _sha256(archive)
+        if expected_sha256 is not None and archive_sha != expected_sha256:
             raise fail("HASH_MISMATCH", "archive differs from the published SHA-256")
         manifest, _env = read_archive_manifest(archive)
         name = f"{manifest['id']}-{manifest['version']}"
         log.write("INSTALL_START", pack=f"{manifest['id']}@{manifest['version']}", source=source,
-                  archive_sha256=_sha256(archive))  # fmt: skip
+                  archive_sha256=archive_sha)  # fmt: skip
+        if not platform_matches(manifest.get("platform")):
+            raise fail("PACK_INCOMPATIBLE", f"{name} is built for {manifest.get('platform')}, this is {current_platform()}")
         with zipfile.ZipFile(archive) as z:
             installed = int(manifest.get("installed_size") or sum(i.file_size for i in z.infolist()))
         check_disk(engines_root(), installed * 2)  # staging + the move is a rename (same volume)
-        stage = staging_dir() / uuid.uuid4().hex
+        stage = staging_dir() / uuid.uuid4().hex[:12]  # short: Windows MAX_PATH with deep engine trees
         stage.mkdir(parents=True)
         (stage / INSTALLING_MARKER).write_text(utc_now_iso(), encoding="utf-8")
         res.steps.append("EXTRACTING")

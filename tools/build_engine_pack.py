@@ -68,7 +68,7 @@ def _manifest(config: dict[str, Any]) -> dict[str, Any]:
         "licenses": config["licenses"],
         "supported_acet": config["supported_acet"],
     }
-    for k in ("runtime", "components"):
+    for k in ("runtime", "components", "platform"):
         if k in config:
             m[k] = config[k]
     return m
@@ -83,7 +83,8 @@ def make_archive(pack_dir: Path, archive: Path) -> Path:
             if not p.is_file():
                 continue
             info = zipfile.ZipInfo(p.relative_to(pack_dir).as_posix(), date_time=(1980, 1, 1, 0, 0, 0))
-            mode = 0o755 if os.access(p, os.X_OK) or p.suffix in (".exe", ".bat", ".cmd") else 0o644
+            executable = p.suffix.lower() in (".exe", ".bat", ".cmd") or (os.name != "nt" and os.access(p, os.X_OK))
+            mode = 0o755 if executable else 0o644  # on Windows every file passes X_OK: use the suffix only
             info.external_attr = (stat.S_IFREG | mode) << 16
             info.compress_type = zipfile.ZIP_DEFLATED
             with open(p, "rb") as src, z.open(info, "w", force_zip64=True) as dst:
@@ -102,6 +103,7 @@ def index_entry(pack_dir: Path, archive: Path, url: str) -> dict[str, Any]:
         "archive_sha256": _sha(archive),
         "archive_size": archive.stat().st_size,
         "installed_size": m.get("installed_size"),
+        "platform": m.get("platform", "any"),
         "components": m.get("components", []),
         "licenses": m["licenses"],
     }

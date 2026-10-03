@@ -1,0 +1,28 @@
+ACET Engine Pack for Windows x64 (acet-engines-win64) - third-party components
+==============================================================================
+
+Every component is redistributed unmodified, as published upstream. Each runs as a separate
+program started by ACET; ACET does not link to any of them.
+
+ghidra/                Ghidra 11.4.2 (NSA) - Apache License 2.0.
+                       Licence: ghidra/LICENSE; third-party licences: ghidra/licenses/, ghidra/GPL/.
+                       Source: https://github.com/NationalSecurityAgency/ghidra (tag Ghidra_11.4.2_build)
+
+runtime/java/          Eclipse Temurin OpenJDK 21.0.8+9 - GPL-2.0-only WITH Classpath-exception-2.0.
+                       Licence and notices: runtime/java/legal/. jmods/, lib/src.zip, demo/ and man/
+                       are not included. Source: https://github.com/adoptium/jdk21u (tag jdk-21.0.8+9)
+
+ghidriff/              CPython 3.11.9 for Windows x64 (python.org build, nuget package "python") -
+                       PSF License Agreement: ghidriff/LICENSE.txt. Source: https://www.python.org/downloads/source/
+
+ghidriff/Lib/site-packages/
+  ghidriff 1.0.0       GPL-3.0-only. Corresponding source: licenses/sources/ghidriff-1.0.0.tar.gz,
+                       https://github.com/clearbluejar/ghidriff
+  pyghidra 2.2.1       Apache-2.0 (wheel shipped with Ghidra 11.4.2)
+  JPype1 1.5.2         Apache-2.0 (wheel shipped with Ghidra 11.4.2)
+  packaging 23.2       Apache-2.0 OR BSD-2-Clause (wheel shipped with Ghidra 11.4.2)
+  mdutils 1.6.0        MIT. Source: licenses/sources/mdutils-1.6.0.tar.gz
+
+Not included (optional or external in ACET, never required for STANDARD):
+  BinDiff / BinExport  optional (DEEP); QBinDiff optional (experimental);
+  Diaphora             external only: AGPL-3.0 and requires IDA Pro (ADR-0009).

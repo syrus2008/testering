@@ -1,0 +1,171 @@
+name: engine-pack
+
+# Builds the Windows Engine Pack from packaging/engine-pack/win64/recipe.json, publishes it once the
+# release owner has signed it, and proves it on a Windows runner without any system Java/Ghidra/Ghidriff.
+#
+#  1. assemble (Windows): pinned inputs -> unsigned.zip + payload.json + build-info.json, uploaded to the
+#     prerelease "engine-pack-win64-<version>-build". Nothing here is trusted by ACET: it is unsigned.
+#  2. The release owner downloads unsigned.zip, checks it, signs payload.json offline and commits
+#     engine-pack.json + the signed index (tools/engine_pack_release.py sign / finalize / index).
+#  3. publish (when the committed signature matches this build): finalize the archive, check it against the
+#     signed index, publish archive + manifest + index (+ the dev index release used by distribution.json).
+#  4. live (Windows): Install Engine Pack through the real distribution and from file, real doctor --full,
+#     STANDARD analysis, on a runner where Java/Ghidra/Ghidriff are removed from the environment.
+
+on:
+  push:
+    paths:
+      - "packaging/engine-pack/**"
+      - "tools/engine_pack_release.py"
+      - "tools/build_engine_pack.py"
+      - "src/acet/platform/engine_manager.py"
+      - "src/acet/platform/distribution.json"
+      - "tests/live/**"
+      - ".github/workflows/engine-pack.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: engine-pack
+  cancel-in-progress: false
+
+env:
+  PACK_DIR: packaging/engine-pack/win64
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.p.outputs.version }}
+      build_tag: ${{ steps.p.outputs.build_tag }}
+      need_build: ${{ steps.p.outputs.need_build }}
+      signed: ${{ steps.p.outputs.signed }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(python3 -c "import json;print(json.load(open('$PACK_DIR/recipe.json'))['version'])")
+          tag="engine-pack-win64-$v-build"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "build_tag=$tag" >> "$GITHUB_OUTPUT"
+          recipe=$(sha256sum "$PACK_DIR/recipe.json" | cut -d' ' -f1)
+          built=""
+          if gh release download "$tag" -p build-info.json -D /tmp/bi --repo "$GITHUB_REPOSITORY" 2>/dev/null; then
+            built=$(python3 -c "import json;print(json.load(open('/tmp/bi/build-info.json'))['recipe_sha256'])")
+          fi
+          if [ "$built" = "$recipe" ]; then echo "need_build=false" >> "$GITHUB_OUTPUT"; else echo "need_build=true" >> "$GITHUB_OUTPUT"; fi
+          if [ -f "$PACK_DIR/engine-pack.json" ] && [ -f "$PACK_DIR/build-info.json" ] && [ -f packaging/engine-pack/dev-index.json ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  assemble:
+    needs: plan
+    if: needs.plan.outputs.need_build == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install builder
+        run: python -m pip install -e . setuptools wheel
+      - name: Assemble (every input SHA-256 checked)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python tools/engine_pack_release.py assemble ${{ env.PACK_DIR }}/recipe.json build/engine-pack
+      - name: Upload the unsigned build for signing
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ needs.plan.outputs.build_tag }}"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --prerelease --target "$GITHUB_SHA" \
+            --title "Engine Pack win64 ${{ needs.plan.outputs.version }} (unsigned build, not installable)" \
+            --notes "Unsigned output of the reproducible build. ACET refuses it until the release owner signs it."
+          gh release upload "$tag" build/engine-pack/unsigned.zip build/engine-pack/payload.json build/engine-pack/build-info.json --clobber
+
+  publish:
+    needs: [plan, assemble]
+    if: always() && needs.plan.outputs.signed == 'true' && needs.assemble.result != 'failure'
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.f.outputs.published }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e .
+      - id: f
+        name: Finalize the signed archive and check it against the signed index
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          tag="${{ needs.plan.outputs.build_tag }}"
+          gh release download "$tag" -p unsigned.zip -p build-info.json -D build
+          want=$(python3 -c "import json;print(json.load(open('$PACK_DIR/build-info.json'))['unsigned_zip_sha256'])")
+          got=$(sha256sum build/unsigned.zip | cut -d' ' -f1)
+          if [ "$want" != "$got" ]; then
+            echo "the signed manifest belongs to another build ($want != $got): sign the current build first"
+            echo "published=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          name="acet-engines-win64-${{ needs.plan.outputs.version }}.acetengine"
+          python tools/engine_pack_release.py finalize build/unsigned.zip "$PACK_DIR/engine-pack.json" -o "build/$name"
+          python tools/engine_pack_release.py check "build/$name" packaging/engine-pack/dev-index.json
+          cp "$PACK_DIR/engine-pack.json" build/engine-pack.json
+          cp packaging/engine-pack/dev-index.json build/index.json
+          (cd build && sha256sum "$name" engine-pack.json index.json > SHA256SUMS)
+          rtag="engine-pack-win64-${{ needs.plan.outputs.version }}"
+          gh release view "$rtag" >/dev/null 2>&1 || gh release create "$rtag" --prerelease --target "$GITHUB_SHA" \
+            --title "ACET Engine Pack win64 ${{ needs.plan.outputs.version }} (dev channel)" \
+            --notes-file "$PACK_DIR/RELEASE_NOTES.md"
+          gh release upload "$rtag" "build/$name" build/engine-pack.json build/index.json build/SHA256SUMS "$PACK_DIR/build-info.json" --clobber
+          itag="engine-pack-index-dev"
+          gh release view "$itag" >/dev/null 2>&1 || gh release create "$itag" --prerelease --target "$GITHUB_SHA" \
+            --title "ACET Engine Pack index (dev channel)" --notes "Signed index read by dev/test builds of ACET (src/acet/platform/distribution.json)."
+          gh release upload "$itag" build/index.json --clobber
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+  live:
+    needs: [plan, publish]
+    if: always() && needs.publish.outputs.published == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e ".[dev]"
+      - name: Remove every system Java/Ghidra/Ghidriff from the environment
+        shell: pwsh
+        run: |
+          $keep = ($env:PATH -split ';') | Where-Object { $_ -and ($_ -notmatch '(?i)java|jdk|jre|temurin|ghidra') }
+          "PATH=$($keep -join ';')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Get-ChildItem env: | Where-Object { $_.Name -match '^(JAVA_HOME|JDK_HOME|JRE_HOME|GHIDRA)' } | ForEach-Object {
+            "$($_.Name)=" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8 }
+      - name: Live acceptance (Install Engine Pack, Install from file, doctor --full, STANDARD)
+        env:
+          ACET_LIVE_ENGINE_PACK: "1"
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest -q -p no:cacheprovider tests/live -rs -s
+      - name: doctor --full on the installed pack
+        if: always()
+        shell: pwsh
+        run: |
+          $env:ACET_HOME = Join-Path $env:RUNNER_TEMP "acet-live-home"
+          if (Test-Path $env:ACET_HOME) { python -m acet engines status; python -m acet doctor --full | Tee-Object doctor-full.txt }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: engine-pack-live-evidence
+          path: |
+            doctor-full.txt
+            ${{ runner.temp }}/acet-live-home/logs/engine-pack-install.log
+            ${{ runner.temp }}/acet-live-evidence/**
