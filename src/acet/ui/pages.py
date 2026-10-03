@@ -293,15 +293,19 @@ class BuildsPage(Page):
         if not sel:
             return
         from acet.analysis.orchestrator import analyze_build
+        from acet.ui.engines import gate_profile
 
-        self.ctx.status(f"Analysis {profile} started for build {sel['id'][:8]}…")
-        self.ctx.run(
-            analyze_build,
-            sel["id"],
-            profile,
-            read_only=False,
-            done=self.after(lambda s: f"Analysis {s.status} (coverage {s.coverage})", self.load_detail),
-        )
+        def run(chosen: str) -> None:
+            self.ctx.status(f"Analysis {chosen} started for build {sel['id'][:8]}…")
+            self.ctx.run(
+                analyze_build,
+                sel["id"],
+                chosen,
+                read_only=False,
+                done=self.after(lambda s: f"Analysis {s.status} (coverage {s.coverage})", self.load_detail),
+            )
+
+        gate_profile(self, self.ctx, profile, run, lambda: self.ctx.open_engines())
 
     def verify(self) -> None:
         sel = self.table.selected()
@@ -428,16 +432,20 @@ class ComparePage(Page):
             self.ctx.status("Choose two different builds")
             return
         from acet.analysis.orchestrator import compare_builds
+        from acet.ui.engines import gate_profile
 
-        self.ctx.status(f"Comparison {self.profile.currentText()} running in background…")
-        self.ctx.run(
-            compare_builds,
-            left,
-            right,
-            self.profile.currentText(),
-            read_only=False,
-            done=self.after(lambda s: f"Comparison {s.status}", self.refresh),
-        )
+        def run(profile: str) -> None:
+            self.ctx.status(f"Comparison {profile} running in background…")
+            self.ctx.run(
+                compare_builds,
+                left,
+                right,
+                profile,
+                read_only=False,
+                done=self.after(lambda s: f"Comparison {s.status}", self.refresh),
+            )
+
+        gate_profile(self, self.ctx, self.profile.currentText(), run, lambda: self.ctx.open_engines())
 
     def load_run(self) -> None:
         run = self.runs.currentData()
@@ -1061,8 +1069,19 @@ class SettingsPage(Page):
         self.table = Table([("key", "Setting"), ("value", "Value"), ("required_mode", "Mode required")], "Settings")
         lay.addWidget(self.table)
         lay.addWidget(self.button("&Edit selected…", self.edit))
+        # Settings → Analysis Engines: the same Engine Pack Manager view as the toolbar's Engines button.
+        from acet.ui.engines import EngineManagerWidget
+
+        box = QGroupBox("Analysis Engines")
+        bl = QVBoxLayout(box)
+        self.engines = EngineManagerWidget(ctx, box)
+        self.engines.state_changed.connect(ctx.set_engine_state)
+        bl.addWidget(self.engines)
+        lay.addWidget(box, 2)
 
     def refresh(self) -> None:
+        self.engines.refresh()
+
         def load(ws: Any) -> list[dict[str, Any]]:
             from acet.application.settings import SETTINGS, effective_settings
 

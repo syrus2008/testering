@@ -165,6 +165,66 @@
     },
     "signature": {
       "type": "string"
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "java": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "version"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vendor": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "license"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "installed_size": {
+      "type": "integer",
+      "minimum": 0
     }
   }
 }

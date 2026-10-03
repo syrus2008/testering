@@ -1,0 +1,4 @@
+{
+  "comment": "Official Engine Pack distribution. Each index URL must serve an index signed by a key of the bundled trust store (purpose engine-pack); the URL itself grants no trust. Empty until the release owner publishes the first signed pack (see docs/runbook.md, Engine Packs).",
+  "index_urls": []
+}

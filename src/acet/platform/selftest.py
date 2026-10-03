@@ -33,7 +33,9 @@ def demo_dataset() -> Path | None:
     return next((c for c in candidates if (c / "ground_truth.json").is_file()), None)
 
 
-def run_self_test(*, standard: bool = True) -> dict[str, Any]:
+def run_self_test(*, standard: bool = True, env: Any = None) -> dict[str, Any]:
+    """``env``: the engine environment to verify (default: local detection; the Engine Pack Manager passes
+    the environment of the pack it is installing or verifying)."""
     from acet.analysis.orchestrator import analyze_build, compare_builds
     from acet.analysis.results import derived_for_artifact
     from acet.application.products import create_product
@@ -70,7 +72,7 @@ def run_self_test(*, standard: bool = True) -> dict[str, Any]:
             checks.append(
                 {"name": "FAST facts", "ok": s.status == "COMPLETED" and {"GuardInit", "GuardScan"} <= exports}
             )
-            env = detect()
+            env = env or detect()
             if env.available("ghidra"):
                 engine_mode = "replay" if env.providers["ghidra"].extra.get("replay") else "live"
             if standard and env.available("ghidra"):

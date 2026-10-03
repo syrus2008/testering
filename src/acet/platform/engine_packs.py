@@ -65,9 +65,9 @@ def version_in_range(version: str, spec: str) -> bool:
     return ok
 
 
-def verify_pack(root: Path, *, trust_extra: Path | None = None) -> dict[str, Any]:
-    """Signature → schema → protocol/compat → licenses → every file hash. Nothing runs before this passes."""
-    env = json.loads((root / "engine-pack.json").read_text(encoding="utf-8"))
+def verify_manifest(env: dict[str, Any], *, trust_extra: Path | None = None) -> dict[str, Any]:
+    """Signature → schema → protocol/compat → licenses → revocation, from the signed envelope alone (before any
+    file of the pack is extracted or run)."""
     manifest = verify_envelope(env, load_trust_store(trust_extra), purpose="engine-pack")
     try:
         validate_named(manifest, "engine-pack")
@@ -85,14 +85,38 @@ def verify_pack(root: Path, *, trust_extra: Path | None = None) -> dict[str, Any
     ]
     if unlicensed:
         raise AcetError("ACET-UPD-001", f"bundled providers without license decision: {unlicensed} (ACET-LIC-001)")
+    if is_revoked(manifest["id"], manifest["version"]):
+        raise AcetError("ACET-UPD-001", f"engine pack {manifest['id']}@{manifest['version']} is revoked (ACC-090)")
+    return manifest
+
+
+def verify_files(root: Path, manifest: dict[str, Any]) -> list[str]:
+    """Relative paths whose bytes are missing or differ from the signed manifest (empty = intact)."""
+    bad = []
+    for rel, sha in sorted(manifest["checksums"].items()):
+        p = root / rel
+        if ".." in Path(rel).parts or Path(rel).is_absolute() or not p.is_file():
+            bad.append(rel)
+            continue
+        h = hashlib.sha256()
+        with open(p, "rb") as fh:
+            while chunk := fh.read(1 << 20):
+                h.update(chunk)
+        if h.hexdigest() != sha:
+            bad.append(rel)
+    return bad
+
+
+def verify_pack(root: Path, *, trust_extra: Path | None = None) -> dict[str, Any]:
+    """Signature → schema → protocol/compat → licenses → every file hash. Nothing runs before this passes."""
+    env = json.loads((root / "engine-pack.json").read_text(encoding="utf-8"))
+    manifest = verify_manifest(env, trust_extra=trust_extra)
     for rel, sha in sorted(manifest["checksums"].items()):
         p = root / rel
         if ".." in Path(rel).parts or Path(rel).is_absolute() or not p.is_file():
             raise AcetError("ACET-PACK-001", f"pack file missing or unsafe: {rel}")
         if hashlib.sha256(p.read_bytes()).hexdigest() != sha:
             raise AcetError("ACET-PACK-001", f"pack file tampered: {rel} (ACC-058)")
-    if is_revoked(manifest["id"], manifest["version"]):
-        raise AcetError("ACET-UPD-001", f"engine pack {manifest['id']}@{manifest['version']} is revoked (ACC-090)")
     return manifest
 
 
@@ -150,6 +174,9 @@ def provider_overrides(pack: dict[str, Any]) -> dict[str, str]:
     out: dict[str, str] = {}
     for p in m["providers"]:
         out[p["provider_id"]] = str(root / p["executable"])
+    java = (m.get("runtime") or {}).get("java")
+    if java:  # private Java runtime of the pack: used instead of JAVA_HOME / PATH
+        out["java"] = str(root / java["path"])
     return out
 
 

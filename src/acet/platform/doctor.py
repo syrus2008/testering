@@ -116,14 +116,42 @@ def system_checks() -> list[Check]:
         Check("sqlite", CheckStatus.OK, sqlite3.sqlite_version),
         Check("acet", CheckStatus.OK, acet.__version__),
     ]
-    java = shutil.which("java")
-    checks.append(
-        Check("java", CheckStatus.OK if java else CheckStatus.NOT_AVAILABLE, "found" if java else "not found")
-    )
-    from acet.engines.environment import detect
     from acet.engines.quirks import applicable_limitations
+    from acet.platform import engine_manager as em
 
-    env = detect()
+    env = em.engine_environment()  # the active Engine Pack's engines (private Java), else local detection
+    st = em.status(env)
+    pack = st["pack"]
+    pack_status = {"READY": CheckStatus.OK, "NOT_INSTALLED": CheckStatus.NOT_AVAILABLE}.get(
+        st["state"],
+        CheckStatus.FAIL if st["state"] in ("REPAIR_REQUIRED", "CORRUPTED", "REVOKED") else CheckStatus.WARN,
+    )
+    checks.append(
+        Check(
+            "engine pack",
+            pack_status,
+            (f"{pack['id']}@{pack['version']} {st['state']}" if pack else f"not installed ({st['state']})"),
+            {"verification": st["verification"], "location": st["install_location"]},
+        )
+    )
+    checks.append(
+        Check(
+            "profiles",
+            CheckStatus.OK if st["profiles"]["STANDARD"]["state"] == "READY" else CheckStatus.WARN,
+            ", ".join(f"{k} {v['state']}" for k, v in st["profiles"].items()),
+            {"profiles": st["profiles"]},
+        )
+    )
+    java = env.providers["java"]
+    checks.append(
+        Check(
+            "java",
+            CheckStatus.OK if java.available else CheckStatus.NOT_AVAILABLE,
+            f"{java.version or 'version unknown'} ({java.extra.get('source')})"
+            if java.available
+            else (java.reason or ""),
+        )
+    )
     for pid in ("ghidra", "ghidriff", "binexport", "bindiff", "qbindiff", "diaphora"):
         info = env.providers[pid]
         compat = info.extra.get("compatibility", "unverified")

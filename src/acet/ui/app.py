@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QMessageBox,
+    QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -28,6 +29,7 @@ from PySide6.QtWidgets import (
 
 import acet
 from acet.domain.error_codes import AcetError
+from acet.ui.engines import FAST_ONLY_KEY, EngineManagerDialog, EngineStatusButton, EngineWelcomeDialog
 from acet.ui.pages import PAGES, BuildsPage, Page
 from acet.ui.tasks import TaskRunner
 from acet.ui.widgets import ErrorDialog
@@ -165,6 +167,12 @@ class Context:
     def diagnostics(self) -> None:
         self.win.diagnostics()
 
+    def open_engines(self, action: str | None = None) -> None:
+        self.win.open_engines(action)
+
+    def set_engine_state(self, state: str) -> None:
+        self.win.engines_button.set_state(state)
+
 
 class MainWindow(QMainWindow):
     def __init__(self, ws_path: Path | None) -> None:
@@ -183,6 +191,19 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.nav)
         lay.addWidget(self.stack, 1)
         self.setCentralWidget(central)
+        # Top bar: workspace + the always-visible Engines control (Engine Pack Manager, ADR-0013).
+        bar = self.addToolBar("Main")
+        bar.setObjectName("main-toolbar")
+        bar.setMovable(False)
+        self.ws_label = QLabel(f"  Workspace: {ws_path.name if ws_path else '(none)'}  ")
+        self.ws_label.setAccessibleName("Current workspace")
+        bar.addWidget(self.ws_label)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        bar.addWidget(spacer)
+        self.engines_button = EngineStatusButton()
+        self.engines_button.clicked.connect(lambda: self.open_engines())
+        bar.addWidget(self.engines_button)
         for i, cls in enumerate(PAGES):
             page = cls(self.ctx)
             self.ctx.pages[cls.title] = page
@@ -203,6 +224,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+K"), self, self.open_search)
         self._menus()
         self.nav.setCurrentRow(0)
+        self.check_engines()
         if self.ws_path is not None:
             self.after_open()
 
@@ -245,6 +267,39 @@ class MainWindow(QMainWindow):
             if isinstance(w, Page) and w.title == title:
                 self.nav.setCurrentRow(i)
                 return
+
+    def check_engines(self, *, first_run_guide: bool = True) -> None:
+        """Start-up: detect automatically (and recover interrupted installs); install only on request."""
+        from acet.platform import engine_manager as em
+
+        def load() -> dict[str, Any]:
+            em.recover()
+            return em.status()
+
+        def show(st: dict[str, Any]) -> None:
+            self.engines_button.set_state(st["state"])
+            fast_only = QSettings("ACET", "ACET").value(FAST_ONLY_KEY, False) in (True, "true")
+            if (
+                first_run_guide
+                and st["pack"] is None
+                and not fast_only
+                and os.environ.get("ACET_NO_ENGINE_GUIDE") != "1"
+            ):
+                self.engine_welcome = EngineWelcomeDialog(self.ctx, self, on_manage=self.open_engines)
+                self.engine_welcome.show()
+
+        self.ctx.run(load, no_ws=True, done=show)
+
+    def open_engines(self, action: str | None = None) -> None:
+        dlg = EngineManagerDialog(self.ctx, self)
+        dlg.manager.state_changed.connect(self.engines_button.set_state)
+        dlg.setModal(False)
+        dlg.show()
+        self.engine_dialog = dlg
+        if action == "install":
+            dlg.manager.install()
+        elif action == "file":
+            dlg.manager.install_from_file()
 
     def open_search(self) -> None:
         SearchDialog(self).exec() if os.environ.get("QT_QPA_PLATFORM") != "offscreen" else SearchDialog(self).show()
@@ -293,6 +348,7 @@ class MainWindow(QMainWindow):
 
     def set_workspace(self, path: Path) -> None:
         self.ws_path = path
+        self.ws_label.setText(f"  Workspace: {path.name}  ")
         self.setWindowTitle(f"ACET {acet.__version__} — {path.name}")
         self.after_open()
         self.ctx.refresh_current()

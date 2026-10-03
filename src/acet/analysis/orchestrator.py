@@ -712,6 +712,11 @@ class Orchestrator:
         gh = self.env.providers.get("ghidra")
         if gh and gh.available and gh.location:
             env["ACET_GHIDRA_REPLAY_DIR" if gh.extra.get("replay") else "ACET_GHIDRA_DIR"] = str(gh.location)
+        java = self.env.providers.get("java")
+        if java and java.available and java.location:
+            # Engines run on this Java only: set for the worker's process tree, never system-wide.
+            env["JAVA_HOME"] = str(java.location)
+            env["PATH"] = os.pathsep.join([str(Path(java.location) / "bin"), os.environ.get("PATH", "")])
         for pid_, info in self.env.providers.items():
             if info.available and info.location:
                 env[f"ACET_PROVIDER_{pid_.upper()}"] = str(info.location)
@@ -926,6 +931,10 @@ def environment_for(ws: Workspace) -> EngineEnvironment:
     from acet.platform.engine_packs import provider_overrides, resolve_pinned
 
     pack = resolve_pinned(get_setting(ws, "engines.pinned_pack"))
+    if pack is None:
+        from acet.platform.engine_manager import active_pack
+
+        pack = active_pack()  # the installed, verified, active Engine Pack (Engine Pack Manager)
     if pack is None:
         return detect()
     return detect(provider_overrides(pack), pack_id=f"{pack['id']}@{pack['version']}")

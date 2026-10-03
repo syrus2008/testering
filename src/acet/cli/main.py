@@ -227,9 +227,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         checks += wchecks
     if args.full:
         from acet.platform.doctor import Check, CheckStatus
+        from acet.platform.engine_manager import engine_environment
         from acet.platform.selftest import run_self_test
 
-        st = run_self_test()
+        st = run_self_test(env=engine_environment())
         status = {"VERIFIED": CheckStatus.OK, "PARTIAL": CheckStatus.WARN}.get(st["verdict"], CheckStatus.FAIL)
         checks.append(
             Check(
@@ -607,6 +608,60 @@ def cmd_pack_engine(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_engines(args: argparse.Namespace) -> int:
+    """Engine Pack Manager (same operations as the UI's Engines button)."""
+    from acet.platform import engine_manager as em
+
+    def progress(step: str, done: int, total: int | None, msg: str) -> None:
+        if not args.json and (step in ("verify", "health", "done") or (total and done == total)):
+            print(f"  {msg}", file=sys.stderr)
+
+    if args.sub == "status":
+        em.recover()
+        st = em.status()
+        text = [f"Engine Pack: {st['pack']['id']}@{st['pack']['version']}" if st["pack"] else "Engine Pack: not installed",
+                f"State: {st['state']}"]  # fmt: skip
+        text += [f"  {name:<9} {p['state']}" for name, p in st["profiles"].items()]
+        text += [f"  {c['label']:<14} {c['role']:<9} {c['state']:<15} {c['version'] or ''}" for c in st["components"]]
+        _emit(args, st, "\n".join(text))
+        return EXIT_OK if st["state"] == "READY" else EXIT_PARTIAL
+    if args.sub == "recover":
+        _emit(args, em.recover(), "recovered")
+        return EXIT_OK
+    if args.sub == "rollback":
+        rb = em.rollback()
+        _emit(args, rb, f"active: {rb['active']}")
+        return EXIT_OK
+    if args.sub == "verify":
+        v = em.verify_active(health=not args.files_only)
+        _emit(args, v, f"{v['state']}" + "".join(f"\n  {p}" for p in v.get("problems", [])))
+        return EXIT_OK if v["state"] in ("VERIFIED", "NOT_INSTALLED") else EXIT_SYSTEM
+    if args.sub == "repair":
+        r = em.repair(archive=Path(args.file) if args.file else None, progress=progress)
+        _emit(args, r, f"{r['state']}" + (f"\n{r['message']}" if r.get("message") else ""))
+        return EXIT_OK if r["state"] == "VERIFIED" else EXIT_SYSTEM
+    # install
+    if args.file:
+        res = em.install_archive(Path(args.file), source="file", progress=progress)
+    else:
+        entry = em.resolve_from_distribution(args.index)
+        mb = 1024**2
+        print(
+            f"Engine Pack {entry['id']} {entry['version']}: download {int(entry['archive_size']) / mb:.0f} MB, "
+            f"installed {int(entry.get('installed_size') or 0) / mb:.0f} MB",
+            file=sys.stderr,
+        )
+        for c in entry.get("components") or []:
+            print(f"  - {c.get('name')} {c.get('version')} ({c.get('license')})", file=sys.stderr)
+        if not args.yes and input("Install? [y/N] ").strip().lower() not in ("y", "yes"):
+            _emit(args, {"state": "CANCELLED"}, "CANCELLED")
+            return EXIT_USER
+        res = em.install_entry(entry, progress=progress)
+    _emit(args, {"state": res.state, "pack": res.pack, "previous": res.previous, "steps": res.steps},
+          f"{res.state} {res.pack or ''}")  # fmt: skip
+    return EXIT_OK if res.state == "READY" else EXIT_USER
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     from acet.platform import updates
 
@@ -810,6 +865,22 @@ def _register_operations(sub: Any, common: argparse.ArgumentParser) -> None:
         e2.add_argument("path")
         e2.set_defaults(func=cmd_pack_engine)
     eg.add_parser("list", parents=[common]).set_defaults(func=cmd_pack_engine)
+    en = sub.add_parser("engines", help="Engine Pack Manager: status, install, verify, repair").add_subparsers(
+        dest="sub", required=True
+    )
+    for name in ("status", "recover", "rollback"):
+        en.add_parser(name, parents=[common]).set_defaults(func=cmd_engines)
+    ei = en.add_parser("install", parents=[common], help="install the compatible signed pack (or --file)")
+    ei.add_argument("--file", help="a .acetengine archive obtained elsewhere (same verification)")
+    ei.add_argument("--index", help="signed index URL (mirror); trust still comes from the bundled keys")
+    ei.add_argument("--yes", action="store_true", help="consent to the download without prompting")
+    ei.set_defaults(func=cmd_engines)
+    ev = en.add_parser("verify", parents=[common])
+    ev.add_argument("--files-only", action="store_true", help="skip the engine health check (doctor self-test)")
+    ev.set_defaults(func=cmd_engines)
+    er = en.add_parser("repair", parents=[common])
+    er.add_argument("--file", help="archive of the same pack to repair from")
+    er.set_defaults(func=cmd_engines)
     up = sub.add_parser("update", help="verified offline updates").add_subparsers(dest="sub", required=True)
     ua = up.add_parser("apply", parents=[common])
     ua.add_argument("bundle")

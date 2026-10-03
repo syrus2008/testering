@@ -19,6 +19,7 @@ import shutil
 import stat
 import tempfile
 import zipfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -157,7 +158,11 @@ _SAFE = re.compile(r"^[A-Za-z0-9._\-/]+$")
 
 
 def check_archive(
-    z: zipfile.ZipFile, limits: ArchiveLimits, *, require: tuple[str, ...] = ("manifest.json", "checksums.txt")
+    z: zipfile.ZipFile,
+    limits: ArchiveLimits,
+    *,
+    require: tuple[str, ...] = ("manifest.json", "checksums.txt"),
+    name_ok: Callable[[str], bool] | None = None,
 ) -> None:
     """ACET-ARC-001 / ACET-FS-001: reject before extraction; nothing is written on failure."""
     infos = z.infolist()
@@ -174,7 +179,7 @@ def check_archive(
             or ":" in name
             or ".." in p.parts
             or not name
-            or not _SAFE.match(name)
+            or not (name_ok(name) if name_ok is not None else _SAFE.match(name))
             or len(name) > limits.max_name
             or len(p.parts) > limits.max_depth
         ):

@@ -119,11 +119,41 @@ def _venv_dist_version(python: str, dist_name: str) -> str | None:
     return None
 
 
+def _java_release_version(home: Path) -> str | None:
+    """JDK version from its ``release`` file (no process is started)."""
+    try:
+        for line in (home / "release").read_text(encoding="utf-8").splitlines():
+            if line.startswith("JAVA_VERSION="):
+                return line.split("=", 1)[1].strip().strip('"')
+    except OSError:
+        return None
+    return None
+
+
+def _java(o: dict[str, str]) -> ProviderInfo:
+    """Java for Ghidra. An Engine Pack's private runtime is used exclusively when the pack has one
+    (never JAVA_HOME / PATH); a system Java is only a developer fallback when no pack runtime is set."""
+    exe_name = "java.exe" if os.name == "nt" else "java"
+    if o.get("java"):
+        home = Path(o["java"])
+        if (home / "bin" / exe_name).is_file():
+            return ProviderInfo("java", True, _java_release_version(home), str(home), extra={"source": "engine-pack"})
+        return ProviderInfo("java", False, reason="the Engine Pack's private Java runtime is missing")
+    found = shutil.which("java") or (
+        os.environ.get("JAVA_HOME") and str(Path(os.environ["JAVA_HOME"]) / "bin" / exe_name)
+    )
+    if found and Path(found).is_file():
+        home = Path(found).resolve().parent.parent
+        return ProviderInfo("java", True, _java_release_version(home), str(home), extra={"source": "system"})
+    return ProviderInfo("java", False, reason="no Java runtime (install the Engine Pack)")
+
+
 def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = None) -> EngineEnvironment:
     o = overrides or {}
     providers: dict[str, ProviderInfo] = {}
     gdir = ghidra_dir(o)
-    java = shutil.which("java") or (os.environ.get("JAVA_HOME") and str(Path(os.environ["JAVA_HOME"]) / "bin" / "java"))
+    providers["java"] = _java(o)
+    java = providers["java"].available
     if gdir and java:
         providers["ghidra"] = ProviderInfo(
             "ghidra", True, _ghidra_version(gdir), str(gdir), (Capability.DISASSEMBLY, Capability.FUNCTION_EXTRACTION)
@@ -153,7 +183,9 @@ def detect(overrides: dict[str, str] | None = None, *, pack_id: str | None = Non
     if gpy:
         gver = _venv_dist_version(gpy, "ghidriff") if Path(gpy).is_file() else None
         gdf = gver is not None and _venv_dist_version(gpy, "pyghidra") is not None
-    elif not getattr(sys, "frozen", False):
+    elif not getattr(sys, "frozen", False) and pack_id is None:
+        # Developer checkout without an Engine Pack only: a pack is self-contained and never mixes
+        # in engines from the interpreter ACET happens to run on.
         gpy, gver = sys.executable, _module_version("ghidriff")
         gdf = importlib.util.find_spec("ghidriff") is not None and (
             importlib.util.find_spec("pyghidra") is not None or importlib.util.find_spec("pyhidra") is not None
