@@ -616,6 +616,15 @@ def doctor_health_check(pack_dir: Path, manifest: dict[str, Any]) -> dict[str, A
     return {"verdict": st["verdict"], "engine_mode": st["engine_mode"], "self_test": st, "providers": providers}
 
 
+def _save_health_report(name: str, health: dict[str, Any]) -> Path:
+    """The full self-test result of a refused pack (failing processors, end of their engine logs), kept next to
+    engine-pack-install.log for "Open diagnostics"."""
+    path = log_path().parent / f"engine-pack-health-{name}-{utc_now_iso().replace(':', '')}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(health, indent=2, default=str), encoding="utf-8")
+    return path
+
+
 # --------------------------------------------------------------------------------------------- install
 @dataclass
 class InstallResult:
@@ -690,8 +699,15 @@ def install_archive(
         health = health_check(final, manifest)
         log.write("HEALTH_CHECK", pack=name, verdict=health.get("verdict"), engines=health.get("engine_mode"))
         if health.get("verdict") == "FAILED" or health.get("engine_mode") == "none":
+            failed = [c for c in (health.get("self_test") or {}).get("checks", []) if c.get("ok") is False]
+            report = _save_health_report(name, health)
+            log.write("HEALTH_CHECK_DETAIL", pack=name, failed=",".join(c["name"] for c in failed), report=str(report))
             raise fail(
-                "HEALTH_CHECK_FAILED", f"self-test verdict {health.get('verdict')} ({health.get('engine_mode')})"
+                "HEALTH_CHECK_FAILED",
+                f"self-test verdict {health.get('verdict')} ({health.get('engine_mode')}); failed: "
+                + "; ".join(f"{c['name']} ({c.get('detail', '')})" for c in failed),
+                report=str(report),
+                failed_checks=[c["name"] for c in failed],
             )
         changed = pack_integrity_problems(final, manifest)  # running the engines must not alter the pack
         if changed:

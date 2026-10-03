@@ -167,5 +167,5 @@ jobs:
           name: engine-pack-live-evidence
           path: |
             doctor-full.txt
-            ${{ runner.temp }}/acet-live-home/logs/engine-pack-install.log
+            ${{ runner.temp }}/acet-live-home/logs/**
             ${{ runner.temp }}/acet-live-evidence/**

@@ -115,6 +115,10 @@ def test_install_engine_pack_button_then_live_standard(qtbot, ws, product_id, mo
     assert entry["archive_url"].startswith("https://") and entry["platform"] == "win-x64"
     assert {c["id"] for c in entry["components"]} >= {"java", "ghidra", "ghidriff"}
     qtbot.waitUntil(lambda: not mgr.busy and win.runner.active == 0, timeout=45 * 60_000)
+    if not mgr.step.text().startswith("READY"):
+        _record("install-error.txt", f"{mgr.step.text()}\n{mgr.error.text()}")
+        for report in sorted((HOME_UI / "logs").glob("engine-pack-health-*.json")):
+            _record(report.name, report.read_text(encoding="utf-8"))
     assert mgr.step.text().startswith("READY"), (mgr.step.text(), mgr.error.text())
     assert "READY" in win.engines_button.text()
     _record("install-log.txt", em.log_path().read_text(encoding="utf-8"))

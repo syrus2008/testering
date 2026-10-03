@@ -89,13 +89,14 @@ def run_self_test(*, standard: bool = True, env: Any = None) -> dict[str, Any]:
                         "SELECT decision, evidence_json FROM consensus_match WHERE analysis_run_id=?", (c.run_id,)
                     )
                 )
-                checks.append(
-                    {
-                        "name": "STANDARD golden consensus",
-                        "ok": ok and c.status.startswith("COMPLETED"),
-                        "detail": f"{c.status}; engine={env.providers['ghidra'].version}",
-                    }
-                )
+                check: dict[str, Any] = {
+                    "name": "STANDARD golden consensus",
+                    "ok": ok and c.status.startswith("COMPLETED"),
+                    "detail": f"{c.status}; engine={env.providers['ghidra'].version}",
+                }
+                if not check["ok"]:  # the throw-away workspace is deleted below: keep why it failed
+                    check["diagnostics"] = _failure_diagnostics(ws, c.run_id, c.missing_evidence)
+                checks.append(check)
                 if engine_mode == "live":
                     checks.append(_golden_extraction_check(ws, demo))
                 else:
@@ -123,6 +124,24 @@ def run_self_test(*, standard: bool = True, env: Any = None) -> dict[str, Any]:
         "checks": checks,
         "wall_s": round(time.monotonic() - t0, 1),
     }
+
+
+def _failure_diagnostics(ws: Any, run_id: str, missing: list[dict[str, Any]], tail: int = 40) -> dict[str, Any]:
+    """Why an engine run failed: each unsuccessful processor with the end of its engine logs."""
+    procs = []
+    for r in ws.db.conn.execute(
+        "SELECT id, processor_id, status, outcome, failure_family FROM processor_run WHERE analysis_run_id=?",
+        (run_id,),
+    ):
+        if str(r["outcome"]).startswith("SUCCESS"):
+            continue
+        logs = {}
+        for name in ("stderr.log", "stdout.log"):
+            f = ws.path / "logs" / "processor_runs" / r["id"] / name
+            if f.is_file():
+                logs[name] = f.read_text(encoding="utf-8", errors="replace").splitlines()[-tail:]
+        procs.append({k: r[k] for k in ("processor_id", "status", "outcome", "failure_family")} | {"logs": logs})
+    return {"missing_evidence": missing, "processors": procs}
 
 
 def _golden_extraction_check(ws: Any, demo: Path) -> dict[str, Any]:

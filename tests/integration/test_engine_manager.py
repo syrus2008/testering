@@ -554,3 +554,23 @@ def test_this_build_resolves_a_signed_https_channel_and_stable_refuses_dev(monke
     g = release_evidence._Gate(Path("."))
     release_evidence._check_distribution(g)
     assert any("development key" in p for p in g.problems) and any("channel 'dev'" in p for p in g.problems)
+
+
+def test_a_refused_pack_says_why_and_keeps_the_engine_logs(tmp_path):
+    failing = {
+        "verdict": "FAILED",
+        "engine_mode": "live",
+        "self_test": {"checks": [
+            {"name": "import", "ok": True},
+            {"name": "STANDARD golden consensus", "ok": False, "detail": "FAILED; engine=11.4.2",
+             "diagnostics": {"processors": [{"processor_id": "ghidra.extract", "logs": {"stderr.log": ["boom"]}}]}},
+        ]},
+    }  # fmt: skip
+    with pytest.raises(AcetError) as ei:
+        em.install_archive(make_pack(tmp_path), health_check=lambda d, m: failing)
+    data = ei.value.data
+    assert data["reason"] == "HEALTH_CHECK_FAILED" and data["failed_checks"] == ["STANDARD golden consensus"]
+    assert "STANDARD golden consensus (FAILED; engine=11.4.2)" in str(ei.value)
+    report = json.loads(Path(data["report"]).read_text(encoding="utf-8"))
+    assert report["self_test"]["checks"][1]["diagnostics"]["processors"][0]["logs"]["stderr.log"] == ["boom"]
+    assert "HEALTH_CHECK_DETAIL" in em.log_path().read_text(encoding="utf-8") and em.active_pack() is None
