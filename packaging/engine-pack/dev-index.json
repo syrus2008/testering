@@ -1,0 +1,90 @@
+{
+ "payload": {
+  "kind": "acet-engine-pack-index",
+  "schema_version": 1,
+  "packs": [
+   {
+    "id": "acet-engines-win64",
+    "version": "1.0.0",
+    "supported_acet": ">=0.1,<2.0",
+    "archive_url": "https://github.com/syrus2008/testering/releases/download/engine-pack-win64-1.0.0/acet-engines-win64-1.0.0.acetengine",
+    "archive_sha256": "a5005190ad8ef10d73bf291aab26dedab8753114191ba1ac0320dc5873ff102b",
+    "archive_size": 549020988,
+    "installed_size": 1034298708,
+    "platform": "win-x64",
+    "components": [
+     {
+      "id": "java",
+      "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+      "name": "Eclipse Temurin JDK (private runtime)",
+      "source_url": "https://github.com/adoptium/jdk21u",
+      "version": "21.0.8+9"
+     },
+     {
+      "id": "ghidra",
+      "license": "Apache-2.0 (+ third-party licenses in ghidra/licenses)",
+      "name": "Ghidra",
+      "source_url": "https://github.com/NationalSecurityAgency/ghidra",
+      "version": "11.4.2"
+     },
+     {
+      "id": "ghidriff",
+      "license": "GPL-3.0-only (Ghidriff), Apache-2.0 (pyghidra, JPype), MIT (mdutils), PSF-2.0 (CPython)",
+      "name": "Ghidriff on a private CPython 3.11.9 (with pyghidra 2.2.1, JPype 1.5.2, mdutils 1.6.0)",
+      "source_url": "https://github.com/clearbluejar/ghidriff",
+      "version": "1.0.0"
+     }
+    ],
+    "licenses": [
+     {
+      "bundling": "bundled",
+      "component": "java",
+      "notice": "Unmodified Temurin build with its legal/ directory; source at source_url",
+      "redistribution": "conditional",
+      "spdx": "GPL-2.0-only WITH Classpath-exception-2.0",
+      "version_audited": "21"
+     },
+     {
+      "bundling": "bundled",
+      "component": "ghidra",
+      "notice": "Unmodified Ghidra tree including LICENSE and licenses/",
+      "redistribution": "conditional",
+      "spdx": "Apache-2.0",
+      "version_audited": "11.4.2"
+     },
+     {
+      "bundling": "bundled",
+      "component": "ghidriff",
+      "notice": "Unmodified wheel; corresponding source in licenses/sources/; run as a separate process",
+      "redistribution": "conditional",
+      "spdx": "GPL-3.0-only",
+      "version_audited": "1.0.0"
+     },
+     {
+      "bundling": "bundled",
+      "component": "cpython",
+      "notice": "Unmodified python.org build (nuget 'python'); LICENSE.txt kept in ghidriff/",
+      "redistribution": "yes",
+      "spdx": "PSF-2.0",
+      "version_audited": "3.11.9"
+     },
+     {
+      "bundling": "bundled",
+      "component": "mdutils",
+      "notice": "Source in licenses/sources/",
+      "redistribution": "yes",
+      "spdx": "MIT",
+      "version_audited": "1.6.0"
+     }
+    ]
+   }
+  ]
+ },
+ "signatures": [
+  {
+   "alg": "ed25519",
+   "key_id": "acet-dev-engines-2026-10",
+   "sig": "719b0bcde184190e5a429ef089fdaad3b61b13cf1be973601832d8eb6001898fc51ddf2e5bb42a8f5a3e2807d1beaeb9ba325460712603aaf3e620b8664d2008"
+  }
+ ]
+}

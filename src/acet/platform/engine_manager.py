@@ -800,7 +800,7 @@ def verify_active(*, health: bool = False, health_check: HealthCheck | None = No
         if p["license_mode"] == "bundled" and not (d / p["executable"]).exists():
             problems.append(f"{p['provider_id']} executable missing")
     java = (manifest.get("runtime") or {}).get("java")
-    if java and not _java_exe(d / java["path"]).is_file():
+    if java and not _java_exe(d / java["path"], manifest.get("platform")).is_file():
         problems.append("private Java runtime missing")
     record = verification_record(d) or {}
     if not problems and health:
@@ -890,8 +890,9 @@ def rollback() -> dict[str, Any]:
     return {"active": prev}
 
 
-def _java_exe(java_home: Path) -> Path:
-    return java_home / "bin" / ("java.exe" if os.name == "nt" else "java")
+def _java_exe(java_home: Path, pack_platform: str | None = None) -> Path:
+    windows = pack_platform.startswith("win-") if pack_platform and pack_platform != "any" else os.name == "nt"
+    return java_home / "bin" / ("java.exe" if windows else "java")
 
 
 def java_version(java_home: Path) -> str | None:

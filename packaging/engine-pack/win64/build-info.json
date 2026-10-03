@@ -1,0 +1,45 @@
+{
+  "pack": "acet-engines-win64@1.0.0",
+  "recipe_sha256": "d882c09e5f286221779fd21528f2aadb5918b4cce7f1a99514da78259f816631",
+  "inputs": {
+    "ghidra": {
+      "url": "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_11.4.2_build/ghidra_11.4.2_PUBLIC_20250826.zip",
+      "sha256": "795a02076af16257bd6f3f4736c4fc152ce9ff1f95df35cd47e2adc086e037a6",
+      "verified": "pinned+published"
+    },
+    "java": {
+      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.8%2B9/OpenJDK21U-jdk_x64_windows_hotspot_21.0.8_9.zip",
+      "sha256": "5dbb74a4edda94c2aae97a1e30f448db0ad9023a9466fe31a8c68377d9dfbac4",
+      "verified": "pinned+published"
+    },
+    "python": {
+      "url": "https://api.nuget.org/v3-flatcontainer/python/3.11.9/python.3.11.9.nupkg",
+      "sha256": "9283876d58c017e0e846f95b490da3bca0fc0a6ee1134b2870677cfb7eec3c67",
+      "verified": "pinned"
+    },
+    "ghidriff_wheel": {
+      "url": "https://files.pythonhosted.org/packages/e9/57/028ff9ae12c5fd5f2718ac10f32d4111f1388747a3c24b5ca2204bf9240b/ghidriff-1.0.0-py3-none-any.whl",
+      "sha256": "32ad28c1b567ceef30b866eebecb1ce1c3703939648a9d0a6105554ac90914c2",
+      "verified": "pinned"
+    },
+    "ghidriff_sdist": {
+      "url": "https://files.pythonhosted.org/packages/5b/59/be9c38a47b4354ca0690aa9e1dc3136cfcece4e03ab1bde70704c73ff060/ghidriff-1.0.0.tar.gz",
+      "sha256": "93622ae825031166efadf5ec3b6190bdf9bb57641df40b561cfc96e16443c562",
+      "verified": "pinned"
+    },
+    "mdutils_sdist": {
+      "url": "https://files.pythonhosted.org/packages/b1/ec/6240f147530a2c8d362ed3f2f7985aca92cda68c25ffc2fc216504b17148/mdutils-1.6.0.tar.gz",
+      "sha256": "647f3cf00df39fee6c57fa6738dc1160fce1788276b5530c87d43a70cdefdaf1",
+      "verified": "pinned"
+    }
+  },
+  "files": 8499,
+  "installed_size": 1034298708,
+  "payload_sha256": "c15d91d63ff5b8f5854ea806af0dca9c2c73b830f53ab53b62ca576186d9dd87",
+  "unsigned_zip_sha256": "77a7761243818b14927debd064b5dc3ec63eaa44cdd559f5ae800f2655939a54",
+  "unsigned_zip_size": 547859382,
+  "builder": {
+    "python": "3.11.9",
+    "platform": "win32"
+  }
+}
