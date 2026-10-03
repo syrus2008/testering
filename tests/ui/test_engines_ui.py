@@ -206,14 +206,24 @@ def test_component_status_and_reasons_are_never_truncated(qtbot, win):
     def fits() -> bool:  # every row as tall as Qt's own delegate says its wrapped text needs
         return all(view.rowHeight(r) >= view.sizeHintForRow(r) for r in range(mgr.components.model.rowCount()))
 
-    before = view.sizeHintForRow(0)
-    for _ in range(12):  # narrow the window until the first explanation needs more lines (fonts differ per OS)
-        if view.sizeHintForRow(0) > before:
-            break
-        dlg.resize(max(dlg.minimumSizeHint().width(), dlg.width() - 120), dlg.height())
-        qtbot.wait(100)
-    rows = [(view.rowHeight(r), view.sizeHintForRow(r)) for r in range(mgr.components.model.rowCount())]
-    assert view.sizeHintForRow(0) > before, (before, rows, header.sectionSize(why_col))  # it does wrap more
     qtbot.waitUntil(fits, timeout=3000)
     profiles = mgr.profiles.view.horizontalHeader()
     assert profiles.sectionResizeMode(2) == QHeaderView.ResizeMode.Stretch
+
+
+def test_wrapped_rows_follow_a_narrower_column(qtbot):
+    """The re-fit mechanism itself, on a table whose width the test controls (a dialog has a minimum width)."""
+    from acet.ui.widgets import Table
+
+    t = Table([("label", "Component"), ("why", "Why is this needed?")], "t")
+    qtbot.addWidget(t)
+    t.fit_columns("why")
+    t.set_rows([{"label": "Ghidra", "why": "Ghidra performs the static code analysis (disassembly, function "
+                 "extraction) required by the STANDARD profile and above."}])  # fmt: skip
+    t.resize(700, 200)
+    t.show()
+    qtbot.waitUntil(lambda: t.view.rowHeight(0) >= t.view.sizeHintForRow(0), timeout=3000)
+    one_line = t.view.sizeHintForRow(0)
+    t.resize(260, 200)  # the explanation now needs several lines
+    qtbot.waitUntil(lambda: t.view.sizeHintForRow(0) > one_line, timeout=3000)
+    qtbot.waitUntil(lambda: t.view.rowHeight(0) >= t.view.sizeHintForRow(0), timeout=3000)
