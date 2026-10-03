@@ -93,7 +93,8 @@ def test_install_from_file_with_progress_and_ready_profiles(qtbot, win, tmp_path
     _idle(qtbot, win)
     timer.stop()
     gaps = [b - a for a, b in itertools.pairwise(ticks)]
-    assert len(ticks) > 5 and max(gaps) < 0.25, (len(ticks), max(gaps))  # the event loop never stalled
+    # the event loop kept ticking every 20 ms throughout (a fast runner may finish in ~0.1 s: a few ticks suffice)
+    assert len(ticks) >= 3 and max(gaps) < 0.25, (len(ticks), max(gaps))
     assert {"verify", "extract", "health"} <= set(steps)
     assert em.active_pack()["version"] == "1.0.0"
     comps = {r["id"]: r["state_text"] for r in mgr.components.model.rows}
@@ -206,8 +207,11 @@ def test_component_status_and_reasons_are_never_truncated(qtbot, win):
         return all(view.rowHeight(r) >= view.sizeHintForRow(r) for r in range(mgr.components.model.rowCount()))
 
     before = view.sizeHintForRow(0)
-    dlg.resize(dlg.width() - 250, dlg.height())  # narrower window: the explanation wraps on more lines
-    qtbot.wait(200)
+    for _ in range(12):  # narrow the window until the first explanation needs more lines (fonts differ per OS)
+        if view.sizeHintForRow(0) > before:
+            break
+        dlg.resize(max(dlg.minimumSizeHint().width(), dlg.width() - 120), dlg.height())
+        qtbot.wait(100)
     rows = [(view.rowHeight(r), view.sizeHintForRow(r)) for r in range(mgr.components.model.rowCount())]
     assert view.sizeHintForRow(0) > before, (before, rows, header.sectionSize(why_col))  # it does wrap more
     qtbot.waitUntil(fits, timeout=3000)
