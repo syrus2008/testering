@@ -41,17 +41,15 @@ echo [ACET] Python utilise : %BASEPY%
 if exist "%MARK%" del "%MARK%"
 :venv_ok
 
-rem Empreinte de pyproject.toml : (re)installer seulement si les dependances ont change.
-set "WANT="
-for /f "tokens=* delims=" %%h in ('certutil -hashfile "%~dp0pyproject.toml" SHA256 ^| findstr /r /x "[0-9a-fA-F ]*"') do if not defined WANT set "WANT=%%h"
-if not defined WANT set "WANT=unknown-%RANDOM%%RANDOM%"
-set "HAVE="
-if exist "%MARK%" set /p HAVE=<"%MARK%"
-if not "%WANT%"=="%HAVE%" (
+rem Empreinte de pyproject.toml : (re)installer seulement si les dependances ont change (comparee par Python,
+rem plus fiable que les chaines du batch).
+set "STAMP=import hashlib,pathlib,sys; h=hashlib.sha256(pathlib.Path('pyproject.toml').read_bytes()).hexdigest(); m=pathlib.Path(sys.argv[1]); w=sys.argv[2]=='write'; m.write_text(h) if w else sys.exit(0 if m.is_file() and m.read_text().strip()==h else 1)"
+"%PY%" -c "%STAMP%" "%MARK%" check >nul 2>&1
+if errorlevel 1 (
     echo [ACET] Installation des dependances ^(quelques minutes la premiere fois^)...
     "%PY%" -m pip install --disable-pip-version-check -q --upgrade pip || goto :fail
     "%PY%" -m pip install --disable-pip-version-check -q -e ".[ui]" || goto :fail
-    > "%MARK%" echo %WANT%
+    "%PY%" -c "%STAMP%" "%MARK%" write || goto :fail
 )
 
 if /i "%MODE%"=="check" (
