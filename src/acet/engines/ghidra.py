@@ -9,11 +9,13 @@ is derived and disposable — never a source of truth.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +27,12 @@ SCRIPTS = Path(__file__).resolve().parent / "ghidra_scripts"
 # (BinExport) would make the whole directory (subdirectories included) unresolvable without it, so it lives
 # in a sibling directory and is only put on the script path when it is used.
 OPTIONAL_SCRIPT_DIRS = {"AcetBinExport.java": SCRIPTS.with_name("ghidra_scripts_binexport")}
+# Exactly these files are given to Ghidra, never "whatever is in the folder": a stray script left in an
+# installation (e.g. a new version unpacked over an old one) must not be compiled into ACET's bundle.
+SCRIPT_SETS: dict[str, tuple[Path, tuple[str, ...]]] = {
+    "core": (SCRIPTS, ("AcetExport.java", "AcetSetAnalyzers.java")),
+    "binexport": (OPTIONAL_SCRIPT_DIRS["AcetBinExport.java"], ("AcetBinExport.java",)),
+}
 EXPORT_FORMAT = "acet-ghidra-export@1"
 
 
@@ -53,10 +61,11 @@ def _ghidra_settings_roots() -> list[Path]:
     return roots
 
 
-def purge_stale_script_bundles(script_dirs: list[Path]) -> list[Path]:
+def purge_stale_script_bundles(script_sets: list[set[str]] | None = None) -> list[Path]:
     """Ghidra caches each script directory as a compiled OSGi bundle and keeps the classes of scripts that were
-    since removed or moved (with their imports). A stale bundle of ACET's own scripts is deleted, never another."""
-    dirs = [{p.stem for p in d.glob("*.java")} for d in script_dirs]
+    since removed or moved (with their imports). A bundle of ACET's scripts holding a class outside its allow-listed
+    set (an older layout, a stray file) is deleted; bundles of other scripts are never touched."""
+    dirs = script_sets or [{Path(n).stem for n in names} for _src, names in SCRIPT_SETS.values()]
     removed = []
     for root in _ghidra_settings_roots():
         for bundle in root.glob("*/osgi/compiled-bundles/*"):
@@ -68,9 +77,37 @@ def purge_stale_script_bundles(script_dirs: list[Path]) -> list[Path]:
     return removed
 
 
-def script_path(post_scripts: list[tuple[str, list[str]]]) -> str:
-    dirs = [SCRIPTS, *sorted({OPTIONAL_SCRIPT_DIRS[n] for n, _a in post_scripts if n in OPTIONAL_SCRIPT_DIRS})]
-    return ";".join(str(d) for d in dirs)  # Ghidra's -scriptPath separator on every platform
+def materialize_scripts(kind: str, root: Path | None = None) -> Path:
+    """The script directory handed to Ghidra: a copy of the allow-listed scripts in a directory named after their
+    content. A stray file in ACET's installation cannot enter it, and any script change gives a new directory,
+    hence a freshly compiled bundle (Ghidra's compiled-bundle cache is keyed by directory)."""
+    src, names = SCRIPT_SETS[kind]
+    blobs = {n: (src / n).read_bytes() for n in names}
+    digest = hashlib.sha256(b"".join(n.encode() + b"\0" + b + b"\0" for n, b in sorted(blobs.items()))).hexdigest()
+    base = root or Path(tempfile.gettempdir()) / "acet-ghidra-scripts"
+    dest = base / f"{kind}-{digest[:16]}"
+    if all((dest / n).is_file() and (dest / n).read_bytes() == b for n, b in blobs.items()) and sorted(
+        p.name for p in dest.iterdir()
+    ) == sorted(names):
+        return dest
+    tmp = base / f".{kind}-{digest[:16]}-{os.getpid()}"
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir(parents=True)
+    for n, b in blobs.items():
+        (tmp / n).write_bytes(b)
+    shutil.rmtree(dest, ignore_errors=True)  # a damaged or tampered copy is replaced, never reused
+    try:
+        os.replace(tmp, dest)
+    except OSError:  # another worker materialised it at the same time: use theirs if it is complete
+        shutil.rmtree(tmp, ignore_errors=True)
+        if not all((dest / n).is_file() and (dest / n).read_bytes() == b for n, b in blobs.items()):
+            raise
+    return dest
+
+
+def script_path(post_scripts: list[tuple[str, list[str]]], root: Path | None = None) -> str:
+    kinds = ["core"] + (["binexport"] if any(n in OPTIONAL_SCRIPT_DIRS for n, _a in post_scripts) else [])
+    return ";".join(str(materialize_scripts(k, root)) for k in kinds)  # Ghidra's -scriptPath separator
 
 
 def run_headless(
@@ -82,7 +119,7 @@ def run_headless(
     captured: list[str] | None = None,
 ) -> tuple[int, int]:
     gdir = Path(os.environ["ACET_GHIDRA_DIR"])
-    for stale in purge_stale_script_bundles([SCRIPTS, *OPTIONAL_SCRIPT_DIRS.values()]):
+    for stale in purge_stale_script_bundles():
         print(f"removed stale compiled Ghidra script bundle {stale}", flush=True)
     ctx.engine_version = f"ghidra-{ghidra_version(gdir)}"
     project = work / "ghidra_project"

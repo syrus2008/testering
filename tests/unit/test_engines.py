@@ -228,10 +228,11 @@ def test_core_ghidra_scripts_never_depend_on_an_optional_extension(tmp_path, mon
 
     for java in ghidra.SCRIPTS.rglob("*.java"):  # the core bundle (subdirectories included)
         assert "com.google.security.binexport" not in java.read_text(encoding="utf-8"), java
-    assert ghidra.script_path([("AcetExport.java", [])]) == str(ghidra.SCRIPTS)
-    with_be = ghidra.script_path([("AcetExport.java", []), ("AcetBinExport.java", ["x"])]).split(";")
-    assert [Path(p) for p in with_be] == [ghidra.SCRIPTS, ghidra.OPTIONAL_SCRIPT_DIRS["AcetBinExport.java"]]
-    assert ghidra.OPTIONAL_SCRIPT_DIRS["AcetBinExport.java"].joinpath("AcetBinExport.java").is_file()
+    core = Path(ghidra.script_path([("AcetExport.java", [])], root=tmp_path / "scripts"))
+    assert sorted(p.name for p in core.iterdir()) == ["AcetExport.java", "AcetSetAnalyzers.java"]
+    with_be = ghidra.script_path([("AcetExport.java", []), ("AcetBinExport.java", ["x"])], root=tmp_path / "scripts")
+    paths = [Path(p) for p in with_be.split(";")]
+    assert paths[0] == core and sorted(p.name for p in paths[1].iterdir()) == ["AcetBinExport.java"]
     # a stale compiled bundle of ACET's scripts (a class whose source moved away) is purged; others are kept
     monkeypatch.setattr(ghidra, "_ghidra_settings_roots", lambda: [tmp_path])
     bundles = tmp_path / "ghidra_11.4.2_PUBLIC" / "osgi" / "compiled-bundles"
@@ -242,6 +243,33 @@ def test_core_ghidra_scripts_never_depend_on_an_optional_extension(tmp_path, mon
         (bundles / name).mkdir(parents=True)
         for c in classes:
             (bundles / name / f"{c}.class").write_bytes(b"\xca\xfe")
-    removed = ghidra.purge_stale_script_bundles([ghidra.SCRIPTS, *ghidra.OPTIONAL_SCRIPT_DIRS.values()])
+    removed = ghidra.purge_stale_script_bundles()
     assert [p.name for p in removed] == ["stale"]
     assert sorted(p.name for p in bundles.iterdir()) == ["binexport", "foreign", "fresh"]
+
+
+def test_a_stray_script_left_in_the_installation_never_reaches_ghidra(tmp_path, monkeypatch):
+    """REAL-TEST-002 (user machine, 2026-10-10): a newer ACET unpacked over an older one kept the old
+    ghidra_scripts/AcetBinExport.java; Ghidra compiled it into ACET's bundle and, without BinExport, could not
+    load AcetExport. Only allow-listed scripts are handed to Ghidra, from a content-named directory."""
+    import shutil
+    from pathlib import Path
+
+    from acet.engines import ghidra
+
+    src = tmp_path / "install" / "ghidra_scripts"
+    shutil.copytree(ghidra.SCRIPTS, src)
+    (src / "AcetBinExport.java").write_text("import com.google.security.binexport.BinExportExporter;\n")  # stray
+    monkeypatch.setitem(ghidra.SCRIPT_SETS, "core", (src, ghidra.SCRIPT_SETS["core"][1]))
+    d = Path(ghidra.script_path([("AcetExport.java", [])], root=tmp_path / "s"))
+    assert sorted(p.name for p in d.iterdir()) == ["AcetExport.java", "AcetSetAnalyzers.java"]
+    assert not any("binexport" in p.read_text() for p in d.iterdir())
+    # same content -> same directory (Ghidra reuses its compiled bundle); changed content -> new directory
+    assert Path(ghidra.script_path([("AcetExport.java", [])], root=tmp_path / "s")) == d
+    (src / "AcetExport.java").write_text((src / "AcetExport.java").read_text() + "// v2\n")
+    d2 = Path(ghidra.script_path([("AcetExport.java", [])], root=tmp_path / "s"))
+    assert d2 != d and (d2 / "AcetExport.java").read_text().endswith("// v2\n")
+    # a tampered copy (extra file) is rebuilt, never reused
+    (d2 / "Extra.java").write_text("x")
+    assert sorted(p.name for p in Path(ghidra.script_path([("AcetExport.java", [])], root=tmp_path / "s")).iterdir()) == [
+        "AcetExport.java", "AcetSetAnalyzers.java"]  # fmt: skip
