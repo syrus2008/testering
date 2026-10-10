@@ -371,6 +371,23 @@ CATALOG: dict[str, ErrorSpec] = {
             "The revoked pack is refused for new runs; history is kept.",
             "Install a current pack.",
         ),
+        _e(
+            "ACET-EPM-013",
+            "Engine Pack files locked by another program",
+            F.OS,
+            Out.RETRYABLE_FAILURE,
+            "The new pack was not activated; the previous one stays active.",
+            "An antivirus or indexer still holds files in the ACET engines folder: wait a minute and retry, or "
+            "exclude %LOCALAPPDATA%\\ACET\\engines from real-time scanning.",
+        ),
+        _e(
+            "ACET-EPM-014",
+            "Engine Pack file system error",
+            F.STORAGE,
+            Out.PERMANENT_FAILURE,
+            "The new pack was not activated; the previous one stays active.",
+            "Check permissions and free space of the ACET engines folder (see engine-pack-install.log), then retry.",
+        ),
     )
 }
 

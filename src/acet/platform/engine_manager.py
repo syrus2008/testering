@@ -38,6 +38,7 @@ import ssl
 import stat
 import sys
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -76,7 +77,13 @@ REASONS = {
     "HEALTH_CHECK_FAILED": "ACET-EPM-010",
     "NO_DISTRIBUTION": "ACET-EPM-011",
     "REVOKED": "ACET-EPM-012",
+    "FILES_LOCKED": "ACET-EPM-013",
+    "FILESYSTEM_ERROR": "ACET-EPM-014",
 }
+# Windows: an antivirus or the search indexer opens freshly written files for a while (sharing violation,
+# access denied); renaming the directory that holds them fails until they are released.
+_LOCK_WINERRORS = {5, 32, 33}
+LOCK_RETRY_S = 30.0
 
 Progress = Callable[[str, int, "int | None", str], None]  # step, done, total, message
 HealthCheck = Callable[[Path, dict[str, Any]], dict[str, Any]]
@@ -84,6 +91,27 @@ HealthCheck = Callable[[Path, dict[str, Any]], dict[str, Any]]
 
 def fail(reason: str, detail: str, **data: Any) -> AcetError:
     return AcetError(REASONS[reason], detail, data={"reason": reason, **data})
+
+
+def _locked(exc: OSError) -> bool:
+    return getattr(exc, "winerror", None) in _LOCK_WINERRORS or isinstance(exc, PermissionError)
+
+
+def _fs(op: Callable[..., Any], *args: Any, what: str, timeout: float | None = None) -> Any:
+    """Run a file-system operation, retrying while another program holds the files (Windows); any other
+    failure, or a lock outlasting ``timeout``, becomes an explicit Engine Pack error."""
+    deadline = time.monotonic() + (LOCK_RETRY_S if timeout is None else timeout)
+    delay = 0.1
+    while True:
+        try:
+            return op(*args)
+        except OSError as exc:
+            if not _locked(exc):
+                raise fail("FILESYSTEM_ERROR", f"{what}: {exc}") from exc
+            if time.monotonic() >= deadline:
+                raise fail("FILES_LOCKED", f"{what}: {exc}") from exc
+            time.sleep(delay)
+            delay = min(delay * 2, 2.0)
 
 
 class Cancelled(Exception):
@@ -428,7 +456,7 @@ def download(
         part.unlink(missing_ok=True)
         log.write("HASH_MISMATCH", expected=expected_sha256, got=got)
         raise fail("HASH_MISMATCH", f"expected {expected_sha256}, got {got}")
-    os.replace(part, final)
+    _fs(os.replace, part, final, what="finishing the download")
     log.write("DOWNLOAD_VERIFIED", sha256=got, size=done)
     return final
 
@@ -577,7 +605,7 @@ def configure_private_java(pack_dir: Path, manifest: dict[str, Any]) -> None:
         data = data + (b"" if data.endswith(b"\n") or not data else b"\n") + line + b"\n"
     tmp = path.with_name(path.name + ".acet-tmp")
     tmp.write_bytes(data)
-    os.replace(tmp, path)
+    _fs(os.replace, tmp, path, what="pinning Ghidra to the private Java runtime")
 
 
 def pack_integrity_problems(pack_dir: Path, manifest: dict[str, Any]) -> list[str]:
@@ -689,9 +717,10 @@ def install_archive(
                 shutil.rmtree(stage, ignore_errors=True)
                 stage = None
                 raise fail("INTEGRITY_FAILURE", f"{name} is already the active pack; use Verify or Repair")
-            shutil.rmtree(final)  # an inactive leftover of the same version: replace it
+            _fs(shutil.rmtree, final, what="removing an inactive copy of the same pack")  # replace the leftover
         final.parent.mkdir(parents=True, exist_ok=True)
-        os.replace(stage, final)  # still carries INSTALLING_MARKER: not usable, removed by recover()
+        # still carries INSTALLING_MARKER: not usable, removed by recover()
+        _fs(os.replace, stage, final, what="moving the verified pack from staging into place")
         stage = None
         configure_private_java(final, manifest)
         progress("health", 0, None, "Running engine diagnostics")
@@ -736,6 +765,10 @@ def install_archive(
     except AcetError as exc:
         log.write("FAILED", reason=exc.data.get("reason"), code=exc.code, detail=exc.detail)
         raise
+    except OSError as exc:  # anything the file system refused that no step mapped: explicit, never a raw trace
+        err = fail("FILES_LOCKED" if _locked(exc) else "FILESYSTEM_ERROR", f"{res.steps[-1:] or ['START']}: {exc}")
+        log.write("FAILED", reason=err.data["reason"], code=err.code, detail=err.detail)
+        raise err from exc
     finally:
         if stage is not None:
             shutil.rmtree(stage, ignore_errors=True)
@@ -881,7 +914,7 @@ def repair(
                     progress("repair", n + 1, len(restore), f"Restoring {rel}")
             for rel in restore:
                 (d / rel).parent.mkdir(parents=True, exist_ok=True)
-                os.replace(tmp / rel, d / rel)
+                _fs(os.replace, tmp / rel, d / rel, what=f"restoring {rel}")
         except Cancelled:
             return {"state": "CANCELLED"}
         finally:

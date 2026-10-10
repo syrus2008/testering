@@ -605,3 +605,42 @@ def test_diagnostic_package_explains_the_engine_pack_state(ws, tmp_path, monkeyp
     assert state["platform"] == em.current_platform() and "distribution" in state
     assert state["trusted_engine_pack_keys"] == ["rel"] and state["status"]["pack"] is None  # refused: not active
     assert "someone" not in checks and "<PATH>" in checks
+
+
+def _lock_replace(monkeypatch, failures: int, exc: OSError):
+    """os.replace refusing to move the staged pack into packs/ ``failures`` times (antivirus holding files)."""
+    real, calls = os.replace, {"n": 0}
+
+    def fake(src, dst):  # type: ignore[no-untyped-def]
+        if Path(dst).parent == engine_packs.packs_root() and calls["n"] < failures:
+            calls["n"] += 1
+            raise exc
+        return real(src, dst)
+
+    monkeypatch.setattr(em.os, "replace", fake)
+    return calls
+
+
+def test_files_briefly_locked_by_an_antivirus_are_retried(tmp_path, monkeypatch):
+    monkeypatch.setattr(em, "LOCK_RETRY_S", 5.0)
+    calls = _lock_replace(monkeypatch, 3, PermissionError(13, "Access is denied"))
+    res = em.install_archive(make_pack(tmp_path), health_check=ok_health)
+    assert res.state == "READY" and calls["n"] == 3 and em.active_pack()["version"] == "1.0.0"
+
+
+def test_files_locked_for_good_fail_explicitly_and_keep_the_previous_pack(tmp_path, monkeypatch):
+    em.install_archive(make_pack(tmp_path, "1.0.0"), health_check=ok_health)
+    monkeypatch.setattr(em, "LOCK_RETRY_S", 0.3)
+    _lock_replace(monkeypatch, 10_000, PermissionError(13, "Access is denied"))
+    with pytest.raises(AcetError) as ei:
+        em.install_archive(make_pack(tmp_path, "1.1.0"), health_check=ok_health)
+    assert ei.value.data["reason"] == "FILES_LOCKED" and ei.value.code == "ACET-EPM-013"
+    assert em.active_pack()["version"] == "1.0.0" and _staging_empty()
+    assert "FILES_LOCKED" in em.log_path().read_text(encoding="utf-8")
+
+
+def test_other_file_system_errors_are_explicit(tmp_path, monkeypatch):
+    _lock_replace(monkeypatch, 10_000, OSError(errno.EIO, "I/O error"))
+    with pytest.raises(AcetError) as ei:
+        em.install_archive(make_pack(tmp_path), health_check=ok_health)
+    assert ei.value.data["reason"] == "FILESYSTEM_ERROR" and em.active_pack() is None and _staging_empty()
