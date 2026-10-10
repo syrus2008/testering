@@ -329,7 +329,7 @@ CATALOG: dict[str, ErrorSpec] = {
             F.COMPATIBILITY,
             Out.SKIPPED_INCOMPATIBLE,
             "The pack was not installed; the active pack is unchanged.",
-            "Install a pack that supports this ACET version.",
+            "Install a pack built for this platform (Windows x64 for the published pack) and this ACET version.",
         ),
         _e(
             "ACET-EPM-008",
