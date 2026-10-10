@@ -25,6 +25,18 @@ def _isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
+def _no_real_watch_discovery(request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The automatic watch never looks at the test machine's real installations nor writes to its Documents."""
+    monkeypatch.setenv("ACET_WATCH_ARCHIVE", str(tmp_path / "watch-archive"))
+    if request.node.get_closest_marker("real_watch_discovery") is None:
+        from acet.application import watch
+
+        monkeypatch.setattr(watch, "steam_libraries", lambda: [])
+        for var in ("ProgramFiles(x86)", "ProgramFiles", "ProgramW6432"):
+            monkeypatch.setenv(var, str(tmp_path / "no-program-files"))
+
+
+@pytest.fixture(autouse=True)
 def _no_real_distribution(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
     """Tests never reach the real Engine Pack distribution of this build (tests/live opts in)."""
     if request.node.get_closest_marker("real_distribution") is None:

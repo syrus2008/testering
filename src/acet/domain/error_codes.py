@@ -372,6 +372,14 @@ CATALOG: dict[str, ErrorSpec] = {
             "Install a current pack.",
         ),
         _e(
+            "ACET-WATCH-001",
+            "Watch source not usable",
+            F.INPUT,
+            Out.PERMANENT_FAILURE,
+            "Nothing was watched or imported for this source.",
+            "Choose an existing folder or file containing the executables to watch.",
+        ),
+        _e(
             "ACET-EPM-013",
             "Engine Pack files locked by another program",
             F.OS,

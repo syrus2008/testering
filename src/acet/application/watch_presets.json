@@ -1,0 +1,15 @@
+{
+  "comment": "Install locations looked for by the automatic discovery of the Watch page (and its Detect button). Data only: the Core has no product-specific logic (ACC-041). A location the user removes is never added again.",
+  "products": [
+    {
+      "product": "BattlEye",
+      "system_locations": ["%ProgramFiles(x86)%\\Common Files\\BattlEye", "%ProgramFiles%\\Common Files\\BattlEye"],
+      "game_subfolders": ["BattlEye"]
+    },
+    {
+      "product": "EasyAntiCheat",
+      "system_locations": ["%ProgramFiles(x86)%\\EasyAntiCheat_EOS", "%ProgramFiles(x86)%\\EasyAntiCheat"],
+      "game_subfolders": ["EasyAntiCheat"]
+    }
+  ]
+}

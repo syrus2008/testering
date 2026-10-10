@@ -60,6 +60,19 @@ installs. They are exercised by the Windows CI matrix and the manual protocols.
 
 ## Quick start
 
+**Watch local versions (e.g. an anti-cheat installed on this PC):** page *Watch* → *Detect…* or *Add folder…*,
+then *Check now* or *Check automatically every N minutes*. Each time the watched executables change, ACET copies
+them, re-checks the copy and imports it as a new build (files are only read, never executed); *Compare last two
+versions* opens the comparison. CLI: `acet watch detect|add|list|remove|scan [--loop MINUTES]`.
+
+**Automatic version watch (e.g. the anti-cheat installed on this PC), page *Watch*:** on by default. ACET finds the
+installations itself (system folders and every Steam library), checks them at start-up and every 30 minutes, copies
+each new version to `Documents/ACET Versions/<product>/<date time>/` (with a `manifest.json` of SHA-256s), imports it
+as a build and compares it with the previous one (STANDARD, once the Engine Pack is installed). Files are only read,
+never executed. Options on the page: automatic discovery, interval, automatic comparison, versions folder, and
+"also when ACET is closed" (a Windows scheduled task running `acet watch cycle`). CLI: `acet watch
+cycle|detect|add|list|remove|scan [--loop MINUTES]`.
+
 **Windows, from the source folder:** double-click `Lancer-ACET.bat` (Python 3.11+ required). The first run creates a
 private `.venv` and installs ACET with its interface; later runs start it directly. `Lancer-ACET.bat update` pulls the
 latest code first; `Lancer-ACET.bat console` shows a console to read a start-up error.

@@ -397,6 +397,11 @@ class ComparePage(Page):
         split.setSizes([700, 400])
         lay.addWidget(split, 1)
 
+    def preselect(self, left: str, right: str) -> None:
+        """Select these two builds once the build lists are loaded (e.g. from the Watch page)."""
+        self.pending: tuple[str, str] | None = (left, right)
+        self.refresh()
+
     def refresh(self) -> None:
         from acet.application.views import builds, runs
 
@@ -410,6 +415,11 @@ class ComparePage(Page):
                     combo.setCurrentIndex(max(0, combo.findData(cur)))
             if self.right.count() > 1 and self.right.currentIndex() == 0:
                 self.right.setCurrentIndex(1)
+            pending = getattr(self, "pending", None)
+            if pending:
+                self.left.setCurrentIndex(max(0, self.left.findData(pending[0])))
+                self.right.setCurrentIndex(max(0, self.right.findData(pending[1])))
+                self.pending = None
 
         def fill_runs(rows: list[dict[str, Any]]) -> None:
             cur = self.runs.currentData()

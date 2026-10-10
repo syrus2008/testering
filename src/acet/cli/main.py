@@ -662,6 +662,62 @@ def cmd_engines(args: argparse.Namespace) -> int:
     return EXIT_OK if res.state == "READY" else EXIT_USER
 
 
+def cmd_watch(args: argparse.Namespace) -> int:
+    """Local version watch: detect / add / list / remove / scan (scan --loop N keeps checking every N minutes)."""
+    import time
+
+    from acet.application import watch
+
+    if args.sub == "detect":
+        found = watch.detect_candidates()
+        _emit(args, found, "\n".join(f"{c['product']:<14} {c['paths'][0]}" for c in found) or "(nothing found)")
+        return EXIT_OK
+    if args.sub == "add":
+        with _open(args) as ws:
+            src = watch.add_source(ws, args.label or args.product, args.product, args.paths)
+        _emit(args, src.__dict__, f"watching {src.label} ({src.id})")
+        return EXIT_OK
+    if args.sub == "list":
+        with _open(args, read_only=True) as ws:
+            items = watch.list_sources(ws)
+        text = "\n".join(
+            f"{s.id}  {s.label:<30} {s.last_status or 'never checked':<12} versions={len({h['build_id'] for h in s.history})}"
+            f"{'' if s.enabled else '  (disabled)'}"
+            for s in items
+        )
+        _emit(args, [s.__dict__ for s in items], text or "(no watched source)")
+        return EXIT_OK
+    if args.sub == "remove":
+        with _open(args) as ws:
+            watch.remove_source(ws, args.id)
+        _emit(args, {"removed": args.id}, f"removed {args.id}")
+        return EXIT_OK
+    if args.sub == "cycle":  # what the Watch page (and its Windows scheduled task) runs automatically
+        with _open(args) as ws:
+            cycle = watch.run_cycle(ws)
+        lines = [f"now watching {a}" for a in cycle["added"]]
+        lines += [f"{r.label:<30} {r.status:<12} {r.build_id or ''} {r.detail}" for r in cycle["results"]]
+        lines += cycle["compared"]
+        payload = {**cycle, "results": [r.to_dict() for r in cycle["results"]]}
+        _emit(args, payload, "\n".join(lines) or "(nothing found to watch)")
+        return EXIT_OK
+    worst = EXIT_OK
+    while True:
+        with _open(args) as ws:
+            results = watch.scan_all(ws) if not args.id else [watch.scan_source(ws, args.id)]
+        _emit(
+            args,
+            [r.to_dict() for r in results],
+            "\n".join(f"{r.label:<30} {r.status:<12} {r.build_id or ''} {r.detail}" for r in results)
+            or "(no enabled watched source)",
+        )
+        if any(r.status in ("ERROR", "EMPTY") for r in results):
+            worst = EXIT_PARTIAL
+        if not args.loop:
+            return worst
+        time.sleep(args.loop * 60)
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     from acet.platform import updates
 
@@ -865,6 +921,28 @@ def _register_operations(sub: Any, common: argparse.ArgumentParser) -> None:
         e2.add_argument("path")
         e2.set_defaults(func=cmd_pack_engine)
     eg.add_parser("list", parents=[common]).set_defaults(func=cmd_pack_engine)
+    wt = sub.add_parser("watch", help="watch local folders and import each new version as a build").add_subparsers(
+        dest="sub", required=True
+    )
+    wt.add_parser("detect", parents=[common], help="suggest known install locations (nothing is added)").set_defaults(
+        func=cmd_watch
+    )
+    wa = wt.add_parser("add", parents=[common], help="watch folders/files for a product")
+    wa.add_argument("product")
+    wa.add_argument("paths", nargs="+")
+    wa.add_argument("--label")
+    wa.set_defaults(func=cmd_watch)
+    wt.add_parser("list", parents=[common]).set_defaults(func=cmd_watch)
+    wt.add_parser(
+        "cycle", parents=[common], help="one automatic round: find installations, check, copy, import, compare"
+    ).set_defaults(func=cmd_watch)
+    wr = wt.add_parser("remove", parents=[common])
+    wr.add_argument("id")
+    wr.set_defaults(func=cmd_watch)
+    ws_ = wt.add_parser("scan", parents=[common], help="check now; a new version is imported as a build")
+    ws_.add_argument("--id", help="only this source")
+    ws_.add_argument("--loop", type=int, metavar="MINUTES", help="keep checking every MINUTES (Ctrl+C to stop)")
+    ws_.set_defaults(func=cmd_watch)
     en = sub.add_parser("engines", help="Engine Pack Manager: status, install, verify, repair").add_subparsers(
         dest="sub", required=True
     )

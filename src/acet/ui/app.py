@@ -204,7 +204,11 @@ class MainWindow(QMainWindow):
         self.engines_button = EngineStatusButton()
         self.engines_button.clicked.connect(lambda: self.open_engines())
         bar.addWidget(self.engines_button)
-        for i, cls in enumerate(PAGES):
+        from acet.ui.watch_page import WatchPage
+
+        pages = [*PAGES]
+        pages.insert(pages.index(next(c for c in PAGES if c.title == "Jobs")) + 1, WatchPage)  # Alt+1..9 unchanged
+        for i, cls in enumerate(pages):
             page = cls(self.ctx)
             self.ctx.pages[cls.title] = page
             self.stack.addWidget(page)
