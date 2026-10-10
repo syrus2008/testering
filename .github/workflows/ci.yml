@@ -72,6 +72,16 @@ jobs:
           $env:ACET_VERSION = (python -c "import acet; print(acet.__version__)")
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\acet.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+      - name: Source launcher Lancer-ACET.bat (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # 1st run: creates .venv and installs; 2nd run: nothing to reinstall, ACET still starts
+          $first = cmd /c "Lancer-ACET.bat check" 2>&1 | Out-String; Write-Output $first
+          if ($LASTEXITCODE -ne 0 -or $first -notmatch "interface OK") { throw "launcher first run failed" }
+          $second = cmd /c "Lancer-ACET.bat check" 2>&1 | Out-String; Write-Output $second
+          if ($LASTEXITCODE -ne 0 -or $second -notmatch "interface OK") { throw "launcher second run failed" }
+          if ($second -match "Installation des dependances") { throw "launcher reinstalled although pyproject.toml did not change" }
       - name: Installer smoke test (Windows)
         if: runner.os == 'Windows'
         shell: pwsh

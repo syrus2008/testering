@@ -60,6 +60,10 @@ installs. They are exercised by the Windows CI matrix and the manual protocols.
 
 ## Quick start
 
+**Windows, from the source folder:** double-click `Lancer-ACET.bat` (Python 3.11+ required). The first run creates a
+private `.venv` and installs ACET with its interface; later runs start it directly. `Lancer-ACET.bat update` pulls the
+latest code first; `Lancer-ACET.bat console` shows a console to read a start-up error.
+
 ```bash
 python -m pip install -e ".[dev]"            # core is stdlib-only; the extras add tests + PySide6
 acet workspace create demo                    # prints the workspace path
