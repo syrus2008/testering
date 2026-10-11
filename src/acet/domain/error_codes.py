@@ -380,6 +380,22 @@ CATALOG: dict[str, ErrorSpec] = {
             "Choose an existing folder or file containing the executables to watch.",
         ),
         _e(
+            "ACET-STEAM-001",
+            "Steam client not found",
+            F.INPUT,
+            Out.PERMANENT_FAILURE,
+            "No older version was downloaded.",
+            "Install Steam and sign in on this PC (older versions are downloaded by your own Steam client).",
+        ),
+        _e(
+            "ACET-STEAM-002",
+            "Steam version download not usable",
+            F.INPUT,
+            Out.PERMANENT_FAILURE,
+            "This version was not imported; other versions are not affected.",
+            "Check the manifest id and the depot (the one containing the anti-cheat folder), then try again.",
+        ),
+        _e(
             "ACET-EPM-013",
             "Engine Pack files locked by another program",
             F.OS,

@@ -153,3 +153,46 @@ def test_fully_automatic_without_any_click(qtbot, ws, tmp_path, monkeypatch):
     assert "NEW VERSION of BattlEye" in page.state.text()
     assert "Engine Pack" in page.state.text()  # no engines in this test: the comparison says what it needs
     w.runner.wait(30_000)
+
+
+def test_older_versions_from_steam_are_downloaded_imported_and_listed(qtbot, win, tmp_path, monkeypatch):
+    """The whole Steam flow from the window: game and depot found, SteamDB list pasted, version ticked, command
+    handed to the Steam console (simulated: Steam writes the files and its log line), import without a click."""
+    from acet.application import steam_history as sh
+    from tests.integration.test_steam_history import APP, DEPOT, _steam, _steam_downloads
+
+    root = _steam(tmp_path)
+    monkeypatch.setenv("ACET_STEAM_ROOT", str(root))
+    _idle(qtbot, win)
+    win.goto("Watch")
+    page = win.ctx.pages["Watch"]
+    page.older_versions()
+    dlg = page.steam_dialog
+    dlg.timer.setInterval(100)
+    _idle(qtbot, win)
+    qtbot.waitUntil(lambda: dlg.game.count() == 1, timeout=10_000)
+    assert "Some One" in dlg.account.text()
+    assert dlg.depot.currentData()["depot"] == DEPOT
+    old = "5743210987654321098"
+    opened: list[str] = []
+
+    def steam_console() -> None:  # what the user does in Steam: Ctrl+V, Enter; Steam then downloads
+        from PySide6.QtGui import QGuiApplication
+
+        opened.append(QGuiApplication.clipboard().text())
+        QTimer.singleShot(200, lambda: _steam_downloads(root, old, "v1"))
+
+    from PySide6.QtCore import QTimer
+
+    dlg.open_console = steam_console
+    dlg.paste.setPlainText(f"12 August 2026 – 09:05:00 UTC\t2 months ago\t{old}\n")
+    assert dlg.versions.count() == 1
+    dlg.versions.item(0).setCheckState(Qt.CheckState.Checked)
+    dlg.start.click()
+    qtbot.waitUntil(lambda: bool(opened), timeout=10_000)
+    assert opened == [f"download_depot {APP} {DEPOT} {old}"]
+    qtbot.waitUntil(lambda: "Imported Some Game 2026-08-12" in dlg.state.text(), timeout=60_000)
+    _idle(qtbot, win)
+    assert dlg.start.isEnabled() and not dlg.stop.isEnabled()
+    assert "already imported" in dlg.versions.item(0).text()
+    assert not sh.depot_dir(root, APP, DEPOT).exists()

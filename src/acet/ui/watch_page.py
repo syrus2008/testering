@@ -95,6 +95,7 @@ class WatchPage(Page):
         row.addWidget(self.button("Open &versions folder", self.open_archive))
         row.addWidget(self.button("&Add folder…", self.add_folder))
         row.addWidget(self.button("&Detect…", self.detect))
+        row.addWidget(self.button("Older versions (&Steam)…", self.older_versions))
         row.addWidget(self.button("Enable / &disable", self.toggle))
         row.addWidget(self.button("&Remove", self.remove))
         row.addStretch()
@@ -382,6 +383,19 @@ class WatchPage(Page):
             self.timer.start(self.interval.value() * 60_000)
         else:
             self.timer.stop()
+
+    def older_versions(self) -> None:
+        """Dated older versions downloaded by the Steam client signed in on this PC (non-modal window)."""
+        from acet.ui.steam_dialog import SteamVersionsDialog
+
+        dlg = getattr(self, "steam_dialog", None)
+        if dlg is None:
+            dlg = self.steam_dialog = SteamVersionsDialog(self.ctx, self)
+            dlg.finished.connect(lambda _r: self.refresh())
+        else:
+            dlg.load()
+        dlg.show()
+        dlg.raise_()
 
     def compare_last(self) -> None:
         from acet.application import watch

@@ -718,6 +718,30 @@ def cmd_watch(args: argparse.Namespace) -> int:
         time.sleep(args.loop * 60)
 
 
+def cmd_steam(args: argparse.Namespace) -> int:
+    """Older versions through the signed-in Steam client: list games/depots, account, parse a SteamDB list."""
+    from acet.application import steam_history as sh
+
+    if args.sub == "games":
+        games = sh.installed_games()
+        lines = []
+        for g in games:
+            lines.append(f"{g['appid']:<10} {g['name']}  [{', '.join(g['products'])}]")
+            lines += [f"    depot {d['depot']:<10} installed manifest {d['manifest']}  {sh.steamdb_url(d['depot'])}"
+                      for d in g["depots"]]  # fmt: skip
+        _emit(args, games, "\n".join(lines) or "(no installed Steam game with a known anti-cheat folder)")
+        return EXIT_OK
+    if args.sub == "account":
+        acc = sh.signed_in_account()
+        _emit(args, acc, f"{acc['persona'] or '?'} ({acc['account'] or 'no account'}) — running: {acc['running']}")
+        return EXIT_OK
+    rows = sh.parse_manifest_list(Path(args.file).read_text(encoding="utf-8", errors="replace"))
+    _emit(
+        args, rows, "\n".join(f"{r['manifest']}  {(r['date'] or 'no date')[:10]}" for r in rows) or "(no manifest id)"
+    )
+    return EXIT_OK
+
+
 def cmd_update(args: argparse.Namespace) -> int:
     from acet.platform import updates
 
@@ -943,6 +967,17 @@ def _register_operations(sub: Any, common: argparse.ArgumentParser) -> None:
     ws_.add_argument("--id", help="only this source")
     ws_.add_argument("--loop", type=int, metavar="MINUTES", help="keep checking every MINUTES (Ctrl+C to stop)")
     ws_.set_defaults(func=cmd_watch)
+    st = sub.add_parser("steam", help="older versions through the Steam client signed in on this PC").add_subparsers(
+        dest="sub", required=True
+    )
+    st.add_parser("games", parents=[common], help="installed games with an anti-cheat folder, and their depots"
+                  ).set_defaults(func=cmd_steam)  # fmt: skip
+    st.add_parser("account", parents=[common], help="who is signed in to Steam (names only)").set_defaults(
+        func=cmd_steam
+    )
+    sp_ = st.add_parser("parse", parents=[common], help="manifest ids and dates from a list copied from SteamDB")
+    sp_.add_argument("file")
+    sp_.set_defaults(func=cmd_steam)
     en = sub.add_parser("engines", help="Engine Pack Manager: status, install, verify, repair").add_subparsers(
         dest="sub", required=True
     )

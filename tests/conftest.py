@@ -32,6 +32,7 @@ def _no_real_watch_discovery(request: pytest.FixtureRequest, tmp_path: Path, mon
         from acet.application import watch
 
         monkeypatch.setattr(watch, "steam_libraries", lambda: [])
+        monkeypatch.setenv("ACET_STEAM_ROOT", str(tmp_path / "no-steam"))
         for var in ("ProgramFiles(x86)", "ProgramFiles", "ProgramW6432"):
             monkeypatch.setenv(var, str(tmp_path / "no-program-files"))
 

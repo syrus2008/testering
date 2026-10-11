@@ -73,6 +73,15 @@ never executed. Options on the page: automatic discovery, interval, automatic co
 "also when ACET is closed" (a Windows scheduled task running `acet watch cycle`). CLI: `acet watch
 cycle|detect|add|list|remove|scan [--loop MINUTES]`.
 
+**Dated older versions through Steam, page *Watch* → *Older versions (Steam)…*:** for an installed Steam game that
+ships an anti-cheat folder, pick the game and depot, *Open the SteamDB list*, copy the manifest table and paste it,
+tick versions. For each one ACET copies `download_depot <app> <depot> <manifest>` and opens the Steam console: paste
+(Ctrl+V) and Enter — Steam downloads with the account already signed in on the PC (ACET never sees a password). ACET
+notices the end in Steam's log, imports only the anti-cheat executables dated at the manifest date, keeps them in
+`Documents/ACET Versions/<product>/<date> <game> (Steam manifest <id>)/`, compares them with the installed version
+and deletes Steam's full depot download. The whole depot is downloaded by Steam (can be large). CLI: `acet steam
+games|account|parse FILE`.
+
 **Windows, from the source folder:** double-click `Lancer-ACET.bat` (Python 3.11+ required). The first run creates a
 private `.venv` and installs ACET with its interface; later runs start it directly. `Lancer-ACET.bat update` pulls the
 latest code first; `Lancer-ACET.bat console` shows a console to read a start-up error.
